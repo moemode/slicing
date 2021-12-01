@@ -1,0 +1,1 @@
+{"9":[1,5,1,9],"10":[2,5,2,7],"17":[1,5,1,9],"25":[1,1,1,10],"33":[2,6,2,7],"41":[2,5,2,7],"49":[2,1,2,8],"57":[1,1,2,8],"65":[1,1,2,8],"73":[1,1,2,8],"nBranches":0,"originalCodeFileName":"/home/v/slicing/project/program.js","instrumentedCodeFileName":"/home/v/slicing/project/program_jalangi_.js","code":"x = true;\ny = !x;"}
