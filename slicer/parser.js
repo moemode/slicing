@@ -18,7 +18,7 @@ function toAst(filePathIn, filePathOut) {
  */
 function keepLocations(program, locations) {
     var ast = acorn.parse(program, {ecmaVersion: 5, locations:true});
-    fbody_ast = ast.body[0];
+    fbody_ast = ast.body[0].body;
     filtered_fbody_ast = estrav.replace(fbody_ast, {
         enter: function(node, parent) {
             if(!locations.some(location => in_between_inclusive(location, node.loc.start.line, node.loc.end.line))) {
@@ -26,7 +26,7 @@ function keepLocations(program, locations) {
             }
         }
     });
-    ast.body[0] = filtered_fbody_ast;
+    ast.body[0].body = filtered_fbody_ast;
     let newprog = esc.generate(ast);
     return newprog;
 }
