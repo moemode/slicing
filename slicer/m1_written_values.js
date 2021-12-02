@@ -1,15 +1,28 @@
-
+const cytoscape = require("cytoscape");
 // Run the analysis with:
 // node src/js/commands/jalangi.js --inlineIID --inlineSource --analysis exampleAnalysis.js program.js
 
-(function (jalangi) {
+(function (jalangi, cytoscape) {
+
     function WrittenValuesAnalysis() {
         this.writtenValues = []
         this.lastWrites = {}
+        this.graph = cytoscape()
+
+        this.declare = function(iid, name, val, isArgument, argumentIndex, isCatchParam) {
+            this.writtenValues.push(val);
+            rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
+            this.lastWrites[name] = [val, rhs_line]
+        }
+
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             this.writtenValues.push(val);
             rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
             this.lastWrites[name] = [val, rhs_line]
+        }
+
+        this.read = function(iid, name, val, isGlobal, isScriptLocal) {
+            //add edge to last write / declar of variable name
         }
 
         this.endExecution = function () {
@@ -21,7 +34,7 @@
     }
 
     jalangi.analysis = new WrittenValuesAnalysis();
-}(J$));
+}(J$, cytoscape));
 
 
 
@@ -56,6 +69,5 @@ function jalangiLocationToPosition(jalangiLocation) {
             new Position(m[4], m[5]))
     } else {
         console.log("error in location conversion");
-
     }
 }
