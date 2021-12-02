@@ -26,8 +26,10 @@
 	function run_jalangi_slice(inFile, outFile, lineNb){
 		// create input parameters from args ditcionary
 		inputArgs = " --outFile "+outFile+" --lineNb "+lineNb;
-		stmt = 'node jalangi2/src/js/commands/jalangi.js --inlineIID --inlineSource' + inputArgs + " --analysis slicer/m1_written_values.js " + inFile;
-					
+        analysisParams = "--initParam outFile:" + outFile;
+        analysisParams += " --initParam lineNb:" + lineNb 
+		stmt = 'node ../../jalangi2/src/js/commands/jalangi.js ' + analysisParams + ' --inlineIID --inlineSource --analysis ../slice_analysis.js ' + inFile;
+        console.log("Jalangi call: " + stmt);
 		var exec = require('child_process').exec,
 		    child;
 		
