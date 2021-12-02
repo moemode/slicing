@@ -18,7 +18,7 @@ const fs = require("fs");
             rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line },
+                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line, name: name, val: val, type:"w" },
             });
         }
 
@@ -27,7 +27,7 @@ const fs = require("fs");
             let rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line },
+                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line, name: name, val: val, type:"w" },
             });
         }
 
@@ -40,7 +40,7 @@ const fs = require("fs");
             }
             let line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)));
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId}` },
+                group: 'nodes', data: { id: `n${this.nextNodeId}`, line:line, name: name, val: val, type:"r" },
             });
             targetNodeId = lastNameWrite[2];
             this.graph.add({
@@ -50,7 +50,6 @@ const fs = require("fs");
                     source: `n${this.nextNodeId}`,
                     target: `n${targetNodeId}`
                 },
-                line: line
             });
             this.nextNodeId = this.nextNodeId + 1;
             this.nextEdgeId = this.nextEdgeId + 1;
