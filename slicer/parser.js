@@ -37,4 +37,8 @@ function removeLines(progInPath, progOutPath, linesToKeep) {
 
 //toAst("./slicer/m1prog.js", "./slicer/m1prog_trans.js")
 let linesToKeep = [1, 2, 5, 6, 9, 10]
-removeLines("./slicer/m1prog.js", "./slicer/m1prog_removed.js", linesToKeep)
+//removeLines("./slicer/m1prog.js", "./slicer/m1prog_removed.js", linesToKeep)
+
+module.exports = {
+    removeLines: removeLines
+};

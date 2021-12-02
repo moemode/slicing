@@ -1,5 +1,7 @@
 const cytoscape = require("cytoscape");
 const fs = require("fs");
+const pruner = require("./parser.js");
+
 // Run the analysis with:
 // node src/js/commands/jalangi.js --inlineIID --inlineSource --analysis exampleAnalysis.js program.js
 
@@ -14,6 +16,7 @@ const fs = require("fs");
         this.nextEdgeId = 1;
         this.outFile = J$.initParams["outFile"]
         this.lineNb = J$.initParams["lineNb"]
+        this.linesToKeep = []
         
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
@@ -60,11 +63,21 @@ const fs = require("fs");
 
         this.endExecution = function () {
             //this.fs.writeFileSync("out.png", this.graph.png({output: "base64"}), {'encoding': 'base64'});
+            readsInLineNbCriterion = `node[type="r"][line="${this.lineNb}"]`
+            readNodesInLine = this.graph.elements(readsInLineNbCriterion);
+            reachableNodes = readNodesInLine.successors("node");
+            linesToKeep = reachableNodes.map(node => node.data("line"));
+            linesToKeep.push(this.lineNb)
+            console.log("linesToKeep: " + this.linesToKeep.toString());
             this.fs.writeFileSync("graph.json", JSON.stringify(this.graph.json()));
+            pruner.removeLines(J$.smap[1].originalCodeFileName, this.outFile, linesToKeep)
+            //this.linesToKeep = lines reachable in this.graph from read nodes in lineNb
+            /*
             for (let v of this.writtenValues) {
                 console.log(v);
             }
             console.log(this.lastWrites)
+            */
         }
     }
 
