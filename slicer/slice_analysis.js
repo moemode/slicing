@@ -66,8 +66,8 @@ const pruner = require("./parser.js");
             readsInLineNbCriterion = `node[type="r"][line="${this.lineNb}"]`
             readNodesInLine = this.graph.elements(readsInLineNbCriterion);
             reachableNodes = readNodesInLine.successors("node");
-            linesToKeep = reachableNodes.map(node => node.data("line"));
-            linesToKeep.push(this.lineNb)
+            linesToKeep = reachableNodes.map(node => parseInt(node.data("line")));
+            linesToKeep.push(parseInt(this.lineNb));
             console.log("linesToKeep: " + this.linesToKeep.toString());
             this.fs.writeFileSync("graph.json", JSON.stringify(this.graph.json()));
             pruner.removeLines(J$.smap[1].originalCodeFileName, this.outFile, linesToKeep)
