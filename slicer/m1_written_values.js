@@ -1,31 +1,65 @@
 const cytoscape = require("cytoscape");
+const fs = require("fs");
 // Run the analysis with:
 // node src/js/commands/jalangi.js --inlineIID --inlineSource --analysis exampleAnalysis.js program.js
 
-(function (jalangi, cytoscape) {
+(function (jalangi, cytoscape, fs) {
 
     function WrittenValuesAnalysis() {
-        this.writtenValues = []
-        this.lastWrites = {}
-        this.graph = cytoscape()
+        this.writtenValues = [];
+        this.lastWrites = {};
+        this.graph = cytoscape();
+        this.fs = fs;
+        this.nextNodeId = 1;
+        this.nextEdgeId = 1;
 
-        this.declare = function(iid, name, val, isArgument, argumentIndex, isCatchParam) {
+        this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
             rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-            this.lastWrites[name] = [val, rhs_line]
+            this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
+            this.graph.add({
+                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line },
+            });
         }
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             this.writtenValues.push(val);
-            rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-            this.lastWrites[name] = [val, rhs_line]
+            let rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
+            this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
+            this.graph.add({
+                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line },
+            });
         }
 
-        this.read = function(iid, name, val, isGlobal, isScriptLocal) {
-            //add edge to last write / declar of variable name
+        this.read = function (iid, name, val, isGlobal, isScriptLocal) {
+            //add edge to last write / declare of variable name
+            //assert val is lastWrites val
+            let lastNameWrite = this.lastWrites[name];
+            if (!lastNameWrite) {
+                return;
+            }
+            let line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)));
+            this.graph.add({
+                group: 'nodes', data: { id: `n${this.nextNodeId}` },
+            });
+            targetNodeId = lastNameWrite[2];
+            this.graph.add({
+                group: 'edges',
+                data: {
+                    id: `e${this.nextEdgeId}`,
+                    source: `n${this.nextNodeId}`,
+                    target: `n${targetNodeId}`
+                },
+                line: line
+            });
+            this.nextNodeId = this.nextNodeId + 1;
+            this.nextEdgeId = this.nextEdgeId + 1;
+
         }
 
         this.endExecution = function () {
+            //this.fs.writeFileSync("out.png", this.graph.png({output: "base64"}), {'encoding': 'base64'});
+            this.fs.writeFileSync("graph.json", JSON.stringify(this.graph.json()));
             for (let v of this.writtenValues) {
                 console.log(v);
             }
@@ -34,7 +68,7 @@ const cytoscape = require("cytoscape");
     }
 
     jalangi.analysis = new WrittenValuesAnalysis();
-}(J$, cytoscape));
+}(J$, cytoscape, fs));
 
 
 
