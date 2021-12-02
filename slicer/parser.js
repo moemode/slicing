@@ -60,5 +60,5 @@ function removeLines(progInPath, progOutPath, linesToKeep) {
 //removeLines("./slicer/m1prog.js", "./slicer/m1prog_removed.js", linesToKeep)
 
 module.exports = {
-    removeLines: removeLines2
+    removeLines: removeLines
 };

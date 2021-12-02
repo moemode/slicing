@@ -17,13 +17,14 @@ const pruner = require("./parser.js");
         this.outFile = J$.initParams["outFile"]
         this.lineNb = J$.initParams["lineNb"]
         this.linesToKeep = []
-        
+        this.readsForWrite = []
+
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
             rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line, name: name, val: val, type:"w" },
+                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line, name: name, val: val, type: "w" },
             });
         }
 
@@ -31,9 +32,21 @@ const pruner = require("./parser.js");
             this.writtenValues.push(val);
             let rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
+            readsInLine = `node[type="r"][line="${rhs_line}"]`
+            readNodesInLine = this.graph.elements(readsInLine);
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line, name: name, val: val, type:"w" },
+                group: 'nodes', data: { id: `n${this.nextNodeId}`, line: rhs_line, name: name, val: val, type: "w" },
             });
+            newEdges = readNodesInLine.map(node => ({
+                group: 'edges',
+                data: {
+                    id: `e${this.nextEdgeId++}`,
+                    source: `n${this.nextNodeId}`,
+                    target: node.id()
+                }
+            }));
+            this.graph.add(newEdges);
+            this.nextNodeId = this.nextNodeId + 1;
         }
 
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
@@ -45,7 +58,7 @@ const pruner = require("./parser.js");
             }
             let line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)));
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId}`, line:line, name: name, val: val, type:"r" },
+                group: 'nodes', data: { id: `n${this.nextNodeId}`, line: line, name: name, val: val, type: "r" },
             });
             targetNodeId = lastNameWrite[2];
             this.graph.add({
