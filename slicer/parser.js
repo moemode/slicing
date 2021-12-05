@@ -16,12 +16,12 @@ function toAst(filePathIn, filePathOut) {
  * @param {string} program 
  * @param {array of positive int} locations 
  */
-function keepLocations(program, locations) {
+function keepLines(program, lines) {
     var ast = acorn.parse(program, {ecmaVersion: 5, locations:true});
     fbody_ast = ast.body[0].body;
     filtered_fbody_ast = estrav.replace(fbody_ast, {
         enter: function(node, parent) {
-            if(!locations.some(location => in_between_inclusive(location, node.loc.start.line, node.loc.end.line))) {
+            if(!lines.some(location => in_between_inclusive(location, node.loc.start.line, node.loc.end.line))) {
                 this.remove();
             }
         }
@@ -49,16 +49,31 @@ function in_between_inclusive(x, start, end) {
     return start <= x && x <= end;
 }
 
-function removeLines(progInPath, progOutPath, linesToKeep) {
+function prune(progInPath, progOutPath, graph, lineNb) {
+    readsInLineNbCriterion = `node[type="r"][line="${lineNb}"]`
+    readNodesInLine = graph.elements(readsInLineNbCriterion);
+    reachableNodes = readNodesInLine.successors("node");
+    linesToKeep = reachableNodes.map(node => parseInt(node.data("line")));
+    linesToKeep.push(parseInt(lineNb));
+    console.log("linesToKeep: " + linesToKeep.toString());
     let prog = fs.readFileSync(progInPath).toString();
-    let newprog = keepLocations(prog, linesToKeep);
+    let newprog = keepLines(prog, linesToKeep);
     fs.writeFileSync(progOutPath, newprog);
 }
 
+class Pruner {
+    constructor(progInPath, progOutPath, graph, lineNb){
+        this.progInPath = progInPath;
+        this.progOutPath = progOutPath;
+        this.graph = graph;
+        this.lineNb = lineNb;
+    }
+
+}
 //toAst("./slicer/m1prog.js", "./slicer/m1prog_trans.js")
 //let linesToKeep = [1, 2, 5, 6, 9, 10]
 //removeLines("./slicer/m1prog.js", "./slicer/m1prog_removed.js", linesToKeep)
 
 module.exports = {
-    removeLines: removeLines
+    prune
 };

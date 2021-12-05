@@ -24,7 +24,9 @@ const pruner = require("./parser.js");
             rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId++}`, line: rhs_line, name: name, val: val, type: "w" },
+                group: 'nodes', data: { id: `n${this.nextNodeId++}`, 
+                loc: jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                line: rhs_line, name: name, val: val, type: "w" },
             });
         }
 
@@ -35,7 +37,15 @@ const pruner = require("./parser.js");
             readsInLine = `node[type="r"][line="${rhs_line}"]`
             readNodesInLine = this.graph.elements(readsInLine);
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId}`, line: rhs_line, name: name, val: val, type: "w" },
+                group: 'nodes',
+                data: {
+                    id: `n${this.nextNodeId}`,
+                    loc: jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                    line: rhs_line,
+                    name: name,
+                    val: val,
+                    type: "w"
+                },
             });
             newEdges = readNodesInLine.map(node => ({
                 group: 'edges',
@@ -58,7 +68,11 @@ const pruner = require("./parser.js");
             }
             let line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)));
             this.graph.add({
-                group: 'nodes', data: { id: `n${this.nextNodeId}`, line: line, name: name, val: val, type: "r" },
+                group: 'nodes', data: {
+                    id: `n${this.nextNodeId}`,
+                    loc: jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                    line: line, name: name, val: val, type: "r"
+                },
             });
             targetNodeId = lastNameWrite[2];
             this.graph.add({
@@ -76,14 +90,8 @@ const pruner = require("./parser.js");
 
         this.endExecution = function () {
             //this.fs.writeFileSync("out.png", this.graph.png({output: "base64"}), {'encoding': 'base64'});
-            readsInLineNbCriterion = `node[type="r"][line="${this.lineNb}"]`
-            readNodesInLine = this.graph.elements(readsInLineNbCriterion);
-            reachableNodes = readNodesInLine.successors("node");
-            linesToKeep = reachableNodes.map(node => parseInt(node.data("line")));
-            linesToKeep.push(parseInt(this.lineNb));
-            console.log("linesToKeep: " + this.linesToKeep.toString());
             this.fs.writeFileSync("graph.json", JSON.stringify(this.graph.json()));
-            pruner.removeLines(J$.smap[1].originalCodeFileName, this.outFile, linesToKeep)
+            pruner.prune(J$.smap[1].originalCodeFileName, this.outFile, this.graph, this.lineNb)
             //this.linesToKeep = lines reachable in this.graph from read nodes in lineNb
             /*
             for (let v of this.writtenValues) {
@@ -117,17 +125,17 @@ var SourceLocation = function SourceLocation(p, start, end) {
 
 
 function jalangiLocationToLine(jalangiLocation) {
-    let sourceLocation = jalangiLocationToPosition(jalangiLocation);
+    let sourceLocation = jalangiLocationToSourceLocation(jalangiLocation);
     return sourceLocation.start.line;
 }
 
-function jalangiLocationToPosition(jalangiLocation) {
+function jalangiLocationToSourceLocation(jalangiLocation) {
     let r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/
     let m = jalangiLocation.match(r)
     if (m.length == 6) {
         return new SourceLocation(m[1],
-            new Position(m[2], m[3]),
-            new Position(m[4], m[5]))
+            new Position(m[2], m[3] - 1),
+            new Position(m[4], m[5] - 1))
     } else {
         console.log("error in location conversion");
     }
