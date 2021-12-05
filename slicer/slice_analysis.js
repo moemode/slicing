@@ -1,6 +1,8 @@
 const cytoscape = require("cytoscape");
 const fs = require("fs");
 const pruner = require("./parser.js");
+const location = require("./datatypes");
+
 
 // Run the analysis with:
 // node src/js/commands/jalangi.js --inlineIID --inlineSource --analysis exampleAnalysis.js program.js
@@ -21,18 +23,18 @@ const pruner = require("./parser.js");
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
-            rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
+            rhs_line = location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
             this.graph.add({
                 group: 'nodes', data: { id: `n${this.nextNodeId++}`, 
-                loc: jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
                 line: rhs_line, name: name, val: val, type: "w" },
             });
         }
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             this.writtenValues.push(val);
-            let rhs_line = parseInt(jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))))
+            let rhs_line = parseInt(location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))))
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
             readsInLine = `node[type="r"][line=${rhs_line}]`
             readNodesInLine = this.graph.elements(readsInLine);
@@ -40,7 +42,7 @@ const pruner = require("./parser.js");
                 group: 'nodes',
                 data: {
                     id: `n${this.nextNodeId}`,
-                    loc: jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
                     line: rhs_line,
                     name: name,
                     val: val,
@@ -66,11 +68,11 @@ const pruner = require("./parser.js");
             if (!lastNameWrite) {
                 return;
             }
-            let line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)));
+            let line = location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)));
             this.graph.add({
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId}`,
-                    loc: jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
                     line: line, name: name, val: val, type: "r"
                 },
             });
@@ -108,35 +110,5 @@ const pruner = require("./parser.js");
 
 
 
-var Position = function Position(line, col) {
-    this.line = line;
-    this.column = col;
-};
-
-Position.prototype.offset = function offset(n) {
-    return new Position(this.line, this.column + n)
-};
-
-var SourceLocation = function SourceLocation(p, start, end) {
-    this.start = start;
-    this.end = end;
-    if (p.sourceFile !== null) { this.source = p.sourceFile; }
-};
 
 
-function jalangiLocationToLine(jalangiLocation) {
-    let sourceLocation = jalangiLocationToSourceLocation(jalangiLocation);
-    return sourceLocation.start.line;
-}
-
-function jalangiLocationToSourceLocation(jalangiLocation) {
-    let r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/
-    let m = jalangiLocation.match(r)
-    if (m.length == 6) {
-        return new SourceLocation(m[1],
-            new Position(parseInt(m[2]), parseInt(m[3]) - 1),
-            new Position(parseInt(m[4]), parseInt(m[5]) - 1));
-    } else {
-        console.log("error in location conversion");
-    }
-}

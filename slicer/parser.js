@@ -3,6 +3,7 @@ var acorn = require('acorn');
 var esc = require('escodegen')
 var fs = require('fs');
 var estrav = require('estraverse');
+var location = require('./datatypes');
 
 function toAst(filePathIn, filePathOut) {
     let prog = fs.readFileSync(filePathIn).toString();
@@ -11,51 +12,24 @@ function toAst(filePathIn, filePathOut) {
     fs.writeFileSync(filePathOut, newprog);
 }
 
-/**
- * 
- * @param {string} program 
- * @param {array of positive int} locations 
- */
-function keepLines(program, lines) {
-    var ast = acorn.parse(program, {ecmaVersion: 5, locations:true});
-    fbody_ast = ast.body[0].body;
-    filtered_fbody_ast = estrav.replace(fbody_ast, {
-        enter: function(node, parent) {
-            if(!lines.some(location => in_between_inclusive(location, node.loc.start.line, node.loc.end.line))) {
-                this.remove();
-            }
-        }
-    });
-    ast.body[0].body = filtered_fbody_ast;
-    let newprog = esc.generate(ast);
-    return newprog;
-}
-
-const keepLines2 = (data, lines = []) => {
-    return data
-        .split('\n')
-        .filter((val, idx) => lines.includes(idx))
-        .join('\n');
-}
-
-function removeLines2(progInPath, progOutPath, linesToKeep) {
-    let prog = fs.readFileSync(progInPath).toString();
-    linesToKeep = linesToKeep.map(l => l - 1);
-    fs.writeFileSync(progOutPath,  keepLines2(prog, linesToKeep));
-}
-
-
-function in_between_inclusive(x, start, end) {
-    return start <= x && x <= end;
-}
-
-function pruneProgram(prog, graph, lineNb) {
-    let ast = acorn.parse(program, {ecmaVersion: 5, locations:true});
+function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
+    let ast = acorn.parse(prog, {ecmaVersion: 5, locations:true});
     let fbody_ast = ast.body[0].body;
     let filtered_fbody_ast = estrav.replace(fbody_ast, {
         enter: function(node, parent) {
-            if(!lines.some(location => in_between_inclusive(location, node.loc.start.line, node.loc.end.line))) {
-                this.remove();
+            if(node.type == 'VariableDeclaration') {
+                if(!relevant_vars.includes(node.declarations[0].id.name)) {
+                    return this.remove();
+                }
+            }
+            if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
+                if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                    return node;
+                }
+                if(within_line(node.loc, lineNb)) {
+                    return node;
+                }
+                return this.remove();
             }
         }
     });
@@ -64,23 +38,32 @@ function pruneProgram(prog, graph, lineNb) {
     return newprog;
 }
 
+
+
 function prune(progInPath, progOutPath, graph, lineNb) {
-    readsInLineNbCriterion = `node[type="r"][line=${lineNb}]`
-    readNodesInLine = graph.elements(readsInLineNbCriterion);
-    reachableNodes = readNodesInLine.successors("node");
-    linesToKeep = reachableNodes.map(node => parseInt(node.data("line")));
-    linesToKeep.push(parseInt(lineNb));
-    console.log("linesToKeep: " + linesToKeep.toString());
-    let prog = fs.readFileSync(progInPath).toString();
-    let newprog = keepLines(prog, linesToKeep);
+    const readsInLineNbCriterion = `node[type="r"][line=${lineNb}]`
+    const readNodesInLine = graph.elements(readsInLineNbCriterion);
+    const reachableNodes = readNodesInLine.successors("node");
+    const relevant_locs = reachableNodes.map(node => node.data("loc"));
+    const relevant_vars = reachableNodes.map(node => node.data("name"));
+    /*relevant_locs.push(new location.SourceLocation(progInPath,
+        new location.Position(lineNb, 0),
+        new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
+    const prog = fs.readFileSync(progInPath).toString();
+    const newprog = pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars);
     fs.writeFileSync(progOutPath, newprog);
 }
 
+function within_line(location, line) {
+    return location.start.line == location.end.line && location.end.line == line;
+}
 
-
-//toAst("./slicer/m1prog.js", "./slicer/m1prog_trans.js")
-//let linesToKeep = [1, 2, 5, 6, 9, 10]
-//removeLines("./slicer/m1prog.js", "./slicer/m1prog_removed.js", linesToKeep)
+function in_between_inclusive(outer, inner) {
+    return (outer.start.line <= inner.start.line &&
+        outer.start.column <= inner.start.column &&
+        inner.end.line <= outer.end.line&&
+        inner.end.column <= outer.end.column)
+}
 
 module.exports = {
     prune
