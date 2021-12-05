@@ -49,8 +49,23 @@ function in_between_inclusive(x, start, end) {
     return start <= x && x <= end;
 }
 
+function pruneProgram(prog, graph, lineNb) {
+    let ast = acorn.parse(program, {ecmaVersion: 5, locations:true});
+    let fbody_ast = ast.body[0].body;
+    let filtered_fbody_ast = estrav.replace(fbody_ast, {
+        enter: function(node, parent) {
+            if(!lines.some(location => in_between_inclusive(location, node.loc.start.line, node.loc.end.line))) {
+                this.remove();
+            }
+        }
+    });
+    ast.body[0].body = filtered_fbody_ast;
+    let newprog = esc.generate(ast);
+    return newprog;
+}
+
 function prune(progInPath, progOutPath, graph, lineNb) {
-    readsInLineNbCriterion = `node[type="r"][line="${lineNb}"]`
+    readsInLineNbCriterion = `node[type="r"][line=${lineNb}]`
     readNodesInLine = graph.elements(readsInLineNbCriterion);
     reachableNodes = readNodesInLine.successors("node");
     linesToKeep = reachableNodes.map(node => parseInt(node.data("line")));
@@ -61,15 +76,8 @@ function prune(progInPath, progOutPath, graph, lineNb) {
     fs.writeFileSync(progOutPath, newprog);
 }
 
-class Pruner {
-    constructor(progInPath, progOutPath, graph, lineNb){
-        this.progInPath = progInPath;
-        this.progOutPath = progOutPath;
-        this.graph = graph;
-        this.lineNb = lineNb;
-    }
 
-}
+
 //toAst("./slicer/m1prog.js", "./slicer/m1prog_trans.js")
 //let linesToKeep = [1, 2, 5, 6, 9, 10]
 //removeLines("./slicer/m1prog.js", "./slicer/m1prog_removed.js", linesToKeep)

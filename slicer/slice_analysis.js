@@ -15,7 +15,7 @@ const pruner = require("./parser.js");
         this.nextNodeId = 1;
         this.nextEdgeId = 1;
         this.outFile = J$.initParams["outFile"]
-        this.lineNb = J$.initParams["lineNb"]
+        this.lineNb = parseInt(J$.initParams["lineNb"])
         this.linesToKeep = []
         this.readsForWrite = []
 
@@ -32,9 +32,9 @@ const pruner = require("./parser.js");
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             this.writtenValues.push(val);
-            let rhs_line = jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
+            let rhs_line = parseInt(jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))))
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
-            readsInLine = `node[type="r"][line="${rhs_line}"]`
+            readsInLine = `node[type="r"][line=${rhs_line}]`
             readNodesInLine = this.graph.elements(readsInLine);
             this.graph.add({
                 group: 'nodes',
@@ -134,8 +134,8 @@ function jalangiLocationToSourceLocation(jalangiLocation) {
     let m = jalangiLocation.match(r)
     if (m.length == 6) {
         return new SourceLocation(m[1],
-            new Position(m[2], m[3] - 1),
-            new Position(m[4], m[5] - 1))
+            new Position(parseInt(m[2]), parseInt(m[3]) - 1),
+            new Position(parseInt(m[4]), parseInt(m[5]) - 1));
     } else {
         console.log("error in location conversion");
     }
