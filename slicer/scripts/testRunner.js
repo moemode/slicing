@@ -45,7 +45,7 @@
 		child = exec(stmt,
 		  function (error, stdout, stderr) {
 		    console.log('stdout: ' + stdout); // status message after executing slice.js
-		    //compare(element["goldFile"],element["outFile"]); // compare method to evaluate expected and predicted slice
+		    compare(element["goldFile"],element["outFile"]); // compare method to evaluate expected and predicted slice
 		    if (error !== null) {
 		      	console.log('exec error: ' + error);		    	
 		    	console.log('stderr: ' + stderr);
