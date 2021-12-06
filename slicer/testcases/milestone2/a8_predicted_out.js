@@ -1,6 +1,6 @@
 function sliceMe() {
-    var b = 'Winter';
     var c = {};
-    c.semester = b;
+    var d = c.course;
+    return d;
 }
 sliceMe();
