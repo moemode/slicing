@@ -18,7 +18,7 @@ const location = require("./datatypes");
         this.nextEdgeId = 1;
         this.outFile = J$.initParams["outFile"];
         // the specified line is 0-based but we use 1-based internally
-        this.lineNb = parseInt(J$.initParams["lineNb"]) + 1;
+        this.lineNb = parseInt(J$.initParams["lineNb"]);
         this.linesToKeep = []
         this.readsForWrite = []
 
