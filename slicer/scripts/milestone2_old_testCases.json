@@ -1,0 +1,9 @@
+[
+{"inFile": "../testcases/milestone2_old/a2_in.js", "outFile": "../testcases/milestone2_old/a2_predicted_out.js", "lineNb":5, "goldFile": "../testcases/milestone2_old/a2_out.js"},
+{"inFile": "../testcases/milestone2_old/a3_in.js", "outFile": "../testcases/milestone2_old/a3_predicted_out.js", "lineNb":5, "goldFile": "../testcases/milestone2_old/a3_out.js"},
+{"inFile": "../testcases/milestone2_old/a4_in.js", "outFile": "../testcases/milestone2_old/a4_predicted_out.js", "lineNb":5, "goldFile": "../testcases/milestone2_old/a4_out.js"},
+{"inFile": "../testcases/milestone2_old/a7_in.js", "outFile": "../testcases/milestone2_old/a7_predicted_out.js", "lineNb":5, "goldFile": "../testcases/milestone2_old/a7_out.js"},
+{"inFile": "../testcases/milestone2_old/a8_in.js", "outFile": "../testcases/milestone2_old/a8_predicted_out.js", "lineNb":7, "goldFile": "../testcases/milestone2_old/a8_out.js"}
+]
+
+

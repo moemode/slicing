@@ -1,7 +1,5 @@
 function sliceMe() {
-    var x;
-    var y;
-    var z;
+    var x, y, z;
     x = 1;
     y = 2 + x;
     z = 3 + x;
