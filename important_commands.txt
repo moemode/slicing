@@ -1,0 +1,1 @@
+node src/js/commands/jalangi.js --inlineIID --inlineSource --analysis src/js/sample_analyses/ChainedAnalyses.js --analysis src/js/runtime/SMemory.js --analysis src/js/sample_analyses/pldi16/TraceAll.js ../slicer/testcases/milestone2/a8_in.js > ../a8_trace.txt
