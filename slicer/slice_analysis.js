@@ -33,7 +33,7 @@ const location = require("./datatypes");
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId++}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    line: rhs_line, name: name, val: val, type: "w"
+                    line: rhs_line, name: name, val: val, type: "declare"
                 },
             };
             this.lastWrites[name] = declareNode;
@@ -54,7 +54,7 @@ const location = require("./datatypes");
                     name: name,
                     val: val,
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    type: "w"
+                    type: "write"
                 },
             };
             this.graph.add(writeNode);
@@ -105,7 +105,7 @@ const location = require("./datatypes");
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    name: name, val: val, type: "r",
+                    name: name, val: val, type: "read",
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 },
             };
@@ -157,7 +157,6 @@ const location = require("./datatypes");
 
         this.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
             const retrievalNode = this.currentObjectRetrievals[base.__id__];
-            const putFieldNode = this.lastPut[base.__id__][offset];
             const getFieldNode = {
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId++}`,
@@ -166,8 +165,18 @@ const location = require("./datatypes");
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 },
             };
+            this.graph.add(getFieldNode);
             this.addEdge(getFieldNode, retrievalNode);
-            this.addEdge(getFieldNode, putFieldNode);
+            const baseObjectPuts = this.lastPut[base.__id__]
+            /* 
+            When there is no put for this field on the object it might have been created by a literal.
+            But then we must have read a variable containing this object and the read node
+            transitively depends on this write of the literal into a original variable
+            */
+            if (baseObjectPuts !== undefined) {
+                const putFieldNode = this.lastPut[base.__id__][offset];
+                this.addEdge(getFieldNode, putFieldNode);
+            }
             return this.addObjectRetrieval(val, retrievalNode);
         }
 
