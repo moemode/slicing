@@ -37,7 +37,7 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
         }
     });
     ast.body[0].body = filtered_fbody_ast;
-    let newprog = esc.generate(ast);
+    let newprog = esc.generate(ast, {format: {preserveBlankLines: true}});
     return newprog;
 }
 
