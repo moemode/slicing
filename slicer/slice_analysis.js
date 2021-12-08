@@ -22,6 +22,9 @@ const location = require("./datatypes");
 
         this.currentExprNodes = [];
         this.lastWrites = {};
+        //this.lastPut[objectId][offset] = putNode
+        this.lastPut = {};
+        this.nextObjectIds = 1;
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
@@ -125,6 +128,12 @@ const location = require("./datatypes");
             } else {
                 console.log("Read without write");
             }
+            if (typeof val === "object") {
+                val.__id__ = this.nextObjectIds;
+                this.currentObjectRetrievals[this.nextObjectIds] = readNode;
+                this.nextObjectIds++;
+                return { result: val };
+            }
             /*
             if (!lastNameWrite) {
                 return;
@@ -149,7 +158,33 @@ const location = require("./datatypes");
             this.nextNodeId = this.nextNodeId + 1;
             this.nextEdgeId = this.nextEdgeId + 1;
             */
+        }
 
+        this.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+            const retrievalNode = this.currentObjectRetrievals(base.__id__);
+            const putFieldNode = this.lastPut[base.__id__][offset];
+            const getFieldNode = {
+                group: 'nodes', data: {
+                    id: `n${this.nextNodeId}`,
+                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                    name: name, val: val, type: "getField",
+                    line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+                },
+            };
+            this.addEdge(getFieldNode, retrievalNode);
+            this.addEdge(getFieldNode, putFieldNode);
+        }
+
+
+        this.addEdge = function (source, target) {
+            this.graph.add({
+                group: 'edges',
+                data: {
+                    id: `e${this.nextEdgeId++}`,
+                    source: source.data.id,
+                    target: target.data.id,
+                },
+            });
         }
 
         this.endExecution = function () {
@@ -167,6 +202,7 @@ const location = require("./datatypes");
 
         this.endExpression = function () {
             this.currentExprNodes = [];
+            this.currentObjectRetrievals = [];
         }
     }
 
