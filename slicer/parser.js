@@ -17,6 +17,9 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
     let fbody_ast = ast.body[0].body;
     let filtered_fbody_ast = estrav.replace(fbody_ast, {
         enter: function(node, parent) {
+            if(within_line(node.loc, lineNb)) {
+                return node;
+            }
             if(node.type == 'VariableDeclaration') {
                 if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
                     return node;
@@ -27,9 +30,6 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
                 if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
-                    return node;
-                }
-                if(within_line(node.loc, lineNb)) {
                     return node;
                 }
                 return this.remove();
@@ -44,8 +44,8 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
 
 
 function prune(progInPath, progOutPath, graph, lineNb) {
-    const readsInLineNbCriterion = `node[type="read"][line=${lineNb}]`
-    const readNodesInLine = graph.elements(readsInLineNbCriterion);
+    const readsInLineNbCriterion = `node[type="read"][line=${lineNb}], node[type="getField"][line=${lineNb}]`
+    const readNodesInLine = graph.nodes(readsInLineNbCriterion);
     const reachableNodes = readNodesInLine.successors("node");
     const relevant_locs = reachableNodes.map(node => node.data("loc"));
     const relevant_vars = reachableNodes.map(node => node.data("name"));
@@ -56,6 +56,7 @@ function prune(progInPath, progOutPath, graph, lineNb) {
     const newprog = pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars);
     fs.writeFileSync(progOutPath, newprog);
 }
+
 
 function within_line(location, line) {
     return location.start.line == location.end.line && location.end.line == line;
