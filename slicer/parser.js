@@ -18,6 +18,9 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
     let filtered_fbody_ast = estrav.replace(fbody_ast, {
         enter: function(node, parent) {
             if(node.type == 'VariableDeclaration') {
+                if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                    return node;
+                }
                 if(!relevant_vars.includes(node.declarations[0].id.name)) {
                     return this.remove();
                 }
