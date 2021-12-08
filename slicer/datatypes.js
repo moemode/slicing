@@ -30,10 +30,17 @@ function jalangiLocationToSourceLocation(jalangiLocation) {
     }
 }
 
+function in_between_inclusive(outer, inner) {
+    return (outer.start.line <= inner.start.line &&
+        outer.start.column <= inner.start.column &&
+        inner.end.line <= outer.end.line&&
+        inner.end.column <= outer.end.column)
+}
 
 module.exports = {
     Position,
     SourceLocation,
     jalangiLocationToSourceLocation,
-    jalangiLocationToLine
+    jalangiLocationToLine,
+    in_between_inclusive
 };

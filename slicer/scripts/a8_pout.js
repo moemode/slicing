@@ -1,6 +1,6 @@
 function sliceMe() {
-    var c = {};
-    var d = c.course;
-    return d;
+    var x;
+    x = 1;
+    return x;
 }
 sliceMe();
