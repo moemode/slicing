@@ -69,6 +69,11 @@ const location = require("./datatypes");
                 }
             }));
             this.graph.add(newEdges);
+            if(typeof val === "object" && val.__id__ ===undefined) {
+                val.__id__ = this.nextObjectIds++;
+                return { result: val };
+
+            }
             /*
             let rhs_line = parseInt(location.jalangiLocationToLine())
             this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
@@ -155,17 +160,40 @@ const location = require("./datatypes");
             */
         }
 
+        this.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
+            const retrievalNode = this.currentObjectRetrievals[base.__id__];
+            const putFieldNode = {
+                group: 'nodes', data: {
+                    id: `n${this.nextNodeId++}`,
+                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                    name: `putfield ${offset}:${val}`, val: val, type: "putField",
+                    line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+                },
+            };
+            this.graph.add(putFieldNode);
+            this.addEdge(putFieldNode, retrievalNode);
+            const readsForPut = this.currentExprNodes.filter(node => location.in_between_inclusive(putFieldNode.data.loc, node.data.loc));
+            readsForPut.forEach(node => this.addEdge(putFieldNode, node));
+            this.currentExprNodes.push(putFieldNode);
+            // initialize if first put
+            if(this.lastPut[base.__id__] === undefined) {
+                this.lastPut[base.__id__] = {};
+            }
+            this.lastPut[base.__id__][offset] = putFieldNode;
+        }
+
         this.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
             const retrievalNode = this.currentObjectRetrievals[base.__id__];
             const getFieldNode = {
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId++}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    name: `getfield${val}`, val: val, type: "getField",
+                    name: `getfield ${offset}:${val}`, val: val, type: "getField",
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 },
             };
             this.graph.add(getFieldNode);
+            this.currentExprNodes.push(getFieldNode);
             this.addEdge(getFieldNode, retrievalNode);
             const baseObjectPuts = this.lastPut[base.__id__]
             /* 
