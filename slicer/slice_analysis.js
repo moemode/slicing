@@ -128,12 +128,7 @@ const location = require("./datatypes");
             } else {
                 console.log("Read without write");
             }
-            if (typeof val === "object") {
-                val.__id__ = this.nextObjectIds;
-                this.currentObjectRetrievals[this.nextObjectIds] = readNode;
-                this.nextObjectIds++;
-                return { result: val };
-            }
+            return this.addObjectRetrieval(val, readNode);
             /*
             if (!lastNameWrite) {
                 return;
@@ -161,20 +156,31 @@ const location = require("./datatypes");
         }
 
         this.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
-            const retrievalNode = this.currentObjectRetrievals(base.__id__);
+            const retrievalNode = this.currentObjectRetrievals[base.__id__];
             const putFieldNode = this.lastPut[base.__id__][offset];
             const getFieldNode = {
                 group: 'nodes', data: {
-                    id: `n${this.nextNodeId}`,
+                    id: `n${this.nextNodeId++}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    name: name, val: val, type: "getField",
+                    name: `getfield${val}`, val: val, type: "getField",
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 },
             };
             this.addEdge(getFieldNode, retrievalNode);
             this.addEdge(getFieldNode, putFieldNode);
+            return this.addObjectRetrieval(val, retrievalNode);
         }
 
+        this.addObjectRetrieval = function (val, retrievalNode) {
+            if(typeof val !== "object") {
+                return;
+            }
+            if (val.__id__ === undefined) {
+                val.__id__ = this.nextObjectIds++;
+            }
+            this.currentObjectRetrievals[val.__id__] = retrievalNode;
+            return { result: val };
+        }
 
         this.addEdge = function (source, target) {
             this.graph.add({
