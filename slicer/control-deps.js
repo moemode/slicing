@@ -32,19 +32,19 @@ function computeControlDeps(prog) {
     astt.visit(fbody_ast, {
         visitIfStatement(path) {
             const node = path.node;
-            if (path.parent && path.parent.__test){
-                node.__test = path.parent.__test;
+            if (path.parent && path.parent.__cdep){
+                node.__cdep = path.parent.__cdep;
             }
-            path.__test = node.test.loc;
+            path.__cdep = node.test.loc;
             controlDeps.push([node.test.loc, node.consequent.loc]);
             this.traverse(path)
         },
         visitNode(path) {
             console.log(path);
             const node = path.node;
-            if (path.parent && path.parent.__test){
-                path.__test = path.parent.__test;
-                node.__test = path.parent.__test;
+            if (path.parent && path.parent.__cdep){
+                path.__cdep = path.parent.__cdep;
+                node.__cdep = path.parent.__cdep;
             }
             this.traverse(path);
         }
