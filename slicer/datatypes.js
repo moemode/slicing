@@ -10,7 +10,7 @@ Position.prototype.offset = function offset(n) {
 var SourceLocation = function SourceLocation(p, start, end) {
     this.start = start;
     this.end = end;
-    if (p.sourceFile !== null) { this.source = p.sourceFile; }
+    if (p && p.sourceFile !== null) { this.source = p.sourceFile; }
 };
 
 function jalangiLocationToLine(jalangiLocation) {

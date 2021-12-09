@@ -15,15 +15,56 @@ function toAst(filePathIn, filePathOut) {
     fs.writeFileSync(filePathOut, newprog);
 }
 
-class Test {
-    constructor(testLoc, branchLoc) {
+class BranchDependency {
+    constructor(testLoc, branchLoc, type) {
         this.testLoc = testLoc;
         this.branchLoc = branchLoc;
-        this.children = [];
+        this.type = type;
     }
 }
 
 function computeControlDeps(prog) {
+    const graph = cytoscape();
+    const ast = parse(prog)
+    const fbody_ast = ast.program.body[0];
+    const controlDeps = [];
+    parentTest = [];
+    astt.visit(fbody_ast, {
+        visitIfStatement(path) {
+            const node = path.node;
+            controlDeps.push(new BranchDependency(node.test.loc, node.consequent.loc, "ifthen"));
+            if(node.alternate) {
+                controlDeps.push(new BranchDependency(node.test.loc, node.alternate.loc, "ifelse"));
+            }
+            this.traverse(path)
+        },
+        visitForStatement(path) {
+            const node = path.node;
+            const forHeadLoc = computeForHeadLocation([node.init, node.test, node.update], node.loc);
+            controlDeps.push(new BranchDependency(forHeadLoc, node.body.loc, "for"));
+            this.traverse(path);
+        },
+        visitNode(path) {
+            this.traverse(path);
+        }
+    })
+    return controlDeps;
+}
+
+function computeForHeadLocation(potentialForExpressionNodes, forLoc) {
+    const forExpressionNodes = potentialForExpressionNodes.filter(e => e != null);
+    if(forExpressionNodes.length === 0){
+        return forLoc;
+    } else {
+        //const forExpressionLocs = forExpressionNodes.flatMap(n => [n.loc.start, n.loc.end]);
+        const startPosition = forExpressionNodes[0].loc.start;
+        const endPosition = forExpressionNodes[forExpressionNodes.length - 1].loc.end;
+        return new location.SourceLocation(null, startPosition, endPosition);
+    }
+}
+
+
+function computeControlDepsalt(prog) {
     const graph = cytoscape();
     const ast = parse(prog)
     const fbody_ast = ast.program.body[0];
@@ -48,7 +89,6 @@ function computeControlDeps(prog) {
             }
             this.traverse(path);
         }
-
     })
     return controlDeps;
 }
@@ -61,7 +101,8 @@ function controlDependencies(progInPath) {
     fs.writeFileSync("cgraph.json", graph);// JSON.stringify(graph.json()));
 }
 
-controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a10_in.js");
+//controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a8_in.js");
+controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b2_in.js");
 
 
 function within_line(location, line) {
