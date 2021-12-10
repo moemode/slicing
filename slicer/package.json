@@ -4,7 +4,7 @@
   "description": "Dynamic program slicing for single function js-programs using Jalangi2. Coursework for PA 21 at Uni Stuttgart.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+      "test":  "mocha --source 'scripts/test.js' --recursive --timeout 60000 --exit"
   },
   "author": "Moritz Pfeffer",
   "license": "ISC",
