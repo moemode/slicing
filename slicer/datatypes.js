@@ -31,10 +31,18 @@ function jalangiLocationToSourceLocation(jalangiLocation) {
 }
 
 function in_between_inclusive(outer, inner) {
-    return (outer.start.line <= inner.start.line &&
+    /*return (outer.start.line <= inner.start.line &&
         outer.start.column <= inner.start.column &&
-        inner.end.line <= outer.end.line&&
+        inner.end.line <= outer.end.line &&
         inner.end.column <= outer.end.column)
+    */
+    const includesStart = posIsSmaller(outer.start, inner.start);
+    const includesEnd = posIsSmaller(inner.end, outer.end);
+    return includesStart && includesEnd;
+}
+
+function posIsSmaller(pos1, pos2) {
+    return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column < pos2.column);
 }
 
 module.exports = {
@@ -42,5 +50,6 @@ module.exports = {
     SourceLocation,
     jalangiLocationToSourceLocation,
     jalangiLocationToLine,
-    in_between_inclusive
+    in_between_inclusive,
+    posIsSmaller
 };

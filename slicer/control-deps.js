@@ -72,6 +72,13 @@ function computeControlDeps(prog) {
     return [controlDeps, testLocs];
 }
 
+function findControlDep(loc, controlDeps) {
+    const locDeps = controlDeps.filter(cD => location.in_between_inclusive(cD.branchLoc, loc));
+    //find smallest branchLoc
+    const locCD = locDeps.reduce((prev, curr) => location.posIsSmaller(prev.branchLoc.start, curr.branchLoc.start) ? curr : prev);
+    return locCD;
+}
+
 function computeForHeadLocation(potentialForExpressionNodes, forLoc) {
     const forExpressionNodes = potentialForExpressionNodes.filter(e => e != null);
     if (forExpressionNodes.length === 0) {
@@ -89,13 +96,17 @@ function controlDependencies(progInPath) {
     const prog = fs.readFileSync(progInPath).toString();
     const graph = computeControlDeps(prog);
     fs.writeFileSync("cgraph.json", graph);// JSON.stringify(graph.json()));
+    return graph;
 }
 
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a8_in.js");
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b2_in.js");
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a9_in.js");
-controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b1_in.js");
-
+const [cDeps, testLocs] = controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b1_in.js");
+const loc = new location.SourceLocation(null,
+    new location.Position(10, 16),
+    new location.Position(10, 32));
+findControlDep(loc, cDeps);
 
 
 function within_line(location, line) {
