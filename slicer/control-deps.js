@@ -10,7 +10,7 @@ const astt = require("ast-types");
 
 function toAst(filePathIn, filePathOut) {
     let prog = fs.readFileSync(filePathIn).toString();
-    var ast = acorn.parse(prog, {ecmaVersion: 5, locations: true});
+    var ast = acorn.parse(prog, { ecmaVersion: 5, locations: true });
     let newprog = esc.generate(ast);
     fs.writeFileSync(filePathOut, newprog);
 }
@@ -33,7 +33,7 @@ function computeControlDeps(prog) {
         visitIfStatement(path) {
             const node = path.node;
             controlDeps.push(new BranchDependency(node.test.loc, node.consequent.loc, "ifthen"));
-            if(node.alternate) {
+            if (node.alternate) {
                 controlDeps.push(new BranchDependency(node.test.loc, node.alternate.loc, "ifelse"));
             }
             this.traverse(path)
@@ -42,6 +42,16 @@ function computeControlDeps(prog) {
             const node = path.node;
             const forHeadLoc = computeForHeadLocation([node.init, node.test, node.update], node.loc);
             controlDeps.push(new BranchDependency(forHeadLoc, node.body.loc, "for"));
+            this.traverse(path);
+        },
+        visitSwitchStatement(path) {
+            const node = path.node;
+            const caseCount = node.cases.length;
+            if (caseCount > 0) {
+                controlDeps.push(new BranchDependency(node.discriminant.loc,
+                    new location.SourceLocation(null, node.cases[0].loc.start, node.cases[caseCount - 1].loc.end),
+                    "switch"));
+            }
             this.traverse(path);
         },
         visitNode(path) {
@@ -53,7 +63,7 @@ function computeControlDeps(prog) {
 
 function computeForHeadLocation(potentialForExpressionNodes, forLoc) {
     const forExpressionNodes = potentialForExpressionNodes.filter(e => e != null);
-    if(forExpressionNodes.length === 0){
+    if (forExpressionNodes.length === 0) {
         return forLoc;
     } else {
         //const forExpressionLocs = forExpressionNodes.flatMap(n => [n.loc.start, n.loc.end]);
@@ -73,7 +83,7 @@ function computeControlDepsalt(prog) {
     astt.visit(fbody_ast, {
         visitIfStatement(path) {
             const node = path.node;
-            if (path.parent && path.parent.__cdep){
+            if (path.parent && path.parent.__cdep) {
                 node.__cdep = path.parent.__cdep;
             }
             path.__cdep = node.test.loc;
@@ -83,7 +93,7 @@ function computeControlDepsalt(prog) {
         visitNode(path) {
             console.log(path);
             const node = path.node;
-            if (path.parent && path.parent.__cdep){
+            if (path.parent && path.parent.__cdep) {
                 path.__cdep = path.parent.__cdep;
                 node.__cdep = path.parent.__cdep;
             }
@@ -102,7 +112,8 @@ function controlDependencies(progInPath) {
 }
 
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a8_in.js");
-controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b2_in.js");
+//controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b2_in.js");
+controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a9_in.js");
 
 
 function within_line(location, line) {
@@ -112,7 +123,7 @@ function within_line(location, line) {
 function in_between_inclusive(outer, inner) {
     return (outer.start.line <= inner.start.line &&
         outer.start.column <= inner.start.column &&
-        inner.end.line <= outer.end.line&&
+        inner.end.line <= outer.end.line &&
         inner.end.column <= outer.end.column)
 }
 
