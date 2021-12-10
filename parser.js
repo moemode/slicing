@@ -4,6 +4,8 @@ var esc = require('escodegen')
 var fs = require('fs');
 var estrav = require('estraverse');
 var location = require('./datatypes');
+var esprima = require('esprima');
+var [parse, print] = require('recast');
 
 function toAst(filePathIn, filePathOut) {
     let prog = fs.readFileSync(filePathIn).toString();
@@ -41,6 +43,41 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
     return newprog;
 }
 
+function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
+    const ast = parse(prog, {
+        parser: esprima,
+    })
+    const fbody_ast = ast.program.body[0];
+    astt.visit(fbody_ast, {
+        visitNode(path) {
+            const node = path.node;
+            if(within_line(node.loc, lineNb)) {
+                return false;
+            }
+            if(node.type == 'VariableDeclaration') {
+                if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                    return false;
+                }
+                if(!relevant_vars.includes(node.declarations[0].id.name)) {
+                    path.prune();
+                    return false;
+                }
+            }
+            if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
+                if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                    return false;
+                } else {
+                    path.prune();
+                    return false;
+                }
+            }
+            path.traverse();
+        }
+    })
+    return [controlDeps, tests];
+}
+
+
 
 
 function prune(progInPath, progOutPath, graph, lineNb) {
@@ -54,7 +91,10 @@ function prune(progInPath, progOutPath, graph, lineNb) {
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     const prog = fs.readFileSync(progInPath).toString();
     const newprog = pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars);
+    const newprog2 = pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars)
     fs.writeFileSync(progOutPath, newprog);
+    fs.writeFileSync(progOutPath + "2", newprog2 );
+
 }
 
 
