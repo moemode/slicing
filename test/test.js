@@ -8,7 +8,6 @@ const parser = new ArgumentParser({
 parser.add_argument(
     "--source", { help: "JSON source file containing arguments for slice.js file.", required: true });
 
-const args = parser.parse_args();
 
 function readFile(fileName) {
     return fs.readFileSync(fileName, 'utf8');
@@ -35,7 +34,7 @@ function read_criteria_file(sourceFile) {
 function run_slice(element) {
     // create input parameters from args ditcionary
     inputArgs = " --inFile " + element["inFile"] + " --outFile " + element["outFile"] + " --lineNb " + element["lineNb"];
-    stmt = 'node slice.js' + inputArgs;
+    stmt = 'node ./scripts/slice.js' + inputArgs;
 
     var exec = require('child_process').execSync;
     child = exec(stmt,
@@ -52,12 +51,12 @@ function run_slice(element) {
 }
 
 // read input file containing criteria
-const inputs = read_criteria_file("./alltests.json");
+const inputs = read_criteria_file("./test/alltests.json");
 // execute for each individual input
 inputs.forEach(function (element) {
     describe("Slice " + element.inFile + " on line: " + element.lineNb, function () {
         this.timeout(5000);
-        it("Levenshtein Distance matches", function() {
+        it("Levenshtein Distance Comparison", function() {
             const dist = run_slice(element);
             assert.equal(dist, element.expectedDist);
         })
