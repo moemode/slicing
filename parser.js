@@ -5,33 +5,35 @@ var fs = require('fs');
 var estrav = require('estraverse');
 var location = require('./datatypes');
 var esprima = require('esprima');
-var [parse, print] = require('recast');
+var { parse, print } = require("recast");
+var astt = require("ast-types");
+
 
 function toAst(filePathIn, filePathOut) {
     let prog = fs.readFileSync(filePathIn).toString();
-    var ast = acorn.parse(prog, {ecmaVersion: 5, locations: true});
+    var ast = acorn.parse(prog, { ecmaVersion: 5, locations: true });
     let newprog = esc.generate(ast);
     fs.writeFileSync(filePathOut, newprog);
 }
 
 function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
-    let ast = acorn.parse(prog, {ecmaVersion: 5, locations:true});
+    let ast = acorn.parse(prog, { ecmaVersion: 5, locations: true });
     let fbody_ast = ast.body[0].body;
     let filtered_fbody_ast = estrav.replace(fbody_ast, {
-        enter: function(node, parent) {
-            if(within_line(node.loc, lineNb)) {
+        enter: function (node, parent) {
+            if (within_line(node.loc, lineNb)) {
                 return node;
             }
-            if(node.type == 'VariableDeclaration') {
-                if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+            if (node.type == 'VariableDeclaration') {
+                if (relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
                     return node;
                 }
-                if(!relevant_vars.includes(node.declarations[0].id.name)) {
+                if (!relevant_vars.includes(node.declarations[0].id.name)) {
                     return this.remove();
                 }
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                if (relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
                     return node;
                 }
                 return this.remove();
@@ -39,7 +41,7 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
         }
     });
     ast.body[0].body = filtered_fbody_ast;
-    let newprog = esc.generate(ast, {format: {preserveBlankLines: true}});
+    let newprog = esc.generate(ast, { format: { preserveBlankLines: true } });
     return newprog;
 }
 
@@ -47,34 +49,47 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
     const ast = parse(prog, {
         parser: esprima,
     })
-    const fbody_ast = ast.program.body[0];
-    astt.visit(fbody_ast, {
+    astt.visit(ast, {
+        /*
+        visitFunctionDeclaration(path) {
+            this.traverse(path);
+        },
+        visitCallExpression(path) {
+            this.traverse(path);
+        },
+        */
         visitNode(path) {
             const node = path.node;
-            if(within_line(node.loc, lineNb)) {
+            if(node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
                 return false;
             }
-            if(node.type == 'VariableDeclaration') {
-                if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+            if (node.type === "FunctionDeclaration" || node.type === "ExpressionStatement") {
+                this.traverse(path);
+            }
+            if (within_line(node.loc, lineNb)) {
+                return false;
+            }
+            if (node.type == 'VariableDeclaration') {
+                if (relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
                     return false;
                 }
-                if(!relevant_vars.includes(node.declarations[0].id.name)) {
+                if (!relevant_vars.includes(node.declarations[0].id.name)) {
                     path.prune();
                     return false;
                 }
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if(relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                if (relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
                     return false;
                 } else {
                     path.prune();
                     return false;
                 }
             }
-            path.traverse();
+            this.traverse(path);
         }
-    })
-    return [controlDeps, tests];
+    });
+    return print(ast);
 }
 
 
@@ -93,7 +108,7 @@ function prune(progInPath, progOutPath, graph, lineNb) {
     const newprog = pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars);
     const newprog2 = pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars)
     fs.writeFileSync(progOutPath, newprog);
-    fs.writeFileSync(progOutPath + "2", newprog2 );
+    fs.writeFileSync(progOutPath + "2", newprog2.code);
 
 }
 
@@ -105,7 +120,7 @@ function within_line(location, line) {
 function in_between_inclusive(outer, inner) {
     return (outer.start.line <= inner.start.line &&
         outer.start.column <= inner.start.column &&
-        inner.end.line <= outer.end.line&&
+        inner.end.line <= outer.end.line &&
         inner.end.column <= outer.end.column)
 }
 
