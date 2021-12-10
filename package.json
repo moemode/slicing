@@ -1,0 +1,27 @@
+{
+  "name": "slicer",
+  "version": "0.0.1",
+  "description": "Dynamic program slicing for single function js-programs using Jalangi2. Coursework for PA 21 at Uni Stuttgart.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "author": "Moritz Pfeffer",
+  "license": "ISC",
+  "dependencies": {
+    "acorn": "^8.6.0",
+    "argparse": "^2.0.1",
+    "ast-types": "^0.14.2",
+    "cytoscape": "^3.20.0",
+    "escodegen": "^2.0.0",
+    "esprima": "^4.0.1",
+    "estraverse": "^5.3.0",
+    "estree-walker": "^3.0.0",
+    "fast-levenshtein": "^3.0.0",
+    "recast": "^0.20.5"
+  },
+  "devDependencies": {
+    "chai": "^4.3.4",
+    "mocha": "^9.1.3"
+  }
+}
