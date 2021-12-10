@@ -41,6 +41,14 @@ function in_between_inclusive(outer, inner) {
     return includesStart && includesEnd;
 }
 
+function posEq(pos1, pos2) {
+    return pos1.line === pos2.line && pos1.column == pos2.column;
+}
+
+function locEq(loc1, loc2) {
+    return posEq(loc1.start, loc2.start) && posEq(loc1.end, loc2.end);
+}
+
 function posIsSmaller(pos1, pos2) {
     return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column < pos2.column);
 }
@@ -51,5 +59,7 @@ module.exports = {
     jalangiLocationToSourceLocation,
     jalangiLocationToLine,
     in_between_inclusive,
-    posIsSmaller
+    posIsSmaller,
+    posEq,
+    locEq
 };

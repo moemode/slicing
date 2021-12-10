@@ -2,6 +2,7 @@ const cytoscape = require("cytoscape");
 const fs = require("fs");
 const pruner = require("./parser.js");
 const location = require("./datatypes");
+const controlDeps = require("./control-deps");
 
 
 // Run the analysis with:
@@ -25,6 +26,16 @@ const location = require("./datatypes");
         //this.lastPut[objectId][offset] = putNode
         this.lastPut = {};
         this.nextObjectIds = 1;
+        //this.lastTest[location] = testNode
+        this.lastTest = {}
+
+        //this.controlDeps = [];
+        //this.tests = [];
+
+        this.scriptEnter = function(iid, instrumentedFileName, originalFileName)  {
+            [this.controlDeps, this.tests] = controlDeps.controlDependencies(originalFileName);
+            console.log("Hi");
+        }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
@@ -219,6 +230,8 @@ const location = require("./datatypes");
             return { result: val };
         }
 
+
+
         this.addEdge = function (source, target) {
             this.graph.add({
                 group: 'edges',
@@ -228,6 +241,40 @@ const location = require("./datatypes");
                     target: target.data.id,
                 },
             });
+        }
+
+        this.createTestNode = function(test, result) {
+            const id = `n${this.nextNodeId++}`;
+            const testNode = {
+                group: 'nodes',
+                data: {
+                    id: id,
+                    loc: test.loc,
+                    val: result,
+                    line: test.loc.start.line,
+                    type: `${test.type}-test`,
+                    name:  `${test.type}-test`,
+                },
+            };
+            return [id, testNode];
+        }
+
+        this.conditional = function(iid, result) {
+            const loc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+            const test = this.tests.find(t => location.locEq(t.loc, loc));
+            if(test) {
+                console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
+                const [testNodeId, testNode] = this.createTestNode(test, result);
+                //currentExprNodes were created for the for/if test
+                this.graph.add(testNode);
+                this.lastTest[test.loc] = testNode;
+                this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
+            }
+        }
+
+        this.endExpression = function (iid) {
+            this.currentExprNodes = [];
+            this.currentObjectRetrievals = [];
         }
 
         this.endExecution = function () {
@@ -243,10 +290,6 @@ const location = require("./datatypes");
             */
         }
 
-        this.endExpression = function () {
-            this.currentExprNodes = [];
-            this.currentObjectRetrievals = [];
-        }
     }
 
     jalangi.analysis = new SliceAnalysis();
