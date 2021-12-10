@@ -105,10 +105,10 @@ function prune(progInPath, progOutPath, graph, lineNb) {
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     const prog = fs.readFileSync(progInPath).toString();
-    const newprog = pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars);
+    //const newprog = pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars);
     const newprog2 = pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars)
-    fs.writeFileSync(progOutPath, newprog);
-    fs.writeFileSync(progOutPath + "2", newprog2.code);
+    //fs.writeFileSync(progOutPath, newprog);
+    fs.writeFileSync(progOutPath, newprog2.code);
 
 }
 

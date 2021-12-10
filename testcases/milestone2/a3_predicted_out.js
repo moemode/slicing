@@ -3,4 +3,5 @@ function sliceMe() {
     x = 1;
     return x;
 }
+
 sliceMe();
