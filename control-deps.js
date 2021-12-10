@@ -1,19 +1,21 @@
 /* Import necessary modules */
-var acorn = require('acorn');
+//var acorn = require('acorn');
 var esc = require('escodegen')
 var fs = require('fs');
 var estrav = require('estraverse');
 var location = require('./datatypes');
 var cytoscape = require("cytoscape");
-const { parse, print } = require("recast");
-const astt = require("ast-types");
+var recast = require("recast");
+var astt = require("ast-types");
 
+/*
 function toAst(filePathIn, filePathOut) {
     let prog = fs.readFileSync(filePathIn).toString();
     var ast = acorn.parse(prog, { ecmaVersion: 5, locations: true });
     let newprog = esc.generate(ast);
     fs.writeFileSync(filePathOut, newprog);
 }
+*/
 
 class BranchDependency {
     constructor(testLoc, branchLoc, type) {
@@ -32,7 +34,7 @@ class Test {
 
 function computeControlDeps(prog) {
     const graph = cytoscape();
-    const ast = parse(prog)
+    const ast = recast.parse(prog)
     const fbody_ast = ast.program.body[0];
     const controlDeps = [];
     const tests = [];
@@ -113,11 +115,11 @@ function controlDependencies(progInPath) {
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a8_in.js");
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b2_in.js");
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a9_in.js");
-const [cDeps, testLocs] = controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b1_in.js");
+//const [cDeps, testLocs] = controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b1_in.js");
 const loc = new location.SourceLocation(null,
     new location.Position(10, 16),
     new location.Position(10, 32));
-findControlDep(loc, cDeps);
+//findControlDep(loc, cDeps);
 
 
 function within_line(location, line) {

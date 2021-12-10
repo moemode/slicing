@@ -1,7 +1,8 @@
 const fs = require('fs');
-var levenshtein = require('fast-levenshtein');
+const levenshtein = require('fast-levenshtein');
 const { ArgumentParser } = require("argparse");
 const assert = require('assert');
+const { execSync } = require('child_process');
 const parser = new ArgumentParser({
     description: "Executes the slice.js file on provided arguments.",
 });
@@ -35,12 +36,9 @@ function run_slice(element) {
     // create input parameters from args ditcionary
     inputArgs = " --inFile " + element["inFile"] + " --outFile " + element["outFile"] + " --lineNb " + element["lineNb"];
     stmt = 'node ./scripts/slice.js' + inputArgs;
-
-    var exec = require('child_process').execSync;
-    child = exec(stmt,
+    child = execSync(stmt,
         function (error, stdout, stderr) {
             console.log('stdout: ' + stdout); // status message after executing slice.js
-
             if (error !== null) {
                 console.log('exec error: ' + error);
                 console.log('stderr: ' + stderr);

@@ -28,7 +28,7 @@
 		inputArgs = " --outFile "+outFile+" --lineNb "+lineNb;
         analysisParams = "--initParam outFile:" + outFile;
         analysisParams += " --initParam lineNb:" + lineNb 
-		stmt = 'node ../jalangi2/src/js/commands/jalangi.js ' + analysisParams + ' --inlineIID --inlineSource --analysis ../slice_analysis.js ' + inFile;
+		stmt = 'node ./jalangi2/src/js/commands/jalangi.js ' + analysisParams + ' --inlineIID --inlineSource --analysis slice_analysis.js ' + inFile;
         console.log("Jalangi call: " + stmt);
 		var exec = require('child_process').exec,
 		    child;

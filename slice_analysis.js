@@ -3,6 +3,7 @@ const fs = require("fs");
 const pruner = require("./parser.js");
 const location = require("./datatypes");
 const controlDeps = require("./control-deps");
+const path = require("path");
 
 
 // Run the analysis with:
@@ -279,8 +280,10 @@ const controlDeps = require("./control-deps");
 
         this.endExecution = function () {
             //this.fs.writeFileSync("out.png", this.graph.png({output: "base64"}), {'encoding': 'base64'});
-            fs.writeFileSync("graph.json", JSON.stringify(this.graph.json()));
-            pruner.prune(J$.smap[1].originalCodeFileName, this.outFile, this.graph, this.lineNb)
+            const inFilePath = J$.smap[1].originalCodeFileName;
+            fs.mkdir(`../graphs`);
+            fs.writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
+            pruner.prune(inFilePath, this.outFile, this.graph, this.lineNb)
             //this.linesToKeep = lines reachable in this.graph from read nodes in lineNb
             /*
             for (let v of this.writtenValues) {
