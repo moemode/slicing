@@ -1,3 +1,6 @@
+const { execSync } = require("child_process");
+const process = require("process");
+
 (function() {
     
     const { ArgumentParser } = require("argparse");
@@ -33,14 +36,16 @@
 		var exec = require('child_process').exec,
 		    child;
 		
-		child = exec(stmt,
+		child = execSync(stmt);
+            /*
 		  function (error, stdout, stderr) {
 		    console.log('stdout: ' + stdout); // status message after executing slice.js
 		    if (error !== null) {
 		      	console.log('exec error: ' + error);		    	
 		    	console.log('stderr: ' + stderr);
 		    }
-		});
+            
+		}*/
 	}
 
     slice(args.inFile, args.outFile, args.lineNb);
