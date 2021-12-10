@@ -35,7 +35,6 @@ const path = require("path");
 
         this.scriptEnter = function(iid, instrumentedFileName, originalFileName)  {
             [this.controlDeps, this.tests] = controlDeps.controlDependencies(originalFileName);
-            console.log("Hi");
         }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
