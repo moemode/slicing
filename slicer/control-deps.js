@@ -23,15 +23,24 @@ class BranchDependency {
     }
 }
 
+class Test {
+    constructor(testLoc, type) {
+        this.testLoc = testLoc;
+        this.type = type;
+    }
+}
+
 function computeControlDeps(prog) {
     const graph = cytoscape();
     const ast = parse(prog)
     const fbody_ast = ast.program.body[0];
     const controlDeps = [];
+    const testLocs = [];
     parentTest = [];
     astt.visit(fbody_ast, {
         visitIfStatement(path) {
             const node = path.node;
+            testLocs.push(new Test(node.test.loc, "if"));
             controlDeps.push(new BranchDependency(node.test.loc, node.consequent.loc, "ifthen"));
             if (node.alternate) {
                 controlDeps.push(new BranchDependency(node.test.loc, node.alternate.loc, "ifelse"));
@@ -41,6 +50,7 @@ function computeControlDeps(prog) {
         visitForStatement(path) {
             const node = path.node;
             const forHeadLoc = computeForHeadLocation([node.init, node.test, node.update], node.loc);
+            testLocs.push(new Test(forHeadLoc, "for"));
             controlDeps.push(new BranchDependency(forHeadLoc, node.body.loc, "for"));
             this.traverse(path);
         },
@@ -48,6 +58,7 @@ function computeControlDeps(prog) {
             const node = path.node;
             const caseCount = node.cases.length;
             if (caseCount > 0) {
+                testLocs.push(new Test(node.discriminant.loc, "switch"));
                 controlDeps.push(new BranchDependency(node.discriminant.loc,
                     new location.SourceLocation(null, node.cases[0].loc.start, node.cases[caseCount - 1].loc.end),
                     "switch"));
@@ -58,7 +69,7 @@ function computeControlDeps(prog) {
             this.traverse(path);
         }
     })
-    return controlDeps;
+    return [controlDeps, testLocs];
 }
 
 function computeForHeadLocation(potentialForExpressionNodes, forLoc) {
@@ -74,37 +85,6 @@ function computeForHeadLocation(potentialForExpressionNodes, forLoc) {
 }
 
 
-function computeControlDepsalt(prog) {
-    const graph = cytoscape();
-    const ast = parse(prog)
-    const fbody_ast = ast.program.body[0];
-    const controlDeps = [];
-    parentTest = [];
-    astt.visit(fbody_ast, {
-        visitIfStatement(path) {
-            const node = path.node;
-            if (path.parent && path.parent.__cdep) {
-                node.__cdep = path.parent.__cdep;
-            }
-            path.__cdep = node.test.loc;
-            controlDeps.push([node.test.loc, node.consequent.loc]);
-            this.traverse(path)
-        },
-        visitNode(path) {
-            console.log(path);
-            const node = path.node;
-            if (path.parent && path.parent.__cdep) {
-                path.__cdep = path.parent.__cdep;
-                node.__cdep = path.parent.__cdep;
-            }
-            this.traverse(path);
-        }
-    })
-    return controlDeps;
-}
-
-
-
 function controlDependencies(progInPath) {
     const prog = fs.readFileSync(progInPath).toString();
     const graph = computeControlDeps(prog);
@@ -113,7 +93,9 @@ function controlDependencies(progInPath) {
 
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a8_in.js");
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b2_in.js");
-controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a9_in.js");
+//controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a9_in.js");
+controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b1_in.js");
+
 
 
 function within_line(location, line) {
