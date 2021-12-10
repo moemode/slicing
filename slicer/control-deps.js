@@ -76,8 +76,10 @@ function computeControlDeps(prog) {
 function findControlDep(loc, controlDeps) {
     const locDeps = controlDeps.filter(cD => location.in_between_inclusive(cD.branchLoc, loc));
     //find smallest branchLoc
-    const locCD = locDeps.reduce((prev, curr) => location.posIsSmaller(prev.branchLoc.start, curr.branchLoc.start) ? curr : prev);
-    return locCD;
+    if(locDeps.length > 0) {
+        const locCD = locDeps.reduce((prev, curr) => location.posIsSmaller(prev.branchLoc.start, curr.branchLoc.start) ? curr : prev);
+        return locCD;
+    }
 }
 
 function findTest(loc, tests) {
@@ -113,11 +115,11 @@ function controlDependencies(progInPath) {
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a8_in.js");
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b2_in.js");
 //controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a9_in.js");
-const [cDeps, testLocs] = controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b1_in.js");
+//const [cDeps, testLocs] = controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b1_in.js");
 const loc = new location.SourceLocation(null,
     new location.Position(10, 16),
     new location.Position(10, 32));
-findControlDep(loc, cDeps);
+//findControlDep(loc, cDeps);
 
 
 function within_line(location, line) {

@@ -31,13 +31,14 @@ function jalangiLocationToSourceLocation(jalangiLocation) {
 }
 
 function in_between_inclusive(outer, inner) {
-    /*return (outer.start.line <= inner.start.line &&
+    /*
+    return (outer.start.line <= inner.start.line &&
         outer.start.column <= inner.start.column &&
         inner.end.line <= outer.end.line &&
         inner.end.column <= outer.end.column)
     */
-    const includesStart = posIsSmaller(outer.start, inner.start);
-    const includesEnd = posIsSmaller(inner.end, outer.end);
+    const includesStart = posIsSmallerEq(outer.start, inner.start);
+    const includesEnd = posIsSmallerEq(inner.end, outer.end);
     return includesStart && includesEnd;
 }
 
@@ -49,8 +50,8 @@ function locEq(loc1, loc2) {
     return posEq(loc1.start, loc2.start) && posEq(loc1.end, loc2.end);
 }
 
-function posIsSmaller(pos1, pos2) {
-    return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column < pos2.column);
+function posIsSmallerEq(pos1, pos2) {
+    return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column <= pos2.column);
 }
 
 module.exports = {
@@ -59,7 +60,7 @@ module.exports = {
     jalangiLocationToSourceLocation,
     jalangiLocationToLine,
     in_between_inclusive,
-    posIsSmaller,
+    posIsSmaller: posIsSmallerEq,
     posEq,
     locEq
 };
