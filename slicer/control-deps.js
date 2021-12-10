@@ -2,6 +2,7 @@
 var acorn = require('acorn');
 var esc = require('escodegen')
 var fs = require('fs');
+var esprima = require('esprima');
 var estrav = require('estraverse');
 var location = require('./datatypes');
 var cytoscape = require("cytoscape");
@@ -32,7 +33,9 @@ class Test {
 
 function computeControlDeps(prog) {
     const graph = cytoscape();
-    const ast = parse(prog)
+    const ast = parse(prog, {
+        parser: esprima,
+    })
     const fbody_ast = ast.program.body[0];
     const controlDeps = [];
     const tests = [];
