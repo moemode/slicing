@@ -36,14 +36,7 @@ function run_slice(element) {
     // create input parameters from args ditcionary
     inputArgs = " --inFile " + element["inFile"] + " --outFile " + element["outFile"] + " --lineNb " + element["lineNb"];
     stmt = 'node ./scripts/slice.js' + inputArgs;
-    child = execSync(stmt,
-        function (error, stdout, stderr) {
-            console.log('stdout: ' + stdout); // status message after executing slice.js
-            if (error !== null) {
-                console.log('exec error: ' + error);
-                console.log('stderr: ' + stderr);
-            }
-        });
+    child = execSync(stmt);
     const dist = compare(element["goldFile"], element["outFile"]); // compare method to evaluate expected and predicted slice
     return dist;
 }
