@@ -42,7 +42,7 @@ function run_slice(element) {
 }
 
 // read input file containing criteria
-const inputs = read_criteria_file("./test/m2tests.json");
+const inputs = read_criteria_file("./test/current_tests.json");
 // execute for each individual input
 inputs.forEach(function (element) {
     describe("Slice " + element.inFile + " on line: " + element.lineNb, function () {
