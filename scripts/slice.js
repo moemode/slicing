@@ -1,5 +1,6 @@
 const { execSync } = require("child_process");
 const process = require("process");
+const path = require("path");
 
 (function() {
     
@@ -15,6 +16,9 @@ const process = require("process");
         "--outFile", { help: "Sliced and formated output file", required: true });
 
     const args = parser.parse_args();
+    const srcPath = path.resolve(__dirname, '..');
+    const jalangiPath = srcPath + "/jalangi2/src/js/commands/jalangi.js";
+    const analysisPath = srcPath + "/slice_analysis.js";
 
     function slice(inFile, outFile, lineNb){
         /*
@@ -31,11 +35,8 @@ const process = require("process");
 		inputArgs = " --outFile "+outFile+" --lineNb "+lineNb;
         analysisParams = "--initParam outFile:" + outFile;
         analysisParams += " --initParam lineNb:" + lineNb 
-		stmt = 'node ../jalangi2/src/js/commands/jalangi.js ' + analysisParams + ' --inlineIID --inlineSource --analysis ../slice_analysis.js ' + inFile;
+		stmt = 'node ' + jalangiPath + " " + analysisParams + ' --inlineIID --inlineSource --analysis ' + analysisPath + " " + inFile;
         console.log("Jalangi call: " + stmt);
-		var exec = require('child_process').exec,
-		    child;
-		
 		child = execSync(stmt);
             /*
 		  function (error, stdout, stderr) {
