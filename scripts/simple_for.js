@@ -1,10 +1,7 @@
 function sliceMe() {
-    for (i = 0; i < 5; i++) {
-        if (i == 4) {
-            x = 6;
-        }
-    }
-    return x;
+    // looping through the items
+    for (; i < length; i++)
+        {}
 }
 
 sliceMe();

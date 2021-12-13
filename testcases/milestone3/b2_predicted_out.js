@@ -1,7 +1,7 @@
 function sliceMe() {
-    for (; i < length; i++) {
-        if (str.charAt(i) == letter) {
-        }
-    }
+    // looping through the items
+    for (; i < length; i++)
+        {}
 }
+
 sliceMe();

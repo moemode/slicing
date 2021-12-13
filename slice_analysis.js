@@ -208,6 +208,7 @@ const path = require("path");
         }
 
         this.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+            //Todo: This does not work for string objects
             const retrievalNode = this.currentObjectRetrievals[base.__id__];
             const getFieldNode = {
                 group: 'nodes', data: {
