@@ -25,7 +25,7 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 return node;
             }
             if (node.type == 'VariableDeclaration') {
-                if (relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                if (relevant_locs.some(rloc => in_between_inclusive(node.loc, rloc))) {
                     return node;
                 }
                 if (!relevant_vars.includes(node.declarations[0].id.name)) {
@@ -33,7 +33,7 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 }
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return node;
                 }
                 return this.remove();
@@ -70,7 +70,7 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 return false;
             }
             if (node.type == 'VariableDeclaration') {
-                if (relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
                 }
                 if (!relevant_vars.includes(node.declarations[0].id.name)) {
@@ -79,7 +79,7 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 }
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (relevant_locs.some(location => in_between_inclusive(node.loc, location))) {
+                if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
                 } else {
                     path.prune();
@@ -117,12 +117,6 @@ function within_line(location, line) {
     return location.start.line == location.end.line && location.end.line == line;
 }
 
-function in_between_inclusive(outer, inner) {
-    return (outer.start.line <= inner.start.line &&
-        outer.start.column <= inner.start.column &&
-        inner.end.line <= outer.end.line &&
-        inner.end.column <= outer.end.column)
-}
 
 module.exports = {
     prune
