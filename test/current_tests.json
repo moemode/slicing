@@ -6,7 +6,8 @@
 {"expectedDist": 0, "inFile": "./testcases/milestone2/a8_in.js", "outFile": "./testcases/milestone2/a8_predicted_out.js", "lineNb":8, "goldFile": "./testcases/milestone2/a8_out.js"},
 {"inFile": "./testcases/milestone3/a10_in.js", "outFile": "./testcases/milestone3/a10_predicted_out.js", "lineNb":15, "goldFile": "./testcases/milestone3/a10_out.js"},
 {"expectedDist": 0, "inFile": "./testcases/mine/inc.js", "outFile": "./testcases/mine/inc_predicted_out.js", "lineNb":4, "goldFile": "./testcases/mine/inc_out.js"},
-{"expectedDist": 0, "inFile": "./testcases/mine/fields3.js", "outFile": "./testcases/mine/fields3_predicted_out.js", "lineNb":7, "goldFile": "./testcases/mine/fields3_out.js"}
+{"expectedDist": 0, "inFile": "./testcases/mine/fields3.js", "outFile": "./testcases/mine/fields3_predicted_out.js", "lineNb":7, "goldFile": "./testcases/mine/fields3_out.js"},
+{"expectedDist": 0, "inFile": "./testcases/mine/simple_for.js", "outFile": "./testcases/mine/simple_for_predicted_out.js", "lineNb":10, "goldFile": "./testcases/mine/simple_for_out.js"}
 ]
 
 

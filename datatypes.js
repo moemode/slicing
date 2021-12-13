@@ -54,6 +54,10 @@ function posIsSmallerEq(pos1, pos2) {
     return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column <= pos2.column);
 }
 
+function positionToString(pos) {
+    return `line:${pos.line};column:${pos.column}`
+}
+
 module.exports = {
     Position,
     SourceLocation,
@@ -62,5 +66,6 @@ module.exports = {
     in_between_inclusive,
     posIsSmaller: posIsSmallerEq,
     posEq,
-    locEq
+    locEq,
+    positionToString
 };

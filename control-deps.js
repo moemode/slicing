@@ -87,6 +87,7 @@ function findControlDep(loc, controlDeps) {
     }
 }
 
+
 function findTest(loc, tests) {
     const test = tests.filter(test => location.in_between_inclusive(test.loc, loc));
     if (test.length > 1) {
@@ -134,5 +135,5 @@ function within_line(location, line) {
 module.exports = {
     computeControlDeps,
     controlDependencies,
-    findControlDep
+    findControlDep,
 };

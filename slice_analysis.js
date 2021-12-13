@@ -180,7 +180,7 @@ const path = require("path");
             const branchDependency = controlDepsHelper.findControlDep(node.data.loc, this.controlDeps);
             if (branchDependency) {
                 //Todo: not going to work because of hash bs
-                const testNode = this.lastTest[branchDependency.testLoc];
+                const testNode = this.lastTest[location.positionToString(branchDependency.testLoc.start)];
                 this.addEdge(node, testNode);
             }
         }
@@ -281,7 +281,7 @@ const path = require("path");
                 const [testNodeId, testNode] = this.createTestNode(test, result);
                 //currentExprNodes were created for the for/if test
                 this.graph.add(testNode);
-                this.lastTest[test.loc] = testNode;
+                this.lastTest[location.positionToString(test.loc.start)] = testNode;
                 //TODO: Only include read nodes?
                 this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
             }
