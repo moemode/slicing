@@ -14,9 +14,13 @@ function readFile(fileName) {
     return fs.readFileSync(fileName, 'utf8');
 }
 
-function compare(originalFile, predictedFile) {
+function compare(originalFile, predictedFile, ignoreSpaces) {
     expectedSlice = readFile(originalFile);
     predictedSlice = readFile(predictedFile);
+    if (ignoreSpaces) {
+        expectedSlice = expectedSlice.replace(/\s/g, "");
+        predictedSlice = predictedSlice.replace(/\s/g, "");
+    }
     const dist = levenshtein.get(expectedSlice, predictedSlice);
     if (expectedSlice === predictedSlice) {
         console.log("exact match");
@@ -37,7 +41,7 @@ function run_slice(element) {
     inputArgs = " --inFile " + element["inFile"] + " --outFile " + element["outFile"] + " --lineNb " + element["lineNb"];
     stmt = 'node ./scripts/slice.js' + inputArgs;
     child = execSync(stmt);
-    const dist = compare(element["goldFile"], element["outFile"]); // compare method to evaluate expected and predicted slice
+    const dist = compare(element["goldFile"], element["outFile"], true); // compare method to evaluate expected and predicted slice
     return dist;
 }
 

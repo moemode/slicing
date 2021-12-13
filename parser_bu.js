@@ -78,13 +78,24 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 return false;
             }
             if (node.type === "IfStatement") {
-                if (!relevant_locs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
-                    // has never been executed -> remove fully
+                /*
+                                if (!relevant_locs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
+                    // if was not reached in execution -> remove fully
                     path.prune();
                     return false;
                 } else {
                     this.traverse(path);
                     return;
+                }*/
+                const branchPaths = [path.get("consequent"), path.get("alternate")].filter(x => x.value)
+                for (let branchPath of branchPaths) {
+                    this.traverse(branchPath);
+                    const prunedBranchNode = branchPath.node;
+                    if (!relevant_locs.some(rloc => location.in_between_inclusive(branchNode.loc, rloc))) {
+                        branchPath.prune();
+                    } else {
+                        both_pruned = false;
+                    }
                 }
                 /*
                 const branchPaths = [path.get("consequent"), path.get("alternate")].filter(x => x.value)

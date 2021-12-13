@@ -78,6 +78,19 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
                     return false;
                 }
             }
+            if (node.type === "IfStatement") {
+                if (!relevant_locs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
+                    // if was not reached in execution -> remove fully
+                    path.prune();
+                    return false;
+                } /*else {
+                    const branchPaths = [path.get("consequent"), path.get("alternate")].filter(x => x.value)
+                    for (let branchPath of branchPaths) {
+                        this.traverse(branchPath);
+                    }
+                    console.log(branchPaths);
+                }*/
+            }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
                 if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
