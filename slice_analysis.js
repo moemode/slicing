@@ -2,7 +2,7 @@ const cytoscape = require("cytoscape");
 const fs = require("fs");
 const pruner = require("./parser.js");
 const location = require("./datatypes");
-const controlDeps = require("./control-deps");
+const controlDepsHelper = require("./control-deps");
 const path = require("path");
 
 
@@ -34,7 +34,7 @@ const path = require("path");
         //this.tests = [];
 
         this.scriptEnter = function(iid, instrumentedFileName, originalFileName)  {
-            [this.controlDeps, this.tests] = controlDeps.controlDependencies(originalFileName);
+            [this.controlDeps, this.tests] = controlDepsHelper.controlDependencies(originalFileName);
         }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
@@ -63,6 +63,7 @@ const path = require("path");
                     id: `n${writeNodeId}`,
                     loc: lhsLocation,
                     name: name,
+                    varname: name,
                     val: val,
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                     type: "write"
@@ -80,6 +81,7 @@ const path = require("path");
                 }
             }));
             this.graph.add(newEdges);
+            this.addTestDependency(writeNode);
             if(typeof val === "object" && val.__id__ ===undefined) {
                 val.__id__ = this.nextObjectIds++;
                 return { result: val };
@@ -121,7 +123,8 @@ const path = require("path");
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    name: name, val: val, type: "read",
+                    name: name, varname: name,
+                    val: val, type: "read",
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 },
             };
@@ -144,6 +147,7 @@ const path = require("path");
             } else {
                 console.log("Read without write");
             }
+            this.addTestDependency(readNode);
             return this.addObjectRetrieval(val, readNode);
             /*
             if (!lastNameWrite) {
@@ -169,6 +173,16 @@ const path = require("path");
             this.nextNodeId = this.nextNodeId + 1;
             this.nextEdgeId = this.nextEdgeId + 1;
             */
+        }
+
+        this.addTestDependency = function (node) {
+            //controlDeps.findControlDep node.loc
+            const branchDependency = controlDepsHelper.findControlDep(node.data.loc, this.controlDeps);
+            if (branchDependency) {
+                //Todo: not going to work because of hash bs
+                const testNode = this.lastTest[branchDependency.testLoc];
+                this.addEdge(node, testNode);
+            }
         }
 
         this.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
@@ -268,6 +282,7 @@ const path = require("path");
                 //currentExprNodes were created for the for/if test
                 this.graph.add(testNode);
                 this.lastTest[test.loc] = testNode;
+                //TODO: Only include read nodes?
                 this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
             }
         }
