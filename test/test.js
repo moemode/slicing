@@ -49,6 +49,9 @@ inputs.forEach(function (element) {
         this.timeout(5000);
         it("Levenshtein Distance Comparison", function() {
             const dist = run_slice(element);
+            if(!element.expectedDist) {
+                element.expectedDist = 0;
+            }
             assert.equal(dist, element.expectedDist);
         })
     });
