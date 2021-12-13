@@ -133,5 +133,6 @@ function within_line(location, line) {
 
 module.exports = {
     computeControlDeps,
-    controlDependencies
+    controlDependencies,
+    findControlDep
 };
