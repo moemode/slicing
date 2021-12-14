@@ -220,7 +220,10 @@ const path = require("path");
             };
             this.graph.add(getFieldNode);
             this.currentExprNodes.push(getFieldNode);
-            this.addEdge(getFieldNode, retrievalNode);
+            //no retrievalNode if val is of primitive type not an object
+            if(retrievalNode) {
+                this.addEdge(getFieldNode, retrievalNode);
+            }
             const baseObjectPuts = this.lastPut[base.__id__]
             /* 
             When there is no put for this field on the object it might have been created by a literal.

@@ -59,8 +59,9 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
 
 function prune(progInPath, progOutPath, graph, lineNb) {
     const readsInLineNbCriterion = `node[type="read"][line=${lineNb}], node[type="getField"][line=${lineNb}]`
-    const readNodesInLine = graph.nodes(readsInLineNbCriterion);
-    const reachableNodes = readNodesInLine.successors("node");
+    const testsInLineNbCriterion = `node[type="if-test"][line=${lineNb}], node[type="for-test"][line=${lineNb}], node[type="switch-test"][line=${lineNb}]`;
+    const relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion);
+    const reachableNodes = relevantNodesInLine.successors("node");
     const relevant_locs = reachableNodes.map(node => node.data("loc"));
     const relevant_vars = reachableNodes.map(node => node.data("name"));
     /*relevant_locs.push(new location.SourceLocation(progInPath,
