@@ -30,15 +30,13 @@ const path = require("path");
         //this.lastTest[location] = testNode
         this.lastTest = {}
 
-        //this.controlDeps = [];
-        //this.tests = [];
-
-        this.scriptEnter = function(iid, instrumentedFileName, originalFileName)  {
+        this.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
             [this.controlDeps, this.tests] = controlDepsHelper.controlDependencies(originalFileName);
         }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
+            const valObject = this.makeIdentifiable(val);
             rhs_line = location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
             const declareNode = {
                 group: 'nodes', data: {
@@ -49,6 +47,8 @@ const path = require("path");
             };
             this.lastWrites[name] = declareNode;
             this.graph.add(declareNode);
+            this.addTestDependency(declareNode);
+            return {result: valObject};
         }
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
@@ -57,6 +57,7 @@ const path = require("path");
             //this.writtenValues.push(val);
             const writeNodeId = this.nextNodeId;
             this.nextNodeId = this.nextNodeId + 1;
+            const valObject = this.makeIdentifiable(val);
             const writeNode = {
                 group: 'nodes',
                 data: {
@@ -82,38 +83,21 @@ const path = require("path");
             }));
             this.graph.add(newEdges);
             this.addTestDependency(writeNode);
-            if(typeof val === "object" && val.__id__ ===undefined) {
-                val.__id__ = this.nextObjectIds++;
-                return { result: val };
+            return {result: valObject};
+        }
 
+        this.makeIdentifiable = function(val) {
+            if (val === null || val === undefined) {
+                return val;
             }
-            /*
-            let rhs_line = parseInt(location.jalangiLocationToLine())
-            this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
-            let readsInLine = `node[type="r"][line=${rhs_line}]`
-            let readNodesInLine = this.graph.elements(readsInLine);
-            this.graph.add({
-                group: 'nodes',
-                data: {
-                    id: `n${this.nextNodeId}`,
-                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    line: rhs_line,
-                    name: name,
-                    val: val,
-                    type: "w"
-                },
-            });
-            newEdges = readNodesInLine.map(node => ({
-                group: 'edges',
-                data: {
-                    id: `e${this.nextEdgeId++}`,
-                    source: `n${this.nextNodeId}`,
-                    target: node.id()
-                }
-            }));
-            this.graph.add(newEdges);
-            this.nextNodeId = this.nextNodeId + 1;
-            */
+            // if val is Object already this is no-op
+            const valObject = Object(val);
+            // now val is certainly an object
+            if (valObject.__id__ === undefined) {
+                valObject.__id__ = this.nextObjectIds++;
+                valObject.__actual__ = val;
+            }
+            return valObject;
         }
 
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
@@ -148,31 +132,7 @@ const path = require("path");
                 console.log("Read without write");
             }
             this.addTestDependency(readNode);
-            return this.addObjectRetrieval(val, readNode);
-            /*
-            if (!lastNameWrite) {
-                return;
-            }
-            let line = location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)));
-            this.graph.add({
-                group: 'nodes', data: {
-                    id: `n${this.nextNodeId}`,
-                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    line: line, name: name, val: val, type: "r"
-                },
-            });
-            targetNodeId = lastNameWrite[2];
-            this.graph.add({
-                group: 'edges',
-                data: {
-                    id: `e${this.nextEdgeId}`,
-                    source: `n${this.nextNodeId}`,
-                    target: `n${targetNodeId}`
-                },
-            });
-            this.nextNodeId = this.nextNodeId + 1;
-            this.nextEdgeId = this.nextEdgeId + 1;
-            */
+            this.addObjectRetrieval(val, readNode);
         }
 
         this.addTestDependency = function (node) {
@@ -187,11 +147,12 @@ const path = require("path");
 
         this.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
             const retrievalNode = this.currentObjectRetrievals[base.__id__];
+            const valObject = this.makeIdentifiable(val);
             const putFieldNode = {
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId++}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    name: `putfield ${offset}:${val}`, val: val, type: "putField",
+                    name: `putfield ${offset}:${val.__actual__}`, val: val.__actual__, type: "putField",
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 },
             };
@@ -201,10 +162,11 @@ const path = require("path");
             readsForPut.forEach(node => this.addEdge(putFieldNode, node));
             this.currentExprNodes.push(putFieldNode);
             // initialize if first put
-            if(this.lastPut[base.__id__] === undefined) {
+            if (this.lastPut[base.__id__] === undefined) {
                 this.lastPut[base.__id__] = {};
             }
             this.lastPut[base.__id__][offset] = putFieldNode;
+            return {result: valObject};
         }
 
         this.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
@@ -214,7 +176,7 @@ const path = require("path");
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId++}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    name: `getfield ${offset}:${val}`, val: val, type: "getField",
+                    name: `getfield ${offset}:${val.__actual__}`, val: val.__actual__, type: "getField",
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 },
             };
@@ -231,18 +193,17 @@ const path = require("path");
                 const putFieldNode = this.lastPut[base.__id__][offset];
                 this.addEdge(getFieldNode, putFieldNode);
             }
-            return this.addObjectRetrieval(val, retrievalNode);
+            this.addObjectRetrieval(val, retrievalNode);
         }
 
         this.addObjectRetrieval = function (val, retrievalNode) {
-            if(typeof val !== "object") {
+            if (typeof val !== "object") {
                 return;
             }
             if (val.__id__ === undefined) {
                 val.__id__ = this.nextObjectIds++;
             }
             this.currentObjectRetrievals[val.__id__] = retrievalNode;
-            return { result: val };
         }
 
 
@@ -258,7 +219,7 @@ const path = require("path");
             });
         }
 
-        this.createTestNode = function(test, result) {
+        this.createTestNode = function (test, result) {
             const id = `n${this.nextNodeId++}`;
             const testNode = {
                 group: 'nodes',
@@ -268,16 +229,16 @@ const path = require("path");
                     val: result,
                     line: test.loc.start.line,
                     type: `${test.type}-test`,
-                    name:  `${test.type}-test`,
+                    name: `${test.type}-test`,
                 },
             };
             return [id, testNode];
         }
 
-        this.conditional = function(iid, result) {
+        this.conditional = function (iid, result) {
             const loc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
             const test = this.tests.find(t => location.locEq(t.loc, loc));
-            if(test) {
+            if (test) {
                 console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
                 const [testNodeId, testNode] = this.createTestNode(test, result);
                 //currentExprNodes were created for the for/if test
@@ -298,7 +259,7 @@ const path = require("path");
             const inFilePath = J$.smap[1].originalCodeFileName;
             try {
                 fs.mkdirSync(`../graphs`);
-            } catch(e) {
+            } catch (e) {
                 //this error is expected as it is thrown when the graphs directory esists already
             };
             fs.writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
