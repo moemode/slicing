@@ -35,6 +35,7 @@ const path = require("path");
 
         this.scriptEnter = function(iid, instrumentedFileName, originalFileName)  {
             [this.controlDeps, this.tests] = controlDepsHelper.controlDependencies(originalFileName);
+            this.currentObjectRetrievals = [];
         }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
@@ -44,7 +45,7 @@ const path = require("path");
                 group: 'nodes', data: {
                     id: `n${this.nextNodeId++}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    line: rhs_line, name: name, val: val, type: "declare"
+                    line: rhs_line, name: name, val: String(val), type: "declare"
                 },
             };
             this.lastWrites[name] = declareNode;
@@ -124,7 +125,7 @@ const path = require("path");
                     id: `n${this.nextNodeId}`,
                     loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
                     name: name, varname: name,
-                    val: val, type: "read",
+                    val: String(val), type: "read",
                     line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 },
             };
