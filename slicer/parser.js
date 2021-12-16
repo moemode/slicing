@@ -78,10 +78,9 @@ function prune(progInPath, progOutPath, graph, lineNb) {
 
 
 
-//toAst("./slicer/m1prog.js", "./slicer/m1prog_trans.js")
-//let linesToKeep = [1, 2, 5, 6, 9, 10]
-//removeLines("./slicer/m1prog.js", "./slicer/m1prog_removed.js", linesToKeep)
+
 
 module.exports = {
-    prune
+    prune,
+    keepLines
 };

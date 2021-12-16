@@ -1,0 +1,6 @@
+1. write analysis (in folder slicing):
+node jalangi2/src/js/commands/jalangi.js --inlineIID --inlineSource --analysis project/m1_written_values.js slicer/m1prog.js 
+
+2. line keeper (in folder slicing/slicer):
+cd slicing/slicer  
+node remove_lines.js 
