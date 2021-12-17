@@ -32,8 +32,6 @@ const path = require("path");
         this.currentObjectRetrievals = [];
 
         this.callStack = [];
-        //this.controlDeps = [];
-        //this.tests = [];
 
         this.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
             [this.controlDeps, this.tests] = controlDepsHelper.controlDependencies(originalFileName);
@@ -249,12 +247,6 @@ const path = require("path");
         };
 
     }
-
-    //invokeFunPre(iid=313, f=function(id=3), base=object(id=9), args[0]=object(id=7), isConstructor=false, isMethod=false, functionIid=177, functionSid=1) of function created at (/home/v/slicing/testcases/milestone3/b8_in.js:1:1:9:2) at (/home/v/slicing/testcases/milestone3/b8_in.js:11:1:11:41)
-
-
-
-
     jalangi.analysis = new SliceAnalysis();
 }(J$));
 
