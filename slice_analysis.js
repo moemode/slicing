@@ -33,6 +33,9 @@ const path = require("path");
 
         this.callStack = [];
 
+        this.currentCallerLoc = null;
+        this.currentCalleeLoc = null;
+
         this.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
             [this.controlDeps, this.tests] = controlDepsHelper.controlDependencies(originalFileName);
             this.currentObjectRetrievals = [];
@@ -229,6 +232,17 @@ const path = require("path");
                 calleeLoc = location.jalangiLocationToSourceLocation(J$.iidToLocation(functionSid, functionIid));
             }
             this.callStack.push(new location.CallStackEntry(callerLoc, calleeLoc));
+            this.currentCallerLoc = callerLoc;
+            this.currentCalleeLoc = calleeLoc;
+        };
+
+        this.invokeFun = function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
+            this.callStack.pop();
+            if(this.callStack.length > 0) {
+                const topCallStackEntry = this.callStack[this.callStack.length - 1];
+                this.currentCallerLoc = topCallStackEntry.callerLoc;
+                this.currentCalleeLoc = topCallStackEntry.calleeLoc;
+            }
         };
 
     }
