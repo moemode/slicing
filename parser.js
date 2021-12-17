@@ -5,7 +5,7 @@ var { parse, print } = require("recast");
 var astt = require("ast-types");
 
 
-function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
+function pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevant_vars) {
     const ast = parse(prog, {
         parser: esprima,
     })
@@ -13,6 +13,13 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
         visitNode(path) {
             const node = path.node;
             if(node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
+                if (callerLocs.some(cloc => location.locEq(node.expression.loc, cloc))) {
+                    return false;
+                }
+                if (nodeLocs.some(nLoc => location.in_between_inclusive(node.loc, nLoc))) {
+                    return false;
+                }
+                path.prune();
                 return false;
             }
             if (node.type === "FunctionDeclaration" || node.type === "ExpressionStatement") {
@@ -22,7 +29,7 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 return false;
             }
             if (node.type == 'VariableDeclaration') {
-                if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                if (nodeLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
                 }
                 if (!relevant_vars.includes(node.declarations[0].id.name)) {
@@ -31,7 +38,7 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 }
             }
             if (node.type === "IfStatement") {
-                if (!relevant_locs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
+                if (!nodeLocs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
                     // if was not reached in execution -> remove fully
                     path.prune();
                     return false;
@@ -44,7 +51,7 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 }*/
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                if (nodeLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
                 } else {
                     path.prune();
@@ -60,16 +67,19 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
 function prune(progInPath, progOutPath, graph, lineNb) {
     const readsInLineNbCriterion = `node[type="write"][line=${lineNb}], node[type="read"][line=${lineNb}], node[type="getField"][line=${lineNb}]`
     const testsInLineNbCriterion = `node[type="if-test"][line=${lineNb}], node[type="for-test"][line=${lineNb}], node[type="switch-test"][line=${lineNb}]`;
-    const relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion);
+    const endExpressionCrit = `node[type="end-expression"][line=${lineNb}]`
+    const relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion + ", " + endExpressionCrit);
     const reachableNodes = relevantNodesInLine.successors("node");
     const allRelevantNodes = reachableNodes.union(relevantNodesInLine);
-    const relevant_locs = Array.from(new Set(allRelevantNodes.map(node => node.data("loc"))));
-    const relevant_vars = Array.from(new Set(allRelevantNodes.map(node => node.data("varname")).filter(x=>x)));
+    const nodeLocs = Array.from(new Set(allRelevantNodes.map(node => node.data("loc"))));
+    const callerLocs = Array.from(new Set(allRelevantNodes.map(node => node.data("callerLoc")).filter(x=>x)));
+    //const relevantLocs = nodeLocs.concat(callerLocs);
+    const relevantVars = Array.from(new Set(allRelevantNodes.map(node => node.data("varname")).filter(x=>x)));
     /*relevant_locs.push(new location.SourceLocation(progInPath,
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     const prog = fs.readFileSync(progInPath).toString();
-    const newprog = pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars)
+    const newprog = pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevantVars)
     fs.writeFileSync(progOutPath, newprog.code);
 
 }

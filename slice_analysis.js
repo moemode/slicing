@@ -165,6 +165,9 @@ const path = require("path");
                 data: data
             };
             node.data.id = `n${this.nextNodeId++}`;
+            if (this.currentCallerLoc) {
+                node.data.callerLoc = this.currentCallerLoc;
+            }
             this.graph.add(node);
             return node;
         }
@@ -210,6 +213,11 @@ const path = require("path");
         }
 
         this.endExpression = function (iid) {
+            const loc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+            this.addNode({
+                loc: loc, line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+                type: "end-expression"
+            });
             this.currentExprNodes = [];
             this.currentObjectRetrievals = [];
         }
@@ -238,7 +246,7 @@ const path = require("path");
 
         this.invokeFun = function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
             this.callStack.pop();
-            if(this.callStack.length > 0) {
+            if (this.callStack.length > 0) {
                 const topCallStackEntry = this.callStack[this.callStack.length - 1];
                 this.currentCallerLoc = topCallStackEntry.callerLoc;
                 this.currentCalleeLoc = topCallStackEntry.calleeLoc;
