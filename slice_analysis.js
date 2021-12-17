@@ -102,15 +102,11 @@ const path = require("path");
 
         this.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
             const retrievalNode = this.currentObjectRetrievals[base.__id__];
-            const putFieldNode = {
-                group: 'nodes', data: {
-                    id: `n${this.nextNodeId++}`,
-                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    name: `putfield ${offset}:${val}`, val: val, type: "putField",
-                    line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
-                },
-            };
-            this.graph.add(putFieldNode);
+            const putFieldNode = this.addNode({
+                loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                name: `putfield ${offset}:${val}`, val: val, type: "putField",
+                line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            })
             this.addEdge(putFieldNode, retrievalNode);
             const readsForPut = this.currentExprNodes.filter(node => location.in_between_inclusive(putFieldNode.data.loc, node.data.loc));
             readsForPut.forEach(node => this.addEdge(putFieldNode, node));
@@ -125,15 +121,11 @@ const path = require("path");
         this.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
             //Todo: This does not work for string objects
             const retrievalNode = this.currentObjectRetrievals[base.__id__];
-            const getFieldNode = {
-                group: 'nodes', data: {
-                    id: `n${this.nextNodeId++}`,
-                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    name: `getfield ${offset}:${val}`, val: val, type: "getField",
-                    line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
-                },
-            };
-            this.graph.add(getFieldNode);
+            const getFieldNode = this.addNode({
+                loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                name: `getfield ${offset}:${val}`, val: val, type: "getField",
+                line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            });
             this.currentExprNodes.push(getFieldNode);
             //no retrievalNode if val is of primitive type not an object
             if (retrievalNode) {
