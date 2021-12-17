@@ -212,7 +212,6 @@ const path = require("path");
         }
 
         this.endExecution = function () {
-            //this.fs.writeFileSync("out.png", this.graph.png({output: "base64"}), {'encoding': 'base64'});
             const inFilePath = J$.smap[1].originalCodeFileName;
             try {
                 fs.mkdirSync(`../graphs`);
@@ -221,14 +220,8 @@ const path = require("path");
             };
             fs.writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
             pruner.prune(inFilePath, this.outFile, this.graph, this.lineNb)
-            //this.linesToKeep = lines reachable in this.graph from read nodes in lineNb
-            /*
-            for (let v of this.writtenValues) {
-                console.log(v);
-            }
-            console.log(this.lastWrites)
-            */
         }
+
         this.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
             const callerLoc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.sid, iid));
             let calleeLoc = J$.iidToLocation(functionSid, functionIid);
