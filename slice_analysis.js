@@ -56,67 +56,20 @@ const path = require("path");
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             const lhsLocation = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
-            const readsForWrite = this.currentExprNodes.filter(node => location.in_between_inclusive(lhsLocation, node.data.loc));
-            //this.writtenValues.push(val);
-            const writeNodeId = this.nextNodeId;
-            this.nextNodeId = this.nextNodeId + 1;
-            const writeNode = {
-                group: 'nodes',
-                data: {
-                    id: `n${writeNodeId}`,
-                    loc: lhsLocation,
-                    name: name,
-                    varname: name,
-                    val: val,
-                    line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    type: "write"
-                },
-            };
-            this.graph.add(writeNode);
+            const writeNode = this.addNode({
+                loc: lhsLocation, name: name, varname: name, val: val, type: "write",
+                line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            });
             this.currentExprNodes.push(writeNode);
             this.lastWrites[name] = writeNode;
-            const newEdges = readsForWrite.map(node => ({
-                group: 'edges',
-                data: {
-                    id: `e${this.nextEdgeId++}`,
-                    source: `n${writeNodeId}`,
-                    target: node.data.id
-                }
-            }));
-            this.graph.add(newEdges);
+            const readsForWrite = this.currentExprNodes.filter(node => location.in_between_inclusive(lhsLocation, node.data.loc));
+            const newEdges = readsForWrite.forEach(node => this.addEdge(writeNode, node))
             this.addTestDependency(writeNode);
             if(typeof val === "object" && val.__id__ ===undefined) {
                 val.__id__ = this.nextObjectIds++;
                 return { result: val };
 
             }
-            /*
-            let rhs_line = parseInt(location.jalangiLocationToLine())
-            this.lastWrites[name] = [val, rhs_line, this.nextNodeId];
-            let readsInLine = `node[type="r"][line=${rhs_line}]`
-            let readNodesInLine = this.graph.elements(readsInLine);
-            this.graph.add({
-                group: 'nodes',
-                data: {
-                    id: `n${this.nextNodeId}`,
-                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    line: rhs_line,
-                    name: name,
-                    val: val,
-                    type: "w"
-                },
-            });
-            newEdges = readNodesInLine.map(node => ({
-                group: 'edges',
-                data: {
-                    id: `e${this.nextEdgeId++}`,
-                    source: `n${this.nextNodeId}`,
-                    target: node.id()
-                }
-            }));
-            this.graph.add(newEdges);
-            this.nextNodeId = this.nextNodeId + 1;
-            */
         }
 
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
