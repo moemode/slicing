@@ -29,7 +29,7 @@ const path = require("path");
         this.nextObjectIds = 1;
         //this.lastTest[location] = testNode
         this.lastTest = {}
-
+        this.currentObjectRetrievals = [];
         //this.controlDeps = [];
         //this.tests = [];
 
@@ -49,6 +49,10 @@ const path = require("path");
             };
             this.lastWrites[name] = declareNode;
             this.graph.add(declareNode);
+            if(typeof val === "object" && val.__id__ === undefined) {
+                val.__id__ = this.nextObjectIds++;
+                return { result: val };
+            }
         }
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
