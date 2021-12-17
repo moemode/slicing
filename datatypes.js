@@ -58,6 +58,13 @@ function positionToString(pos) {
     return `line:${pos.line};column:${pos.column}`
 }
 
+class CallStackEntry {
+    constructor(callerLoc, calleeLoc) {
+        this.callerLoc = callerLoc;
+        this.calleeLoc = calleeLoc;
+    }
+}
+
 module.exports = {
     Position,
     SourceLocation,
@@ -67,5 +74,6 @@ module.exports = {
     posIsSmaller: posIsSmallerEq,
     posEq,
     locEq,
-    positionToString
+    positionToString,
+    CallStackEntry
 };

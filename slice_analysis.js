@@ -30,6 +30,8 @@ const path = require("path");
         //this.lastTest[location] = testNode
         this.lastTest = {}
         this.currentObjectRetrievals = [];
+
+        this.callStack = [];
         //this.controlDeps = [];
         //this.tests = [];
 
@@ -41,15 +43,11 @@ const path = require("path");
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
             rhs_line = location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-            const declareNode = {
-                group: 'nodes', data: {
-                    id: `n${this.nextNodeId++}`,
-                    loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-                    line: rhs_line, name: name, val: String(val), type: "declare"
-                },
-            };
+            const declareNode = this.addNode({
+                loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+                line: rhs_line, name: name, varname: name, val: String(val), type: "declare"
+            });
             this.lastWrites[name] = declareNode;
-            this.graph.add(declareNode);
             if(typeof val === "object" && val.__id__ === undefined) {
                 val.__id__ = this.nextObjectIds++;
                 return { result: val };
@@ -254,6 +252,15 @@ const path = require("path");
         }
 
 
+        this.addNode = function (data) {
+            const node = {
+                group: 'nodes',
+                data: data
+            };
+            node.data.id = `n${this.nextNodeId++}`;
+            this.graph.add(node);
+            return node;
+        }
 
         this.addEdge = function (source, target) {
             this.graph.add({
@@ -267,11 +274,10 @@ const path = require("path");
         }
 
         this.createTestNode = function(test, result) {
-            const id = `n${this.nextNodeId++}`;
             const testNode = {
                 group: 'nodes',
                 data: {
-                    id: id,
+                    id: this.nextNodeId++,
                     loc: test.loc,
                     val: result,
                     line: test.loc.start.line,
@@ -279,7 +285,7 @@ const path = require("path");
                     name:  `${test.type}-test`,
                 },
             };
-            return [id, testNode];
+            return testNode;
         }
 
         this.conditional = function(iid, result) {
@@ -287,7 +293,7 @@ const path = require("path");
             const test = this.tests.find(t => location.locEq(t.loc, loc));
             if(test) {
                 console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
-                const [testNodeId, testNode] = this.createTestNode(test, result);
+                const testNode = this.createTestNode(test, result);
                 //currentExprNodes were created for the for/if test
                 this.graph.add(testNode);
                 this.lastTest[location.positionToString(test.loc.start)] = testNode;
@@ -319,8 +325,21 @@ const path = require("path");
             console.log(this.lastWrites)
             */
         }
+        this.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
+            const callerLoc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.sid, iid));
+            let calleeLoc = J$.iidToLocation(functionSid, functionIid);
+            if(calleeLoc !== "undefined") {
+                calleeLoc = location.jalangiLocationToSourceLocation(J$.iidToLocation(functionSid, functionIid));
+            }
+            this.callStack.push(new location.CallStackEntry(callerLoc, calleeLoc));
+        };
 
     }
+
+    //invokeFunPre(iid=313, f=function(id=3), base=object(id=9), args[0]=object(id=7), isConstructor=false, isMethod=false, functionIid=177, functionSid=1) of function created at (/home/v/slicing/testcases/milestone3/b8_in.js:1:1:9:2) at (/home/v/slicing/testcases/milestone3/b8_in.js:11:1:11:41)
+
+
+
 
     jalangi.analysis = new SliceAnalysis();
 }(J$));
