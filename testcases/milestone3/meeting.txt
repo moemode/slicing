@@ -1,0 +1,3 @@
+meeting
+/home/v/slicing/testcases/milestone3/b1_in.js
+{"inFile": "../testcases/milestone3/b1_in.js", "outFile": "../testcases/milestone3/b1_predicted_out.js", "lineNb":9, "goldFile": "../testcases/milestone3/b1_out.js"},
