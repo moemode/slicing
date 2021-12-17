@@ -62,8 +62,9 @@ function prune(progInPath, progOutPath, graph, lineNb) {
     const testsInLineNbCriterion = `node[type="if-test"][line=${lineNb}], node[type="for-test"][line=${lineNb}], node[type="switch-test"][line=${lineNb}]`;
     const relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion);
     const reachableNodes = relevantNodesInLine.successors("node");
-    const relevant_locs = reachableNodes.map(node => node.data("loc"));
-    const relevant_vars = reachableNodes.map(node => node.data("varname")).filter(x=>x);
+    const allRelevantNodes = reachableNodes.union(relevantNodesInLine);
+    const relevant_locs = allRelevantNodes.map(node => node.data("loc"));
+    const relevant_vars = allRelevantNodes.map(node => node.data("varname")).filter(x=>x);
     /*relevant_locs.push(new location.SourceLocation(progInPath,
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
