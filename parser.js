@@ -12,7 +12,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
     astt.visit(ast, {
         visitNode(path) {
             const node = path.node;
-            if(node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
+            if (node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
                 if (relevantLocs.some(nLoc => location.in_between_inclusive(node.loc, nLoc))) {
                     return false;
                 }
@@ -37,6 +37,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
             if (node.type === "IfStatement") {
                 if (!relevantLocs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
                     // if was not reached in execution -> remove fully
+                    // Todo: this is wrong what if if was reached without relevant nodes?
                     path.prune();
                     return false;
                 } /*else {
@@ -55,6 +56,20 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
                     return false;
                 }
             }
+            if (node.type === "SwitchStatement") {
+                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                    // if was not reached in execution -> remove fully
+                    path.prune();
+                    return false;
+                }
+            }
+            if (node.type === "SwitchCase") {
+                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                    // if was not reached in execution -> remove fully
+                    path.prune();
+                    return false;
+                }
+            }
             this.traverse(path);
         }
     });
@@ -69,9 +84,9 @@ function prune(progInPath, progOutPath, graph, lineNb) {
     const reachableNodes = relevantNodesInLine.successors("node");
     const allRelevantNodes = reachableNodes.union(relevantNodesInLine);
     const nodeLocs = Array.from(new Set(allRelevantNodes.map(node => node.data("loc"))));
-    const callerLocs = Array.from(new Set(allRelevantNodes.map(node => node.data("callerLoc")).filter(x=>x)));
+    const callerLocs = Array.from(new Set(allRelevantNodes.map(node => node.data("callerLoc")).filter(x => x)));
     const relevantLocs = nodeLocs.concat(callerLocs);
-    const relevantVars = Array.from(new Set(allRelevantNodes.map(node => node.data("varname")).filter(x=>x)));
+    const relevantVars = Array.from(new Set(allRelevantNodes.map(node => node.data("varname")).filter(x => x)));
     /*relevant_locs.push(new location.SourceLocation(progInPath,
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
