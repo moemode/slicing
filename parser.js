@@ -5,7 +5,7 @@ var { parse, print } = require("recast");
 var astt = require("ast-types");
 
 
-function pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevant_vars) {
+function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
     const ast = parse(prog, {
         parser: esprima,
     })
@@ -13,10 +13,7 @@ function pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevant_vars) 
         visitNode(path) {
             const node = path.node;
             if(node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
-                if (callerLocs.some(cloc => location.locEq(node.expression.loc, cloc))) {
-                    return false;
-                }
-                if (nodeLocs.some(nLoc => location.in_between_inclusive(node.loc, nLoc))) {
+                if (relevantLocs.some(nLoc => location.in_between_inclusive(node.loc, nLoc))) {
                     return false;
                 }
                 path.prune();
@@ -29,7 +26,7 @@ function pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevant_vars) 
                 return false;
             }
             if (node.type == 'VariableDeclaration') {
-                if (nodeLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                if (relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
                 }
                 if (!relevant_vars.includes(node.declarations[0].id.name)) {
@@ -38,7 +35,7 @@ function pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevant_vars) 
                 }
             }
             if (node.type === "IfStatement") {
-                if (!nodeLocs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
+                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
                     // if was not reached in execution -> remove fully
                     path.prune();
                     return false;
@@ -51,7 +48,7 @@ function pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevant_vars) 
                 }*/
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (nodeLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                if (relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
                 } else {
                     path.prune();
@@ -73,13 +70,13 @@ function prune(progInPath, progOutPath, graph, lineNb) {
     const allRelevantNodes = reachableNodes.union(relevantNodesInLine);
     const nodeLocs = Array.from(new Set(allRelevantNodes.map(node => node.data("loc"))));
     const callerLocs = Array.from(new Set(allRelevantNodes.map(node => node.data("callerLoc")).filter(x=>x)));
-    //const relevantLocs = nodeLocs.concat(callerLocs);
+    const relevantLocs = nodeLocs.concat(callerLocs);
     const relevantVars = Array.from(new Set(allRelevantNodes.map(node => node.data("varname")).filter(x=>x)));
     /*relevant_locs.push(new location.SourceLocation(progInPath,
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     const prog = fs.readFileSync(progInPath).toString();
-    const newprog = pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevantVars)
+    const newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars)
     fs.writeFileSync(progOutPath, newprog.code);
 
 }
