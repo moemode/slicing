@@ -92,7 +92,7 @@ const path = require("path");
         }
 
         this.addTestDependency = function (node) {
-            //controlDeps.findControlDep node.loc
+            //found whether the current location has a control dependency
             const branchDependency = controlDepsHelper.findControlDep(node.data.loc, this.controlDeps);
             if (branchDependency) {
                 //Todo: not going to work because of hash bs
@@ -182,11 +182,11 @@ const path = require("path");
             });
         }
 
-        this.createTestNode = function (test, result) {
+        this.addTestNode = function (test, result) {
             const testNode = {
                 group: 'nodes',
                 data: {
-                    id: this.nextNodeId++,
+                    id: `n${this.nextNodeId++}`,
                     loc: test.loc,
                     val: result,
                     line: test.loc.start.line,
@@ -194,6 +194,8 @@ const path = require("path");
                     name: `${test.type}-test`,
                 },
             };
+            this.graph.add(testNode);
+            this.addTestDependency(testNode);
             return testNode;
         }
 
@@ -202,9 +204,8 @@ const path = require("path");
             const test = this.tests.find(t => location.locEq(t.loc, loc));
             if (test) {
                 console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
-                const testNode = this.createTestNode(test, result);
+                const testNode = this.addTestNode(test, result);
                 //currentExprNodes were created for the for/if test
-                this.graph.add(testNode);
                 this.lastTest[location.positionToString(test.loc.start)] = testNode;
                 //TODO: Only include read nodes?
                 this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
@@ -213,6 +214,18 @@ const path = require("path");
 
         this.endExpression = function (iid) {
             const loc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+            //switch expression does not result in callback to this.conditional -> handle it here
+            const test = this.tests.find(t => location.locEq(t.loc, loc));
+            if (test && test.type === "switch-disc") {
+                // todo duplicate of conditional
+                console.log("Detected switch discriminant: at l " + test.loc.start.line);
+                const testNode = this.addTestNode(test, "case-disc");
+                //currentExprNodes were created for the for/if test
+                this.lastTest[location.positionToString(test.loc.start)] = testNode;
+                //TODO: Only include read nodes?
+                this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
+
+            }
             this.addNode({
                 loc: loc, line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
                 type: "end-expression"

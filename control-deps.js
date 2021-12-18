@@ -6,17 +6,8 @@ var esprima = require('esprima');
 var estrav = require('estraverse');
 var location = require('./datatypes');
 var cytoscape = require("cytoscape");
-var {parse, print} = require("recast");
+var { parse, print } = require("recast");
 var astt = require("ast-types");
-
-/*
-function toAst(filePathIn, filePathOut) {
-    let prog = fs.readFileSync(filePathIn).toString();
-    var ast = acorn.parse(prog, { ecmaVersion: 5, locations: true });
-    let newprog = esc.generate(ast);
-    fs.writeFileSync(filePathOut, newprog);
-}
-*/
 
 class BranchDependency {
     constructor(testLoc, branchLoc, type) {
@@ -64,10 +55,22 @@ function computeControlDeps(prog) {
             const node = path.node;
             const caseCount = node.cases.length;
             if (caseCount > 0) {
-                tests.push(new Test(node.discriminant.loc, "switch"));
+                tests.push(new Test(node.discriminant.loc, "switch-disc"));
+                // track dependency of everything in switch to the discriminant
                 controlDeps.push(new BranchDependency(node.discriminant.loc,
                     new location.SourceLocation(null, node.cases[0].loc.start, node.cases[caseCount - 1].loc.end),
-                    "switch"));
+                    "switch-disc"));
+                // track dependency of everything in a case body on that case
+                for (const scase of node.cases) {
+                    console.log(scase);
+                    const consequentLenght = scase.consequent.length;
+                    if (consequentLenght > 0 && scase.test !== null) {
+                        tests.push(new Test(scase.test.loc, "switch-test"));
+                        controlDeps.push(new BranchDependency(scase.test.loc,
+                            new location.SourceLocation(null, scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end),
+                            "switch-test"));
+                    }
+                }
             }
             this.traverse(path);
         },
@@ -81,7 +84,7 @@ function computeControlDeps(prog) {
 function findControlDep(loc, controlDeps) {
     const locDeps = controlDeps.filter(cD => location.in_between_inclusive(cD.branchLoc, loc));
     //find smallest branchLoc
-    if(locDeps.length > 0) {
+    if (locDeps.length > 0) {
         const locCD = locDeps.reduce((prev, curr) => location.posIsSmaller(prev.branchLoc.start, curr.branchLoc.start) ? curr : prev);
         return locCD;
     }
@@ -93,7 +96,7 @@ function findTest(loc, tests) {
     if (test.length > 1) {
         console.log("more than one test loc, this must never happen");
         throw "Fehler";
-    } else if(test.length === 1) {
+    } else if (test.length === 1) {
         return test[0];
     }
 }
