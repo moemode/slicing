@@ -3,6 +3,7 @@ var location = require('./datatypes');
 var esprima = require('esprima');
 var { parse, print } = require("recast");
 var astt = require("ast-types");
+var beautify = require('js-beautify').js;
 
 
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
@@ -73,7 +74,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
             this.traverse(path);
         }
     });
-    return print(ast);
+    return beautify(print(ast).code, {wrap_line_length: 120});
 }
 
 function prune(progInPath, progOutPath, graph, lineNb) {
@@ -92,7 +93,7 @@ function prune(progInPath, progOutPath, graph, lineNb) {
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     const prog = fs.readFileSync(progInPath).toString();
     const newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars)
-    fs.writeFileSync(progOutPath, newprog.code);
+    fs.writeFileSync(progOutPath, newprog);
 
 }
 
