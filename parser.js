@@ -8,70 +8,15 @@ var acorn = require("acorn");
 
 
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
-    /*const ast = parse(prog, {
+    const ast = parse(prog, {
         parser: esprima,
-    })*/
-    const ast = acorn.parse(prog, {locations: true, ecmaVersion: 5});
-    estraverse.traverse(ast, {
-        enter: function (node, parent) {
-            if (node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
-                if (relevantLocs.some(nLoc => location.in_between_inclusive(node.loc, nLoc))) {
-                    this.skip();
-                }
-                this.remove();
-            }
-            /*
-            if (node.type === "FunctionDeclaration" || node.type === "ExpressionStatement") {
-                this.traverse(path);
-            }*/
-            if (within_line(node.loc, lineNb)) {
-                this.skip();
-            }
-            if (node.type == 'VariableDeclaration') {
-                if (relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
-                    this.skip();
-                }
-                if (!relevant_vars.includes(node.declarations[0].id.name)) {
-                    this.remove();
-                }
-            }
-            if (node.type === "IfStatement") {
-                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
-                    // if was not reached in execution -> remove fully
-                    // Todo: this is wrong what if if was reached without relevant nodes?
-                    this.remove();
-                } /*else {
-                    const branchPaths = [path.get("consequent"), path.get("alternate")].filter(x => x.value)
-                    for (let branchPath of branchPaths) {
-                        this.traverse(branchPath);
-                    }
-                    console.log(branchPaths);
-                }*/
-            }
-            if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
-                    this.skip();
-                } else {
-                   this.remove();
-                }
-            }
-            if (node.type === "SwitchStatement") {
-                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
-                    // if was not reached in execution -> remove fully
-                    this.remove();
-                }
-            }
-            if (node.type === "SwitchCase") {
-                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
-                    // if was not reached in execution -> remove fully
-                    this.remove();
-                }
-            }
-        }
     });
     astt.visit(ast, {
         visitNode(path) {
             const node = path.node;
+            if (node.type === "BlockStatement" && node.isFiller) {
+                return false;
+            }
             if (node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
                 if (relevantLocs.some(nLoc => location.in_between_inclusive(node.loc, nLoc))) {
                     return false;
@@ -107,6 +52,20 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
                     }
                     console.log(branchPaths);
                 }*/
+            }
+            if (node.type === "BlockStatement" && path.name === "consequent") {
+                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                    const blockStatement = astt.builders.blockStatement([]);
+                    blockStatement.isFiller = true;
+                    path.parent.node[path.name] = blockStatement;
+                    return false;
+                }
+            }
+            if (node.type === "BlockStatement" && path.name === "alternate") {
+                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                    path.parent.node[path.name] = null;
+                    return false;
+                }
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
                 if (relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
