@@ -66,7 +66,7 @@ function pruneProgram(prog, lineNb, graph, nodeLocs, callerLocs, relevant_vars) 
 
 function prune(progInPath, progOutPath, graph, lineNb) {
     const readsInLineNbCriterion = `node[type="write"][line=${lineNb}], node[type="read"][line=${lineNb}], node[type="getField"][line=${lineNb}]`
-    const testsInLineNbCriterion = `node[type="if-test"][line=${lineNb}], node[type="for-test"][line=${lineNb}], node[type="switch-test"][line=${lineNb}]`;
+    const testsInLineNbCriterion = `node[type="if-test"][line=${lineNb}], node[type="for-test"][line=${lineNb}], node[type="switch-test-test"][line=${lineNb}], node[type="switch-disc-test"][line=${lineNb}]`;
     const endExpressionCrit = `node[type="end-expression"][line=${lineNb}]`
     const relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion + ", " + endExpressionCrit);
     const reachableNodes = relevantNodesInLine.successors("node");
