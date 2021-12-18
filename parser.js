@@ -3,6 +3,7 @@ var location = require('./datatypes');
 var esprima = require('esprima');
 var { parse, print } = require("recast");
 var astt = require("ast-types");
+var esc = require("escodegen");
 
 
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
@@ -12,6 +13,9 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
     astt.visit(ast, {
         visitNode(path) {
             const node = path.node;
+            if(node.type === "EmptyStatement") {
+                return false;
+            }
             if (node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
                 if (relevantLocs.some(nLoc => location.in_between_inclusive(node.loc, nLoc))) {
                     return false;
@@ -48,6 +52,12 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
                     console.log(branchPaths);
                 }*/
             }
+            if(node.type === "BlockStatement" && (path.name === "consequent" || path.name === "alternate")) {
+                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                    path.parent.node[path.name] = astt.builders.emptyStatement();
+                    return false;
+                }
+            }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
                 if (relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
@@ -73,7 +83,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
             this.traverse(path);
         }
     });
-    return print(ast);
+    return ast;
 }
 
 function prune(progInPath, progOutPath, graph, lineNb) {
@@ -91,8 +101,9 @@ function prune(progInPath, progOutPath, graph, lineNb) {
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     const prog = fs.readFileSync(progInPath).toString();
-    const newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars)
-    fs.writeFileSync(progOutPath, newprog.code);
+    const newast = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars);
+    const newprog = esc.generate(newast.program);
+    fs.writeFileSync(progOutPath, newprog);
 
 }
 
