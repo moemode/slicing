@@ -65,7 +65,6 @@ const path = require("path");
             this.lastWrites[name] = writeNode;
             const readsForWrite = this.currentExprNodes.filter(node => location.in_between_inclusive(lhsLocation, node.data.loc));
             readsForWrite.forEach(node => this.addEdge(writeNode, node))
-            this.addTestDependency(writeNode);
             if (typeof val === "object" && val.__id__ === undefined) {
                 val.__id__ = this.nextObjectIds++;
                 return { result: val };
@@ -89,7 +88,6 @@ const path = require("path");
             } else {
                 console.log("Read without write");
             }
-            this.addTestDependency(readNode);
             return this.addObjectRetrieval(val, readNode);
         }
 
@@ -169,6 +167,7 @@ const path = require("path");
                 node.data.callerLoc = this.currentCallerLoc;
             }
             this.graph.add(node);
+            this.addTestDependency(node);
             return node;
         }
 
