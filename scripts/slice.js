@@ -1,6 +1,9 @@
 const { execSync } = require("child_process");
 const process = require("process");
 const path = require("path");
+const crypto = require("crypto");
+const os = require("os");
+const bmarker = require("../break_marker");
 
 (function() {
     
@@ -29,15 +32,20 @@ const path = require("path");
         run_jalangi_slice(inFile, outFile, lineNb);
     }
 
+    function tmpFile(fname) {
+        return path.join(os.tmpdir(), fname);
+    }
     
 	function run_jalangi_slice(inFile, outFile, lineNb){
 		// create input parameters from args ditcionary
-		inputArgs = " --outFile "+outFile+" --lineNb "+lineNb;
-        analysisParams = "--initParam outFile:" + outFile;
-        analysisParams += " --initParam lineNb:" + lineNb 
-		stmt = 'node ' + jalangiPath + " " + analysisParams + ' --inlineIID --inlineSource --analysis ' + analysisPath + " " + inFile;
+        const newBasename = "augmented_" + path.basename(inFile);
+        const augmentedInFile = path.join(path.dirname(inFile), newBasename);
+        bmarker.insertBreakMarkersFile(inFile, augmentedInFile)
+		const inputArgs = " --outFile "+outFile+" --lineNb "+ lineNb;
+        const analysisParams = "--initParam outFile:" + outFile + " --initParam lineNb:" + lineNb ;
+		const stmt = 'node ' + jalangiPath + " " + analysisParams + ' --inlineIID --inlineSource --analysis ' + analysisPath + " " + augmentedInFile;
         console.log("Jalangi call: " + stmt);
-		child = execSync(stmt);
+		const child = execSync(stmt);
             /*
 		  function (error, stdout, stderr) {
 		    console.log('stdout: ' + stdout); // status message after executing slice.js

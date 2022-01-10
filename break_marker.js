@@ -16,7 +16,8 @@ function insertBreakMarkers(prog) {
             const node = path.node;
             if (node.type === "BreakStatement") {
                 const pathToBreak = path.parent.get("body", parseInt(path.name));
-                pathToBreak.insertBefore(astt.builders.emptyStatement());
+                const iftruebreak = astt.builders.ifStatement(astt.builders.literal(true), astt.builders.breakStatement())
+                pathToBreak.replace(iftruebreak);
                 return false;
             }
             this.traverse(path);
@@ -76,6 +77,36 @@ function insertBreakMarkers(prog) {
     return ast;
 }
 
+function findBreakMarkers(prog) {
+    const ast = parse(prog, {
+        parser: esprima,
+    });
+    const ifTrueBreakLocations = [];
+    astt.visit(ast, {
+        visitNode(path) {
+            const node = path.node;
+            if (this.isIfThenBreak(node)) {
+                ifTrueBreakLocations.push(node.test.loc.start);
+            }
+            this.traverse(path);
+        },
+        isIfThenBreak(node) {
+            return node.type === "IfStatement" && node.test.value === true && 
+            node.consequent.type === "BreakStatement" && !node.alternate;
+        }
+    });
+    return ifTrueBreakLocations;
+}
+
+function insertBreakMarkersFile(progInPath, progOutPath) {
+    const prog = fs.readFileSync(progInPath).toString();
+    const ast = insertBreakMarkers(prog)
+    const newprog = print(ast).code
+    fs.writeFileSync(progOutPath, newprog);
+
+}
+
+
 function within_line(location, line) {
     return location.start.line == location.end.line && location.end.line == line;
 }
@@ -84,5 +115,7 @@ function within_line(location, line) {
 
 
 module.exports = {
-    insertBreakMarkers
+    insertBreakMarkers,
+    insertBreakMarkersFile,
+    findBreakMarkers
 };

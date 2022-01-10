@@ -5,16 +5,32 @@ var { parse, print } = require("recast");
 var astt = require("ast-types");
 var estraverse = require("estraverse");
 var acorn = require("acorn");
+var jscsh = require("jscodeshift");
+const { findBreakMarkers } = require('./break_marker');
 
 
-function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
+function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars, conditionalStatistics) {
     const ast = parse(prog, {
         parser: esprima,
     });
+
     astt.visit(ast, {
         visitNode(path) {
             const node = path.node;
-            if (node.type === "BlockStatement" && node.isFiller) {
+            if (this.isIfThenBreak(node)) {
+                if(conditionalStatistics[location.positionToString(node.test.loc.start)]) {
+                    //break reached -> remove enclosing if
+                    const breakStatement = astt.builders.breakStatement();
+                    breakStatement.isFiller = true;
+                    path.replace(breakStatement);
+                    return false;
+                } else {
+                    //break never reached
+                    path.prune();
+                    return false;
+                }
+            }
+            if (node.isFiller) {
                 return false;
             }
             if (node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
@@ -90,12 +106,17 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
                 }
             }
             this.traverse(path);
+        },
+        isIfThenBreak(node) {
+            return node.type === "IfStatement" && node.test.value === true && 
+            node.consequent.type === "BreakStatement" && !node.alternate;
         }
     });
     return print(ast);
 }
 
-function prune(progInPath, progOutPath, graph, lineNb) {
+
+function prune(progInPath, progOutPath, graph, lineNb, conditionalStatistics) {
     const readsInLineNbCriterion = `node[type="write"][line=${lineNb}], node[type="read"][line=${lineNb}], node[type="getField"][line=${lineNb}]`
     const testsInLineNbCriterion = `node[type="if-test"][line=${lineNb}], node[type="for-test"][line=${lineNb}], node[type="switch-test-test"][line=${lineNb}], node[type="switch-disc-test"][line=${lineNb}]`;
     const endExpressionCrit = `node[type="end-expression"][line=${lineNb}]`
@@ -110,9 +131,13 @@ function prune(progInPath, progOutPath, graph, lineNb) {
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     const prog = fs.readFileSync(progInPath).toString();
-    const newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars)
+    //TODO: Include taken ifthenbreaks into relevantLocs
+    //S1 find locations of all ifthenbreaks
+    const ifTrueBreakLocs = findBreakMarkers(prog);
+    //S2 keep ifthenbreaks when conditionalsStatistics shows it was executed
+    const executedIfTrueBreakLocs = ifTrueBreakLocs.filter(testPos => conditionalStatistics[location.positionToString(testPos)]);
+    const newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars, conditionalStatistics)
     fs.writeFileSync(progOutPath, newprog.code);
-
 }
 
 

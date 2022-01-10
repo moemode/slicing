@@ -40,6 +40,9 @@ const path = require("path");
             [this.controlDeps, this.tests] = controlDepsHelper.controlDependencies(originalFileName);
             this.currentObjectRetrievals = [];
         }
+        this.instrumentCodePre = function(iid, code){
+            console.log(iid);
+        }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             this.writtenValues.push(val);
@@ -242,7 +245,7 @@ const path = require("path");
                 //this error is expected as it is thrown when the graphs directory esists already
             };
             fs.writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
-            pruner.prune(inFilePath, this.outFile, this.graph, this.lineNb)
+            pruner.prune(inFilePath, this.outFile, this.graph, this.lineNb, this.lastTest);
         }
 
         this.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
