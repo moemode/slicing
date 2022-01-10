@@ -9,7 +9,7 @@ var jscsh = require("jscodeshift");
 const { findBreakMarkers } = require('./break_marker');
 
 
-function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars, conditionalStatistics) {
+function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars, execBreakLocs) {
     const ast = parse(prog, {
         parser: esprima,
     });
@@ -18,6 +18,18 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars, conditio
         visitNode(path) {
             const node = path.node;
             if (this.isIfThenBreak(node)) {
+                if(execBreakLocs.some(loc => location.locEq(loc, node.test.loc))) {
+                    //break reached -> remove enclosing if
+                    const breakStatement = astt.builders.breakStatement();
+                    breakStatement.isFiller = true;
+                    path.replace(breakStatement);
+                    return false;
+                } else {
+                    //break never reached
+                    path.prune();
+                    return false;
+                }
+                /*
                 if(conditionalStatistics[location.positionToString(node.test.loc.start)]) {
                     //break reached -> remove enclosing if
                     const breakStatement = astt.builders.breakStatement();
@@ -29,6 +41,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars, conditio
                     path.prune();
                     return false;
                 }
+                */
             }
             if (node.isFiller) {
                 return false;
@@ -56,7 +69,8 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars, conditio
                 }
             }
             if (node.type === "IfStatement") {
-                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.test.loc, rloc))) {
+                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc)) &&
+                !execBreakLocs.some(breakLoc => location.in_between_inclusive(node.loc, breakLoc))) {
                     // if was not reached in execution -> remove fully
                     // Todo: this is wrong what if if was reached without relevant nodes?
                     path.prune();
@@ -70,7 +84,8 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars, conditio
                 }*/
             }
             if (node.type === "BlockStatement" && path.name === "consequent") {
-                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
+                if (!relevantLocs.some(rloc => location.in_between_inclusive(node.loc, rloc)) && 
+                !execBreakLocs.some(breakLoc => location.in_between_inclusive(node.loc, breakLoc))) {
                     const blockStatement = astt.builders.blockStatement([]);
                     blockStatement.isFiller = true;
                     path.parent.node[path.name] = blockStatement;
@@ -135,8 +150,9 @@ function prune(progInPath, progOutPath, graph, lineNb, conditionalStatistics) {
     //S1 find locations of all ifthenbreaks
     const ifTrueBreakLocs = findBreakMarkers(prog);
     //S2 keep ifthenbreaks when conditionalsStatistics shows it was executed
-    const executedIfTrueBreakLocs = ifTrueBreakLocs.filter(testPos => conditionalStatistics[location.positionToString(testPos)]);
-    const newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars, conditionalStatistics)
+    const executedIfTrueBreakLocs = ifTrueBreakLocs.filter(testLoc => conditionalStatistics[location.positionToString(testLoc.start)]);
+    //const relevantLocs = nodeLocs.concat(callerLocs).concat(executedIfTrueBreakLocs);
+    const newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars, executedIfTrueBreakLocs);
     fs.writeFileSync(progOutPath, newprog.code);
 }
 

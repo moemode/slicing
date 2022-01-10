@@ -15,7 +15,12 @@ function insertBreakMarkers(prog) {
         visitNode(path) {
             const node = path.node;
             if (node.type === "BreakStatement") {
-                const pathToBreak = path.parent.get("body", parseInt(path.name));
+                let pathToBreak;
+                if (path.parent.node.type === "SwitchCase") {
+                    pathToBreak = path.parent.get("consequent", parseInt(path.name))
+                } else {
+                    pathToBreak = path.parent.get("body", parseInt(path.name));
+                }
                 const iftruebreak = astt.builders.ifStatement(astt.builders.literal(true), astt.builders.breakStatement())
                 pathToBreak.replace(iftruebreak);
                 return false;
@@ -86,13 +91,13 @@ function findBreakMarkers(prog) {
         visitNode(path) {
             const node = path.node;
             if (this.isIfThenBreak(node)) {
-                ifTrueBreakLocations.push(node.test.loc.start);
+                ifTrueBreakLocations.push(node.test.loc);
             }
             this.traverse(path);
         },
         isIfThenBreak(node) {
-            return node.type === "IfStatement" && node.test.value === true && 
-            node.consequent.type === "BreakStatement" && !node.alternate;
+            return node.type === "IfStatement" && node.test.value === true &&
+                node.consequent.type === "BreakStatement" && !node.alternate;
         }
     });
     return ifTrueBreakLocations;
