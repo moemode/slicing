@@ -55,6 +55,20 @@ const path = require("path");
             }
         }
 
+        this.literal = function(iid, val, hasGetterSetter) {
+            if (typeof val === "object") {
+                if(val.__id__ === undefined) {
+                    val.__id__ = this.nextObjectIds++;
+                }
+                for (const [propertyName, propertyValue] of Object.entries(val)) {
+                    if(propertyName != "__id__") {
+                        this.putField(iid, val, propertyName, propertyValue, undefined, undefined);
+                    }
+                }
+                return { result: val };
+            }
+        }
+
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             const lhsLocation = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
             const writeNode = this.addNode({
@@ -65,11 +79,6 @@ const path = require("path");
             this.lastWrites[name] = writeNode;
             const readsForWrite = this.currentExprNodes.filter(node => location.in_between_inclusive(lhsLocation, node.data.loc));
             readsForWrite.forEach(node => this.addEdge(writeNode, node))
-            if (typeof val === "object" && val.__id__ === undefined) {
-                val.__id__ = this.nextObjectIds++;
-                return { result: val };
-
-            }
         }
 
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
@@ -108,7 +117,9 @@ const path = require("path");
                 name: `putfield ${offset}:${val}`, val: val, type: "putField",
                 line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             })
-            this.addEdge(putFieldNode, retrievalNode);
+            if(retrievalNode) {
+                this.addEdge(putFieldNode, retrievalNode);
+            }
             const readsForPut = this.currentExprNodes.filter(node => location.in_between_inclusive(putFieldNode.data.loc, node.data.loc));
             readsForPut.forEach(node => this.addEdge(putFieldNode, node));
             this.currentExprNodes.push(putFieldNode);
