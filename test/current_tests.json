@@ -13,8 +13,7 @@
 {"inFile": "./testcases/mine/simple_for.js", "outFile": "./testcases/mine/simple_for_predicted_out.js", "lineNb":10, "goldFile": "./testcases/mine/simple_for_out.js"},
 {"inFile": "./testcases/mine/fcall.js", "outFile": "./testcases/mine/fcall_predicted_out.js", "lineNb":5, "goldFile": "./testcases/mine/fcall_out.js"},
 {"inFile": "./testcases/pm2/a1_in.js", "outFile": "./testcases/pm2/a1_predicted_out.js", "lineNb":8, "goldFile": "./testcases/pm2/a1_out.js"},
-{"inFile": "./testcases/pm2/e1_in.js", "outFile": "./testcases/pm2/e1_predicted_out.js", "lineNb":8, "goldFile": "./testcases/pm2/e1_out.js"},
-{"inFile": "./testcases/pm2/e2_in.js", "outFile": "./testcases/pm2/e2_predicted_out.js", "lineNb":8, "goldFile": "./testcases/pm2/e2_out.js"}
+{"inFile": "./testcases/mine/e2_mod_in.js", "outFile": "./testcases/mine/e2_mod_predicted_out.js", "lineNb":8, "goldFile": "./testcases/mine/e2_mod_out.js"}
 ]
 
 

@@ -69,7 +69,6 @@ const path = require("path");
             }
         }
 
-
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             const lhsLocation = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
             const writeNode = this.addNode({
@@ -80,11 +79,6 @@ const path = require("path");
             this.lastWrites[name] = writeNode;
             const readsForWrite = this.currentExprNodes.filter(node => location.in_between_inclusive(lhsLocation, node.data.loc));
             readsForWrite.forEach(node => this.addEdge(writeNode, node))
-            if (typeof val === "object" && val.__id__ === undefined) {
-                val.__id__ = this.nextObjectIds++;
-                return { result: val };
-
-            }
         }
 
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
@@ -123,7 +117,6 @@ const path = require("path");
                 name: `putfield ${offset}:${val}`, val: val, type: "putField",
                 line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             })
-            //no retrieval node if called via literal
             if(retrievalNode) {
                 this.addEdge(putFieldNode, retrievalNode);
             }
@@ -154,13 +147,11 @@ const path = require("path");
             /* 
             When there is no put for this field on the object it might have been created by a literal.
             But then we must have read a variable containing this object and the read node
-            transitively depends on this write of the  into a original variable
+            transitively depends on this write of the literal into a original variable
             */
             if (baseObjectPuts !== undefined) {
                 const putFieldNode = this.lastPut[base.__id__][offset];
-                if(putFieldNode) {
-                    this.addEdge(getFieldNode, putFieldNode);
-                }
+                this.addEdge(getFieldNode, putFieldNode);
             }
             return this.addObjectRetrieval(val, retrievalNode);
         }
