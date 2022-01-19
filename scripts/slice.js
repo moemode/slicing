@@ -18,7 +18,7 @@ const path = require("path");
     const args = parser.parse_args();
     const srcPath = path.resolve(__dirname, '..');
     const jalangiPath = srcPath + "/jalangi2/src/js/commands/jalangi.js";
-    const analysisPath = srcPath + "/slice_analysis.js";
+    const analysisPath = srcPath + "/analysis/slice_analysis.js";
 
     function slice(inFile, outFile, lineNb){
         /*
