@@ -1,21 +1,55 @@
-var Position = function Position(line, col) {
-    this.line = line;
-    this.column = col;
-};
-Position.prototype.offset = function offset(n) {
-    return new Position(this.line, this.column + n);
-};
-var SourceLocation = function SourceLocation(p, start, end) {
-    this.start = start;
-    this.end = end;
-    if (p && p.sourceFile !== null) {
-        this.source = p.sourceFile;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CallStackEntry = exports.positionToString = exports.locEq = exports.posEq = exports.posIsSmaller = exports.in_between_inclusive = exports.jalangiLocationToLine = exports.jalangiLocationToSourceLocation = exports.SourceLocation = exports.Position = void 0;
+var Position = /** @class */ (function () {
+    function Position(line, column) {
+        this.line = line;
+        this.column = column;
     }
-};
+    Position.posEq = function (pos1, pos2) {
+        return pos1.line === pos2.line && pos1.column == pos2.column;
+    };
+    Position.posIsSmallerEq = function (pos1, pos2) {
+        return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column <= pos2.column);
+    };
+    Position.prototype.toString = function () {
+        return "line:".concat(this.line, ";column:").concat(this.column);
+    };
+    return Position;
+}());
+exports.Position = Position;
+var SourceLocation = /** @class */ (function () {
+    function SourceLocation(p, start, end) {
+        this.p = p;
+        this.start = start;
+        this.end = end;
+    }
+    SourceLocation.fromJalangiLocation = function (jalangiLocation) {
+        var r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/;
+        var m = jalangiLocation.match(r);
+        if (m.length == 6) {
+            return new SourceLocation(m[1], new Position(parseInt(m[2]), parseInt(m[3]) - 1), new Position(parseInt(m[4]), parseInt(m[5]) - 1));
+        }
+        else {
+            console.log("error in location conversion");
+        }
+    };
+    SourceLocation.locEq = function (loc1, loc2) {
+        return posEq(loc1.start, loc2.start) && posEq(loc1.end, loc2.end);
+    };
+    SourceLocation.in_between_inclusive = function (outer, inner) {
+        var includesStart = posIsSmallerEq(outer.start, inner.start);
+        var includesEnd = posIsSmallerEq(inner.end, outer.end);
+        return includesStart && includesEnd;
+    };
+    return SourceLocation;
+}());
+exports.SourceLocation = SourceLocation;
 function jalangiLocationToLine(jalangiLocation) {
     var sourceLocation = jalangiLocationToSourceLocation(jalangiLocation);
     return sourceLocation.start.line;
 }
+exports.jalangiLocationToLine = jalangiLocationToLine;
 function jalangiLocationToSourceLocation(jalangiLocation) {
     var r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/;
     var m = jalangiLocation.match(r);
@@ -26,6 +60,7 @@ function jalangiLocationToSourceLocation(jalangiLocation) {
         console.log("error in location conversion");
     }
 }
+exports.jalangiLocationToSourceLocation = jalangiLocationToSourceLocation;
 function in_between_inclusive(outer, inner) {
     /*
     return (outer.start.line <= inner.start.line &&
@@ -37,18 +72,23 @@ function in_between_inclusive(outer, inner) {
     var includesEnd = posIsSmallerEq(inner.end, outer.end);
     return includesStart && includesEnd;
 }
+exports.in_between_inclusive = in_between_inclusive;
 function posEq(pos1, pos2) {
     return pos1.line === pos2.line && pos1.column == pos2.column;
 }
+exports.posEq = posEq;
 function locEq(loc1, loc2) {
     return posEq(loc1.start, loc2.start) && posEq(loc1.end, loc2.end);
 }
+exports.locEq = locEq;
 function posIsSmallerEq(pos1, pos2) {
     return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column <= pos2.column);
 }
+exports.posIsSmaller = posIsSmallerEq;
 function positionToString(pos) {
     return "line:".concat(pos.line, ";column:").concat(pos.column);
 }
+exports.positionToString = positionToString;
 var CallStackEntry = /** @class */ (function () {
     function CallStackEntry(callerLoc, calleeLoc) {
         this.callerLoc = callerLoc;
@@ -56,15 +96,5 @@ var CallStackEntry = /** @class */ (function () {
     }
     return CallStackEntry;
 }());
-module.exports = {
-    Position: Position,
-    SourceLocation: SourceLocation,
-    jalangiLocationToSourceLocation: jalangiLocationToSourceLocation,
-    jalangiLocationToLine: jalangiLocationToLine,
-    in_between_inclusive: in_between_inclusive,
-    posIsSmaller: posIsSmallerEq,
-    posEq: posEq,
-    locEq: locEq,
-    positionToString: positionToString,
-    CallStackEntry: CallStackEntry
-};
+exports.CallStackEntry = CallStackEntry;
+//# sourceMappingURL=datatypes.js.map

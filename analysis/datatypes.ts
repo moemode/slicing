@@ -1,24 +1,50 @@
-var Position = function Position(line, col) {
-    this.line = line;
-    this.column = col;
-};
+class Position {
+    constructor(readonly line: number, readonly column: number) {}
+    public static posEq(pos1: Position, pos2: Position): boolean {
+        return pos1.line === pos2.line && pos1.column == pos2.column;
+    }
+    public static posIsSmallerEq(pos1: Position, pos2: Position): boolean {
+        return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column <= pos2.column);
+    }
+    public toString(): string {
+        return `line:${this.line};column:${this.column}`
+    }
 
-Position.prototype.offset = function offset(n) {
-    return new Position(this.line, this.column + n)
-};
+}
 
-var SourceLocation = function SourceLocation(p, start, end) {
-    this.start = start;
-    this.end = end;
-    if (p && p.sourceFile !== null) { this.source = p.sourceFile; }
-};
+class SourceLocation {
+    constructor(readonly p: string, readonly start: Position, readonly end: Position) {}
+
+    public static fromJalangiLocation(jalangiLocation: string): SourceLocation {
+        let r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/
+        let m = jalangiLocation.match(r)
+        if (m.length == 6) {
+            return new SourceLocation(m[1],
+                new Position(parseInt(m[2]), parseInt(m[3]) - 1),
+                new Position(parseInt(m[4]), parseInt(m[5]) - 1));
+        } else {
+            console.log("error in location conversion");
+        }
+    }
+    public static locEq(loc1:SourceLocation, loc2: SourceLocation): boolean {
+        return posEq(loc1.start, loc2.start) && posEq(loc1.end, loc2.end);
+    }
+
+    public static in_between_inclusive(outer: SourceLocation, inner: SourceLocation) {
+        const includesStart = posIsSmallerEq(outer.start, inner.start);
+        const includesEnd = posIsSmallerEq(inner.end, outer.end);
+        return includesStart && includesEnd;
+    }
+    
+}
+
 
 function jalangiLocationToLine(jalangiLocation) {
     let sourceLocation = jalangiLocationToSourceLocation(jalangiLocation);
     return sourceLocation.start.line;
 }
 
-function jalangiLocationToSourceLocation(jalangiLocation) {
+function jalangiLocationToSourceLocation(jalangiLocation: string) {
     let r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/
     let m = jalangiLocation.match(r)
     if (m.length == 6) {
@@ -59,19 +85,16 @@ function positionToString(pos) {
 }
 
 class CallStackEntry {
-    constructor(callerLoc, calleeLoc) {
-        this.callerLoc = callerLoc;
-        this.calleeLoc = calleeLoc;
-    }
+    constructor(readonly callerLoc: Location, readonly calleeLoc: Location) {}
 }
 
-module.exports = {
+export {
     Position,
     SourceLocation,
     jalangiLocationToSourceLocation,
     jalangiLocationToLine,
     in_between_inclusive,
-    posIsSmaller: posIsSmallerEq,
+    posIsSmallerEq as posIsSmaller,
     posEq,
     locEq,
     positionToString,

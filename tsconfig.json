@@ -1,9 +1,13 @@
 {
-    "compilerOptions": {
-      "allowJs": true,
-      "target": "es5"
-    },
-    "include": ["analysis"],
-    "moduleResolution": "node",
+  "compilerOptions": {
+    "allowJs": true,
+    "target": "es5",
+    "allowSyntheticDefaultImports": true, // that is probably the important one
+    "esModuleInterop": true,
     "sourceMap": true,
+  },
+  "include": [
+    "analysis"
+  ],
+  "moduleResolution": "node",
 }

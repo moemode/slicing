@@ -1,13 +1,33 @@
-/* Import necessary modules */
-//var acorn = require('acorn');
-var esc = require('escodegen');
-var fs = require('fs');
-var esprima = require('esprima');
-var estrav = require('estraverse');
-var location = require('./datatypes');
-var cytoscape = require("cytoscape");
-var _a = require("recast"), parse = _a.parse, print = _a.print;
-var astt = require("ast-types");
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var fs = __importStar(require("fs"));
+var esprima = __importStar(require("esprima"));
+var datatypes_1 = require("./datatypes");
+var cytoscape_1 = __importDefault(require("cytoscape"));
+var recast_1 = require("recast");
+var ast_types_1 = require("ast-types");
 var BranchDependency = /** @class */ (function () {
     function BranchDependency(testLoc, branchLoc, type) {
         this.testLoc = testLoc;
@@ -24,15 +44,15 @@ var Test = /** @class */ (function () {
     return Test;
 }());
 function computeControlDeps(prog) {
-    var graph = cytoscape();
-    var ast = parse(prog, {
+    var graph = (0, cytoscape_1.default)();
+    var ast = (0, recast_1.parse)(prog, {
         parser: esprima,
     });
     var fbody_ast = ast.program.body[0];
     var controlDeps = [];
     var tests = [];
-    parentTest = [];
-    astt.visit(fbody_ast, {
+    var parentTest = [];
+    (0, ast_types_1.visit)(fbody_ast, {
         visitIfStatement: function (path) {
             var node = path.node;
             tests.push(new Test(node.test.loc, "if"));
@@ -56,7 +76,7 @@ function computeControlDeps(prog) {
             if (caseCount > 0) {
                 tests.push(new Test(node.discriminant.loc, "switch-disc"));
                 // track dependency of everything in switch to the discriminant
-                controlDeps.push(new BranchDependency(node.discriminant.loc, new location.SourceLocation(null, node.cases[0].loc.start, node.cases[caseCount - 1].loc.end), "switch-disc"));
+                controlDeps.push(new BranchDependency(node.discriminant.loc, new datatypes_1.SourceLocation(null, node.cases[0].loc.start, node.cases[caseCount - 1].loc.end), "switch-disc"));
                 // track dependency of everything in a case body on that case
                 for (var _i = 0, _a = node.cases; _i < _a.length; _i++) {
                     var scase = _a[_i];
@@ -64,7 +84,7 @@ function computeControlDeps(prog) {
                     var consequentLenght = scase.consequent.length;
                     if (consequentLenght > 0 && scase.test !== null) {
                         tests.push(new Test(scase.test.loc, "switch-test"));
-                        controlDeps.push(new BranchDependency(scase.test.loc, new location.SourceLocation(null, scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end), "switch-test"));
+                        controlDeps.push(new BranchDependency(scase.test.loc, new datatypes_1.SourceLocation(null, scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end), "switch-test"));
                     }
                 }
             }
@@ -77,52 +97,21 @@ function computeControlDeps(prog) {
     return [controlDeps, tests];
 }
 function findControlDep(loc, controlDeps) {
-    var locDeps = controlDeps.filter(function (cD) { return location.in_between_inclusive(cD.branchLoc, loc); });
+    var locDeps = controlDeps.filter(function (cD) { return datatypes_1.SourceLocation.in_between_inclusive(cD.branchLoc, loc); });
     //find smallest branchLoc
     if (locDeps.length > 0) {
-        var locCD = locDeps.reduce(function (prev, curr) { return location.posIsSmaller(prev.branchLoc.start, curr.branchLoc.start) ? curr : prev; });
+        var locCD = locDeps.reduce(function (prev, curr) { return datatypes_1.Position.posIsSmallerEq(prev.branchLoc.start, curr.branchLoc.start) ? curr : prev; });
         return locCD;
-    }
-}
-function findTest(loc, tests) {
-    var test = tests.filter(function (test) { return location.in_between_inclusive(test.loc, loc); });
-    if (test.length > 1) {
-        console.log("more than one test loc, this must never happen");
-        throw "Fehler";
-    }
-    else if (test.length === 1) {
-        return test[0];
-    }
-}
-function computeForHeadLocation(potentialForExpressionNodes, forLoc) {
-    var forExpressionNodes = potentialForExpressionNodes.filter(function (e) { return e != null; });
-    if (forExpressionNodes.length === 0) {
-        return forLoc;
-    }
-    else {
-        //const forExpressionLocs = forExpressionNodes.flatMap(n => [n.loc.start, n.loc.end]);
-        var startPosition = forExpressionNodes[0].loc.start;
-        var endPosition = forExpressionNodes[forExpressionNodes.length - 1].loc.end;
-        return new location.SourceLocation(null, startPosition, endPosition);
     }
 }
 function controlDependencies(progInPath) {
     var prog = fs.readFileSync(progInPath).toString();
     var controlData = computeControlDeps(prog);
-    //fs.writeFileSync("cgraph.json", graph);// JSON.stringify(graph.json()));
     return controlData;
-}
-//controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a8_in.js");
-//controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b2_in.js");
-//controlDependencies("/home/v/slicing/slicer/testcases/milestone3/a9_in.js");
-//const [cDeps, testLocs] = controlDependencies("/home/v/slicing/slicer/testcases/milestone3/b1_in.js");
-var loc = new location.SourceLocation(null, new location.Position(10, 16), new location.Position(10, 32));
-//findControlDep(loc, cDeps);
-function within_line(location, line) {
-    return location.start.line == location.end.line && location.end.line == line;
 }
 module.exports = {
     computeControlDeps: computeControlDeps,
     controlDependencies: controlDependencies,
     findControlDep: findControlDep,
 };
+//# sourceMappingURL=control-deps.js.map
