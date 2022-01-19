@@ -76,7 +76,7 @@ function computeControlDeps(prog) {
             if (caseCount > 0) {
                 tests.push(new Test(node.discriminant.loc, "switch-disc"));
                 // track dependency of everything in switch to the discriminant
-                controlDeps.push(new BranchDependency(node.discriminant.loc, new datatypes_1.SourceLocation(null, node.cases[0].loc.start, node.cases[caseCount - 1].loc.end), "switch-disc"));
+                controlDeps.push(new BranchDependency(node.discriminant.loc, new datatypes_1.SourceLocation(node.cases[0].loc.start, node.cases[caseCount - 1].loc.end), "switch-disc"));
                 // track dependency of everything in a case body on that case
                 for (var _i = 0, _a = node.cases; _i < _a.length; _i++) {
                     var scase = _a[_i];
@@ -84,7 +84,7 @@ function computeControlDeps(prog) {
                     var consequentLenght = scase.consequent.length;
                     if (consequentLenght > 0 && scase.test !== null) {
                         tests.push(new Test(scase.test.loc, "switch-test"));
-                        controlDeps.push(new BranchDependency(scase.test.loc, new datatypes_1.SourceLocation(null, scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end), "switch-test"));
+                        controlDeps.push(new BranchDependency(scase.test.loc, new datatypes_1.SourceLocation(scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end), "switch-test"));
                     }
                 }
             }

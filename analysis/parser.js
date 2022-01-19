@@ -1,17 +1,38 @@
-var fs = require('fs');
-var location = require('./datatypes');
-var esprima = require('esprima');
-var _a = require("recast"), parse = _a.parse, print = _a.print;
-var astt = require("ast-types");
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var fs_1 = require("fs");
+var datatypes_1 = require("./datatypes");
+var recast_1 = require("recast");
+var esprima = __importStar(require("esprima"));
+var ast_types_1 = require("ast-types");
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
-    var ast = parse(prog, {
+    var ast = (0, recast_1.parse)(prog, {
         parser: esprima,
     });
-    astt.visit(ast, {
+    (0, ast_types_1.visit)(ast, {
         visitNode: function (path) {
             var node = path.node;
             if (node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
-                if (relevantLocs.some(function (nLoc) { return location.in_between_inclusive(node.loc, nLoc); })) {
+                if (relevantLocs.some(function (nLoc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, nLoc); })) {
                     return false;
                 }
                 path.prune();
@@ -20,11 +41,11 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
             if (node.type === "FunctionDeclaration" || node.type === "ExpressionStatement") {
                 this.traverse(path);
             }
-            if (within_line(node.loc, lineNb)) {
+            if (datatypes_1.SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
             }
             if (node.type == 'VariableDeclaration') {
-                if (relevantLocs.some(function (rloc) { return location.in_between_inclusive(node.loc, rloc); })) {
+                if (relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
                     return false;
                 }
                 if (!relevant_vars.includes(node.declarations[0].id.name)) {
@@ -33,7 +54,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
                 }
             }
             if (node.type === "IfStatement") {
-                if (!relevantLocs.some(function (rloc) { return location.in_between_inclusive(node.test.loc, rloc); })) {
+                if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.test.loc, rloc); })) {
                     // if was not reached in execution -> remove fully
                     // Todo: this is wrong what if if was reached without relevant nodes?
                     path.prune();
@@ -47,7 +68,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
                 }*/
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (relevantLocs.some(function (rloc) { return location.in_between_inclusive(node.loc, rloc); })) {
+                if (relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
                     return false;
                 }
                 else {
@@ -56,14 +77,14 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
                 }
             }
             if (node.type === "SwitchStatement") {
-                if (!relevantLocs.some(function (rloc) { return location.in_between_inclusive(node.loc, rloc); })) {
+                if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
                     // if was not reached in execution -> remove fully
                     path.prune();
                     return false;
                 }
             }
             if (node.type === "SwitchCase") {
-                if (!relevantLocs.some(function (rloc) { return location.in_between_inclusive(node.loc, rloc); })) {
+                if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
                     // if was not reached in execution -> remove fully
                     path.prune();
                     return false;
@@ -72,7 +93,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
             this.traverse(path);
         }
     });
-    return print(ast);
+    return (0, recast_1.print)(ast);
 }
 function prune(progInPath, progOutPath, graph, lineNb) {
     var readsInLineNbCriterion = "node[type=\"write\"][line=".concat(lineNb, "], node[type=\"read\"][line=").concat(lineNb, "], node[type=\"getField\"][line=").concat(lineNb, "]");
@@ -88,12 +109,9 @@ function prune(progInPath, progOutPath, graph, lineNb) {
     /*relevant_locs.push(new location.SourceLocation(progInPath,
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
-    var prog = fs.readFileSync(progInPath).toString();
+    var prog = (0, fs_1.readFileSync)(progInPath).toString();
     var newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars);
-    fs.writeFileSync(progOutPath, newprog.code);
-}
-function within_line(location, line) {
-    return location.start.line == location.end.line && location.end.line == line;
+    (0, fs_1.writeFileSync)(progOutPath, newprog.code);
 }
 module.exports = {
     prune: prune

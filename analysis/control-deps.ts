@@ -3,7 +3,7 @@ import * as esprima from "esprima";
 import { SourceLocation, Position } from "./datatypes";
 import cytoscape from "cytoscape";
 import { parse } from "recast";
-import {visit} from "ast-types";
+import { visit } from "ast-types";
 
 class BranchDependency {
     constructor(testLoc, branchLoc, type) {
@@ -54,7 +54,7 @@ function computeControlDeps(prog) {
                 tests.push(new Test(node.discriminant.loc, "switch-disc"));
                 // track dependency of everything in switch to the discriminant
                 controlDeps.push(new BranchDependency(node.discriminant.loc,
-                    new SourceLocation(null, node.cases[0].loc.start, node.cases[caseCount - 1].loc.end),
+                    new SourceLocation(node.cases[0].loc.start, node.cases[caseCount - 1].loc.end),
                     "switch-disc"));
                 // track dependency of everything in a case body on that case
                 for (const scase of node.cases) {
@@ -63,7 +63,7 @@ function computeControlDeps(prog) {
                     if (consequentLenght > 0 && scase.test !== null) {
                         tests.push(new Test(scase.test.loc, "switch-test"));
                         controlDeps.push(new BranchDependency(scase.test.loc,
-                            new SourceLocation(null, scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end),
+                            new SourceLocation(scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end),
                             "switch-test"));
                     }
                 }

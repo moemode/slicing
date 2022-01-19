@@ -19,16 +19,19 @@ var Position = /** @class */ (function () {
 }());
 exports.Position = Position;
 var SourceLocation = /** @class */ (function () {
-    function SourceLocation(p, start, end) {
-        this.p = p;
+    function SourceLocation(start, end, p) {
         this.start = start;
         this.end = end;
+        this.p = p;
     }
+    SourceLocation.within_line = function (location, line) {
+        return location.start.line == location.end.line && location.end.line == line;
+    };
     SourceLocation.fromJalangiLocation = function (jalangiLocation) {
         var r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/;
         var m = jalangiLocation.match(r);
         if (m.length == 6) {
-            return new SourceLocation(m[1], new Position(parseInt(m[2]), parseInt(m[3]) - 1), new Position(parseInt(m[4]), parseInt(m[5]) - 1));
+            return new SourceLocation(new Position(parseInt(m[2]), parseInt(m[3]) - 1), new Position(parseInt(m[4]), parseInt(m[5]) - 1), m[1]);
         }
         else {
             console.log("error in location conversion");
@@ -54,7 +57,7 @@ function jalangiLocationToSourceLocation(jalangiLocation) {
     var r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/;
     var m = jalangiLocation.match(r);
     if (m.length == 6) {
-        return new SourceLocation(m[1], new Position(parseInt(m[2]), parseInt(m[3]) - 1), new Position(parseInt(m[4]), parseInt(m[5]) - 1));
+        return new SourceLocation(new Position(parseInt(m[2]), parseInt(m[3]) - 1), new Position(parseInt(m[4]), parseInt(m[5]) - 1), m[1]);
     }
     else {
         console.log("error in location conversion");

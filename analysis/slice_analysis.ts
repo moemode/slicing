@@ -35,7 +35,8 @@ class SliceAnalysis {
     currentCallerLoc = null;
     currentCalleeLoc = null;
 
-
+    controlDeps = null;
+    tests = null;
 
     scriptEnter(iid, instrumentedFileName, originalFileName) {
         [this.controlDeps, this.tests] = controlDepsHelper.controlDependencies(originalFileName);

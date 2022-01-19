@@ -26,6 +26,8 @@ var SliceAnalysis = /** @class */ (function () {
         this.callStack = [];
         this.currentCallerLoc = null;
         this.currentCalleeLoc = null;
+        this.controlDeps = null;
+        this.tests = null;
     }
     SliceAnalysis.prototype.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
         var _a;
