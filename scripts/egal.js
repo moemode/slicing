@@ -1,6 +1,9 @@
-function sliceMe() {
-    var a = {course:'Program Analysis'};
-    return a;
+function sliceMe(arr) {
+    var length = arr.length;
+    var status = "invalid";
+    if (arr[length-1] > 0){
+        status = "valid";
+    }
 }
 
-sliceMe();
+sliceMe([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);

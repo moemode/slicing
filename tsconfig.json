@@ -3,6 +3,7 @@
       "allowJs": true,
       "target": "es5"
     },
-    "exclude": ["node_modules", "jalangi2", "outputs", "testcases", "test", "scripts"],
-    "include": ["."]
+    "include": ["analysis"],
+    "moduleResolution": "node",
+    "sourceMap": true,
 }
