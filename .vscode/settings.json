@@ -1,3 +1,7 @@
 {
+    "files.exclude": {
+        "**/.git": true,
+        "**/*.js.map": true
+    },
     "debug.javascript.unmapMissingSources": true
 }

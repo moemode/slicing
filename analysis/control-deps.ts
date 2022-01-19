@@ -20,14 +20,14 @@ class Test {
     }
 }
 
-function computeControlDeps(prog) {
+function computeControlDeps(prog): any {
     const graph = cytoscape();
     const ast = parse(prog, {
         parser: esprima,
     })
     const fbody_ast = ast.program.body[0];
-    const controlDeps = [];
-    const tests = [];
+    const controlDeps: BranchDependency[] = [];
+    const tests: Test[] = [];
     const parentTest = [];
     visit(fbody_ast, {
         visitIfStatement(path) {
