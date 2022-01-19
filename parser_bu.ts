@@ -1,28 +1,31 @@
 /* Import necessary modules */
 var acorn = require('acorn');
-var esc = require('escodegen');
+var esc = require('escodegen')
 var fs = require('fs');
 var estrav = require('estraverse');
 var location = require('./datatypes');
 var esprima = require('esprima');
-var _a = require("recast"), parse = _a.parse, print = _a.print;
+var { parse, print } = require("recast");
 var astt = require("ast-types");
+
+
 function toAst(filePathIn, filePathOut) {
-    var prog = fs.readFileSync(filePathIn).toString();
+    let prog = fs.readFileSync(filePathIn).toString();
     var ast = acorn.parse(prog, { ecmaVersion: 5, locations: true });
-    var newprog = esc.generate(ast);
+    let newprog = esc.generate(ast);
     fs.writeFileSync(filePathOut, newprog);
 }
+
 function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
-    var ast = acorn.parse(prog, { ecmaVersion: 5, locations: true });
-    var fbody_ast = ast.body[0].body;
-    var filtered_fbody_ast = estrav.replace(fbody_ast, {
+    let ast = acorn.parse(prog, { ecmaVersion: 5, locations: true });
+    let fbody_ast = ast.body[0].body;
+    let filtered_fbody_ast = estrav.replace(fbody_ast, {
         enter: function (node, parent) {
             if (within_line(node.loc, lineNb)) {
                 return node;
             }
             if (node.type == 'VariableDeclaration') {
-                if (relevant_locs.some(function (rloc) { return location.in_between_inclusive(node.loc, rloc); })) {
+                if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return node;
                 }
                 if (!relevant_vars.includes(node.declarations[0].id.name)) {
@@ -30,7 +33,7 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 }
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (relevant_locs.some(function (rloc) { return location.in_between_inclusive(node.loc, rloc); })) {
+                if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return node;
                 }
                 return this.remove();
@@ -38,13 +41,14 @@ function pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars) {
         }
     });
     ast.body[0].body = filtered_fbody_ast;
-    var newprog = esc.generate(ast, { format: { preserveBlankLines: true } });
+    let newprog = esc.generate(ast, { format: { preserveBlankLines: true } });
     return newprog;
 }
+
 function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
-    var ast = parse(prog, {
+    const ast = parse(prog, {
         parser: esprima,
-    });
+    })
     astt.visit(ast, {
         /*
         visitFunctionDeclaration(path) {
@@ -54,8 +58,8 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
             this.traverse(path);
         },
         */
-        visitNode: function (path) {
-            var node = path.node;
+        visitNode(path) {
+            const node = path.node;
             if (node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
                 return false;
             }
@@ -67,7 +71,7 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 return false;
             }
             if (node.type == 'VariableDeclaration') {
-                if (!relevant_locs.some(function (rloc) { return location.in_between_inclusive(node.loc, rloc); }) &&
+                if (!relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc)) &&
                     !relevant_vars.includes(node.declarations[0].id.name)) {
                     path.prune();
                 }
@@ -83,15 +87,13 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
                     this.traverse(path);
                     return;
                 }*/
-                var branchPaths = [path.get("consequent"), path.get("alternate")].filter(function (x) { return x.value; });
-                for (var _i = 0, branchPaths_1 = branchPaths; _i < branchPaths_1.length; _i++) {
-                    var branchPath = branchPaths_1[_i];
+                const branchPaths = [path.get("consequent"), path.get("alternate")].filter(x => x.value)
+                for (let branchPath of branchPaths) {
                     this.traverse(branchPath);
-                    var prunedBranchNode = branchPath.node;
-                    if (!relevant_locs.some(function (rloc) { return location.in_between_inclusive(branchNode.loc, rloc); })) {
+                    const prunedBranchNode = branchPath.node;
+                    if (!relevant_locs.some(rloc => location.in_between_inclusive(branchNode.loc, rloc))) {
                         branchPath.prune();
-                    }
-                    else {
+                    } else {
                         both_pruned = false;
                     }
                 }
@@ -114,10 +116,9 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
                 */
             }
             if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (relevant_locs.some(function (rloc) { return location.in_between_inclusive(node.loc, rloc); })) {
+                if (relevant_locs.some(rloc => location.in_between_inclusive(node.loc, rloc))) {
                     return false;
-                }
-                else {
+                } else {
                     path.prune();
                     return false;
                 }
@@ -127,24 +128,33 @@ function pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars) {
     });
     return print(ast);
 }
+
+
+
+
 function prune(progInPath, progOutPath, graph, lineNb) {
-    var readsInLineNbCriterion = "node[type=\"read\"][line=".concat(lineNb, "], node[type=\"getField\"][line=").concat(lineNb, "]");
-    var readNodesInLine = graph.nodes(readsInLineNbCriterion);
-    var reachableNodes = readNodesInLine.successors("node");
-    var relevant_locs = reachableNodes.map(function (node) { return node.data("loc"); });
-    var relevant_vars = reachableNodes.map(function (node) { return node.data("varname"); }).filter(function (x) { return x; });
+    const readsInLineNbCriterion = `node[type="read"][line=${lineNb}], node[type="getField"][line=${lineNb}]`
+    const readNodesInLine = graph.nodes(readsInLineNbCriterion);
+    const reachableNodes = readNodesInLine.successors("node");
+    const relevant_locs = reachableNodes.map(node => node.data("loc"));
+    const relevant_vars = reachableNodes.map(node => node.data("varname")).filter(x => x);
     /*relevant_locs.push(new location.SourceLocation(progInPath,
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
-    var prog = fs.readFileSync(progInPath).toString();
+    const prog = fs.readFileSync(progInPath).toString();
     //const newprog = pruneProgram(prog, lineNb, graph, relevant_locs, relevant_vars);
-    var newprog2 = pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars);
+    const newprog2 = pruneProgram2(prog, lineNb, graph, relevant_locs, relevant_vars)
     //fs.writeFileSync(progOutPath, newprog);
     fs.writeFileSync(progOutPath, newprog2.code);
+
 }
+
+
 function within_line(location, line) {
     return location.start.line == location.end.line && location.end.line == line;
 }
+
+
 module.exports = {
-    prune: prune
+    prune
 };
