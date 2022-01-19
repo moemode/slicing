@@ -94,7 +94,7 @@ function controlDependencies(progInPath) {
     return controlData;
 }
 
-module.exports = {
+export {
     computeControlDeps,
     controlDependencies,
     findControlDep,

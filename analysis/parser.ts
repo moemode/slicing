@@ -96,9 +96,6 @@ function prune(progInPath: PathOrFileDescriptor, progOutPath: PathOrFileDescript
 }
 
 
-
-
-
-module.exports = {
+export {
     prune
 };

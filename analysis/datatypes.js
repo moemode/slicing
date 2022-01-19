@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CallStackEntry = exports.positionToString = exports.locEq = exports.posEq = exports.posIsSmaller = exports.in_between_inclusive = exports.jalangiLocationToLine = exports.jalangiLocationToSourceLocation = exports.SourceLocation = exports.Position = void 0;
+exports.JalangiLocation = exports.CallStackEntry = exports.positionToString = exports.locEq = exports.posEq = exports.posIsSmaller = exports.in_between_inclusive = exports.jalangiLocationToLine = exports.jalangiLocationToSourceLocation = exports.SourceLocation = exports.Position = void 0;
 var Position = /** @class */ (function () {
     function Position(line, column) {
         this.line = line;
@@ -12,8 +12,8 @@ var Position = /** @class */ (function () {
     Position.posIsSmallerEq = function (pos1, pos2) {
         return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column <= pos2.column);
     };
-    Position.prototype.toString = function () {
-        return "line:".concat(this.line, ";column:").concat(this.column);
+    Position.toString = function (position) {
+        return "line:".concat(position.line, ";column:").concat(position.column);
     };
     return Position;
 }());
@@ -48,6 +48,16 @@ var SourceLocation = /** @class */ (function () {
     return SourceLocation;
 }());
 exports.SourceLocation = SourceLocation;
+var JalangiLocation = /** @class */ (function () {
+    function JalangiLocation() {
+    }
+    JalangiLocation.getLine = function (jalangiLocation) {
+        var sourceLocation = SourceLocation.fromJalangiLocation(jalangiLocation);
+        return sourceLocation.start.line;
+    };
+    return JalangiLocation;
+}());
+exports.JalangiLocation = JalangiLocation;
 function jalangiLocationToLine(jalangiLocation) {
     var sourceLocation = jalangiLocationToSourceLocation(jalangiLocation);
     return sourceLocation.start.line;

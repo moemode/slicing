@@ -6,8 +6,8 @@ class Position {
     public static posIsSmallerEq(pos1: Position, pos2: Position): boolean {
         return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column <= pos2.column);
     }
-    public toString(): string {
-        return `line:${this.line};column:${this.column}`
+    public static toString(position: Position): string {
+        return `line:${position.line};column:${position.column}`
     }
 
 }
@@ -35,12 +35,18 @@ class SourceLocation {
         return posEq(loc1.start, loc2.start) && posEq(loc1.end, loc2.end);
     }
 
-    public static in_between_inclusive(outer: SourceLocation, inner: SourceLocation) {
+    public static in_between_inclusive(outer: SourceLocation, inner: SourceLocation): boolean {
         const includesStart = posIsSmallerEq(outer.start, inner.start);
         const includesEnd = posIsSmallerEq(inner.end, outer.end);
         return includesStart && includesEnd;
     }
+}
 
+class JalangiLocation {
+    public static getLine(jalangiLocation): number {
+        let sourceLocation = SourceLocation.fromJalangiLocation(jalangiLocation);
+        return sourceLocation.start.line;
+    }
 }
 
 
@@ -103,5 +109,6 @@ export {
     posEq,
     locEq,
     positionToString,
-    CallStackEntry
+    CallStackEntry,
+    JalangiLocation
 };

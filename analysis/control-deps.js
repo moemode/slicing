@@ -22,6 +22,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.findControlDep = exports.controlDependencies = exports.computeControlDeps = void 0;
 var fs = __importStar(require("fs"));
 var esprima = __importStar(require("esprima"));
 var datatypes_1 = require("./datatypes");
@@ -96,6 +97,7 @@ function computeControlDeps(prog) {
     });
     return [controlDeps, tests];
 }
+exports.computeControlDeps = computeControlDeps;
 function findControlDep(loc, controlDeps) {
     var locDeps = controlDeps.filter(function (cD) { return datatypes_1.SourceLocation.in_between_inclusive(cD.branchLoc, loc); });
     //find smallest branchLoc
@@ -104,14 +106,11 @@ function findControlDep(loc, controlDeps) {
         return locCD;
     }
 }
+exports.findControlDep = findControlDep;
 function controlDependencies(progInPath) {
     var prog = fs.readFileSync(progInPath).toString();
     var controlData = computeControlDeps(prog);
     return controlData;
 }
-module.exports = {
-    computeControlDeps: computeControlDeps,
-    controlDependencies: controlDependencies,
-    findControlDep: findControlDep,
-};
+exports.controlDependencies = controlDependencies;
 //# sourceMappingURL=control-deps.js.map

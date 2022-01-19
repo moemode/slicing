@@ -19,6 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.prune = void 0;
 var fs_1 = require("fs");
 var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
@@ -113,7 +114,5 @@ function prune(progInPath, progOutPath, graph, lineNb) {
     var newprog = pruneProgram(prog, lineNb, graph, relevantLocs, relevantVars);
     (0, fs_1.writeFileSync)(progOutPath, newprog.code);
 }
-module.exports = {
-    prune: prune
-};
+exports.prune = prune;
 //# sourceMappingURL=parser.js.map

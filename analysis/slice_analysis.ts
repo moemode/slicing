@@ -1,9 +1,9 @@
-const cytoscape = require("cytoscape");
-const fs = require("fs");
-const pruner = require("./parser.js");
-const location = require("./datatypes");
-const controlDepsHelper = require("./control-deps");
-const path = require("path");
+import cytoscape = require("cytoscape");
+import {writeFileSync, mkdirSync} from "fs";
+import { prune } from "./parser";
+import { Position, SourceLocation, JalangiLocation, CallStackEntry} from "./datatypes";
+import {controlDependencies, findControlDep} from "./control-deps";
+import * as path from "path";
 
 
 // Run the analysis with:
@@ -13,7 +13,6 @@ declare var J$: any;
 class SliceAnalysis {
     writtenValues = [];
     graph = cytoscape();
-    fs = fs;
     nextNodeId = 1;
     nextEdgeId = 1;
     outFile = J$.initParams["outFile"];
@@ -39,15 +38,15 @@ class SliceAnalysis {
     tests = null;
 
     scriptEnter(iid, instrumentedFileName, originalFileName) {
-        [this.controlDeps, this.tests] = controlDepsHelper.controlDependencies(originalFileName);
+        [this.controlDeps, this.tests] = controlDependencies(originalFileName);
         this.currentObjectRetrievals = [];
     }
 
     declare(iid, name, val, isArgument, argumentIndex, isCatchParam) {
         this.writtenValues.push(val);
-        rhs_line = location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)))
+        const rhs_line = JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
         const declareNode = this.addNode({
-            loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             line: rhs_line, name: name, varname: name, val: String(val), type: "declare"
         });
         this.lastWrites[name] = declareNode;
@@ -73,14 +72,14 @@ class SliceAnalysis {
 
 
     write(iid, name, val, lhs, isGlobal, isScriptLocal) {
-        const lhsLocation = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        const lhsLocation = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         const writeNode = this.addNode({
             loc: lhsLocation, name: name, varname: name, val: val, type: "write",
-            line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         this.currentExprNodes.push(writeNode);
         this.lastWrites[name] = writeNode;
-        const readsForWrite = this.currentExprNodes.filter(node => location.in_between_inclusive(lhsLocation, node.data.loc));
+        const readsForWrite = this.currentExprNodes.filter(node => SourceLocation.in_between_inclusive(lhsLocation, node.data.loc));
         readsForWrite.forEach(node => this.addEdge(writeNode, node))
         if (typeof val === "object" && val.__id__ === undefined) {
             val.__id__ = this.nextObjectIds++;
@@ -93,10 +92,10 @@ class SliceAnalysis {
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
         const readNode = this.addNode({
-            loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: name, varname: name,
             val: String(val), type: "read",
-            line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         this.currentExprNodes.push(readNode);
         const lastWriteNode = this.lastWrites[name];
@@ -110,10 +109,10 @@ class SliceAnalysis {
 
     addTestDependency(node) {
         //found whether the current location has a control dependency
-        const branchDependency = controlDepsHelper.findControlDep(node.data.loc, this.controlDeps);
+        const branchDependency = findControlDep(node.data.loc, this.controlDeps);
         if (branchDependency) {
             //Todo: not going to work because of hash bs
-            const testNode = this.lastTest[location.positionToString(branchDependency.testLoc.start)];
+            const testNode = this.lastTest[Position.toString(branchDependency.testLoc.start)];
             this.addEdge(node, testNode);
         }
     }
@@ -121,15 +120,15 @@ class SliceAnalysis {
     putField(iid, base, offset, val, isComputed, isOpAssign) {
         const retrievalNode = this.currentObjectRetrievals[base.__id__];
         const putFieldNode = this.addNode({
-            loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: `putfield ${offset}:${val}`, val: val, type: "putField",
-            line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         })
         //no retrieval node if called via literal
         if (retrievalNode) {
             this.addEdge(putFieldNode, retrievalNode);
         }
-        const readsForPut = this.currentExprNodes.filter(node => location.in_between_inclusive(putFieldNode.data.loc, node.data.loc));
+        const readsForPut = this.currentExprNodes.filter(node => SourceLocation.in_between_inclusive(putFieldNode.data.loc, node.data.loc));
         readsForPut.forEach(node => this.addEdge(putFieldNode, node));
         this.currentExprNodes.push(putFieldNode);
         // initialize if first put
@@ -143,9 +142,9 @@ class SliceAnalysis {
         //Todo: This does not work for string objects
         const retrievalNode = this.currentObjectRetrievals[base.__id__];
         const getFieldNode = this.addNode({
-            loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: `getfield ${offset}:${val}`, val: val, type: "getField",
-            line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         this.currentExprNodes.push(getFieldNode);
         //no retrievalNode if val is of primitive type not an object
@@ -222,34 +221,34 @@ class SliceAnalysis {
     }
 
     conditional(iid, result) {
-        const loc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
-        const test = this.tests.find(t => location.locEq(t.loc, loc));
+        const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
         if (test) {
             console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
             const testNode = this.addTestNode(test, result);
             //currentExprNodes were created for the for/if test
-            this.lastTest[location.positionToString(test.loc.start)] = testNode;
+            this.lastTest[Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
             this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
         }
     }
 
     endExpression(iid) {
-        const loc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
-        const test = this.tests.find(t => location.locEq(t.loc, loc));
+        const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
         if (test && test.type === "switch-disc") {
             // todo duplicate of conditional
             console.log("Detected switch discriminant: at l " + test.loc.start.line);
             const testNode = this.addTestNode(test, "case-disc");
             //currentExprNodes were created for the for/if test
-            this.lastTest[location.positionToString(test.loc.start)] = testNode;
+            this.lastTest[Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
             this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
 
         }
         this.addNode({
-            loc: loc, line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: loc, line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             type: "end-expression"
         });
         this.currentExprNodes = [];
@@ -259,21 +258,21 @@ class SliceAnalysis {
     endExecution() {
         const inFilePath = J$.smap[1].originalCodeFileName;
         try {
-            fs.mkdirSync(`../graphs`);
+            mkdirSync(`../graphs`);
         } catch (e) {
             //this error is expected as it is thrown when the graphs directory esists already
         };
-        fs.writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
-        pruner.prune(inFilePath, this.outFile, this.graph, this.lineNb)
+        writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
+        prune(inFilePath, this.outFile, this.graph, this.lineNb)
     }
 
     invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
-        const callerLoc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.sid, iid));
+        const callerLoc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));
         let calleeLoc = J$.iidToLocation(functionSid, functionIid);
         if (calleeLoc !== "undefined") {
-            calleeLoc = location.jalangiLocationToSourceLocation(J$.iidToLocation(functionSid, functionIid));
+            calleeLoc = SourceLocation.fromJalangiLocation(J$.iidToLocation(functionSid, functionIid));
         }
-        this.callStack.push(new location.CallStackEntry(callerLoc, calleeLoc));
+        this.callStack.push(new CallStackEntry(callerLoc, calleeLoc));
         this.currentCallerLoc = callerLoc;
         this.currentCalleeLoc = calleeLoc;
     };

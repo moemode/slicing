@@ -1,14 +1,34 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
 var cytoscape = require("cytoscape");
-var fs = require("fs");
-var pruner = require("./parser.js");
-var location = require("./datatypes");
-var controlDepsHelper = require("./control-deps");
-var path = require("path");
+var fs_1 = require("fs");
+var parser_1 = require("./parser");
+var datatypes_1 = require("./datatypes");
+var control_deps_1 = require("./control-deps");
+var path = __importStar(require("path"));
 var SliceAnalysis = /** @class */ (function () {
     function SliceAnalysis() {
         this.writtenValues = [];
         this.graph = cytoscape();
-        this.fs = fs;
         this.nextNodeId = 1;
         this.nextEdgeId = 1;
         this.outFile = J$.initParams["outFile"];
@@ -31,14 +51,14 @@ var SliceAnalysis = /** @class */ (function () {
     }
     SliceAnalysis.prototype.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
         var _a;
-        _a = controlDepsHelper.controlDependencies(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
+        _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
         this.currentObjectRetrievals = [];
     };
     SliceAnalysis.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
         this.writtenValues.push(val);
-        rhs_line = location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid)));
+        var rhs_line = datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
         var declareNode = this.addNode({
-            loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             line: rhs_line, name: name, varname: name, val: String(val), type: "declare"
         });
         this.lastWrites[name] = declareNode;
@@ -63,14 +83,14 @@ var SliceAnalysis = /** @class */ (function () {
     };
     SliceAnalysis.prototype.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
         var _this = this;
-        var lhsLocation = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        var lhsLocation = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         var writeNode = this.addNode({
             loc: lhsLocation, name: name, varname: name, val: val, type: "write",
-            line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         this.currentExprNodes.push(writeNode);
         this.lastWrites[name] = writeNode;
-        var readsForWrite = this.currentExprNodes.filter(function (node) { return location.in_between_inclusive(lhsLocation, node.data.loc); });
+        var readsForWrite = this.currentExprNodes.filter(function (node) { return datatypes_1.SourceLocation.in_between_inclusive(lhsLocation, node.data.loc); });
         readsForWrite.forEach(function (node) { return _this.addEdge(writeNode, node); });
         if (typeof val === "object" && val.__id__ === undefined) {
             val.__id__ = this.nextObjectIds++;
@@ -81,10 +101,10 @@ var SliceAnalysis = /** @class */ (function () {
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
         var readNode = this.addNode({
-            loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: name, varname: name,
             val: String(val), type: "read",
-            line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         this.currentExprNodes.push(readNode);
         var lastWriteNode = this.lastWrites[name];
@@ -98,10 +118,10 @@ var SliceAnalysis = /** @class */ (function () {
     };
     SliceAnalysis.prototype.addTestDependency = function (node) {
         //found whether the current location has a control dependency
-        var branchDependency = controlDepsHelper.findControlDep(node.data.loc, this.controlDeps);
+        var branchDependency = (0, control_deps_1.findControlDep)(node.data.loc, this.controlDeps);
         if (branchDependency) {
             //Todo: not going to work because of hash bs
-            var testNode = this.lastTest[location.positionToString(branchDependency.testLoc.start)];
+            var testNode = this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
             this.addEdge(node, testNode);
         }
     };
@@ -109,15 +129,15 @@ var SliceAnalysis = /** @class */ (function () {
         var _this = this;
         var retrievalNode = this.currentObjectRetrievals[base.__id__];
         var putFieldNode = this.addNode({
-            loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: "putfield ".concat(offset, ":").concat(val), val: val, type: "putField",
-            line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         //no retrieval node if called via literal
         if (retrievalNode) {
             this.addEdge(putFieldNode, retrievalNode);
         }
-        var readsForPut = this.currentExprNodes.filter(function (node) { return location.in_between_inclusive(putFieldNode.data.loc, node.data.loc); });
+        var readsForPut = this.currentExprNodes.filter(function (node) { return datatypes_1.SourceLocation.in_between_inclusive(putFieldNode.data.loc, node.data.loc); });
         readsForPut.forEach(function (node) { return _this.addEdge(putFieldNode, node); });
         this.currentExprNodes.push(putFieldNode);
         // initialize if first put
@@ -130,9 +150,9 @@ var SliceAnalysis = /** @class */ (function () {
         //Todo: This does not work for string objects
         var retrievalNode = this.currentObjectRetrievals[base.__id__];
         var getFieldNode = this.addNode({
-            loc: location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: "getfield ".concat(offset, ":").concat(val), val: val, type: "getField",
-            line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         this.currentExprNodes.push(getFieldNode);
         //no retrievalNode if val is of primitive type not an object
@@ -204,33 +224,33 @@ var SliceAnalysis = /** @class */ (function () {
     };
     SliceAnalysis.prototype.conditional = function (iid, result) {
         var _this = this;
-        var loc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
-        var test = this.tests.find(function (t) { return location.locEq(t.loc, loc); });
+        var loc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test) {
             console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
             var testNode_1 = this.addTestNode(test, result);
             //currentExprNodes were created for the for/if test
-            this.lastTest[location.positionToString(test.loc.start)] = testNode_1;
+            this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode_1;
             //TODO: Only include read nodes?
             this.currentExprNodes.forEach(function (node) { return (_this.addEdge(testNode_1, node)); });
         }
     };
     SliceAnalysis.prototype.endExpression = function (iid) {
         var _this = this;
-        var loc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        var loc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
-        var test = this.tests.find(function (t) { return location.locEq(t.loc, loc); });
+        var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test && test.type === "switch-disc") {
             // todo duplicate of conditional
             console.log("Detected switch discriminant: at l " + test.loc.start.line);
             var testNode_2 = this.addTestNode(test, "case-disc");
             //currentExprNodes were created for the for/if test
-            this.lastTest[location.positionToString(test.loc.start)] = testNode_2;
+            this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode_2;
             //TODO: Only include read nodes?
             this.currentExprNodes.forEach(function (node) { return (_this.addEdge(testNode_2, node)); });
         }
         this.addNode({
-            loc: loc, line: location.jalangiLocationToLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: loc, line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             type: "end-expression"
         });
         this.currentExprNodes = [];
@@ -239,22 +259,22 @@ var SliceAnalysis = /** @class */ (function () {
     SliceAnalysis.prototype.endExecution = function () {
         var inFilePath = J$.smap[1].originalCodeFileName;
         try {
-            fs.mkdirSync("../graphs");
+            (0, fs_1.mkdirSync)("../graphs");
         }
         catch (e) {
             //this error is expected as it is thrown when the graphs directory esists already
         }
         ;
-        fs.writeFileSync("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
-        pruner.prune(inFilePath, this.outFile, this.graph, this.lineNb);
+        (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
+        (0, parser_1.prune)(inFilePath, this.outFile, this.graph, this.lineNb);
     };
     SliceAnalysis.prototype.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
-        var callerLoc = location.jalangiLocationToSourceLocation(J$.iidToLocation(J$.sid, iid));
+        var callerLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));
         var calleeLoc = J$.iidToLocation(functionSid, functionIid);
         if (calleeLoc !== "undefined") {
-            calleeLoc = location.jalangiLocationToSourceLocation(J$.iidToLocation(functionSid, functionIid));
+            calleeLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(functionSid, functionIid));
         }
-        this.callStack.push(new location.CallStackEntry(callerLoc, calleeLoc));
+        this.callStack.push(new datatypes_1.CallStackEntry(callerLoc, calleeLoc));
         this.currentCallerLoc = callerLoc;
         this.currentCalleeLoc = calleeLoc;
     };
