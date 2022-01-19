@@ -1,5 +1,5 @@
 export class Position {
-    constructor(readonly line: number, readonly column: number) { }
+    constructor(public readonly line: number, public readonly column: number) { }
     public static posEq(pos1: Position, pos2: Position): boolean {
         return pos1.line === pos2.line && pos1.column == pos2.column;
     }
@@ -14,7 +14,7 @@ export class Position {
 
 export class SourceLocation {
 
-    constructor(readonly start: Position, readonly end: Position, readonly p?: string,) { }
+    constructor(public readonly start: Position, public readonly end: Position, public readonly p?: string,) { }
     
     public static within_line(location: SourceLocation, line: number) {
         return location.start.line == location.end.line && location.end.line == line;
@@ -50,7 +50,6 @@ export class JalangiLocation {
 }
 
 
-
 export class CallStackEntry {
-    constructor(readonly callerLoc: Location, readonly calleeLoc: Location) { }
+    constructor(public readonly callerLoc: Location, public readonly calleeLoc: Location) { }
 }

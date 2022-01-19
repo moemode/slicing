@@ -1,34 +1,24 @@
 import * as fs from "fs";
 import * as esprima from "esprima";
 import { SourceLocation, Position } from "./datatypes";
-import cytoscape from "cytoscape";
 import { parse } from "recast";
 import { visit } from "ast-types";
 
 class BranchDependency {
-    constructor(testLoc, branchLoc, type) {
-        this.testLoc = testLoc;
-        this.branchLoc = branchLoc;
-        this.type = type;
-    }
+    constructor(public readonly testLoc: SourceLocation, public readonly branchLoc: SourceLocation, public readonly type: string) {}
 }
 
 class Test {
-    constructor(loc, type) {
-        this.loc = loc;
-        this.type = type;
-    }
+    constructor(public readonly loc: SourceLocation, public readonly type: string) {}
 }
 
-function computeControlDeps(prog): any {
-    const graph = cytoscape();
+function computeControlDeps(prog): [BranchDependency[], Test[]]{
     const ast = parse(prog, {
         parser: esprima,
     })
     const fbody_ast = ast.program.body[0];
     const controlDeps: BranchDependency[] = [];
     const tests: Test[] = [];
-    const parentTest = [];
     visit(fbody_ast, {
         visitIfStatement(path) {
             const node = path.node;
@@ -88,7 +78,7 @@ function findControlDep(loc: SourceLocation, controlDeps) {
 
 
 
-function controlDependencies(progInPath) {
+function controlDependencies(progInPath): [BranchDependency[], Test[]]{
     const prog = fs.readFileSync(progInPath).toString();
     const controlData = computeControlDeps(prog);
     return controlData;

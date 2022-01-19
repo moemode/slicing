@@ -18,15 +18,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findControlDep = exports.controlDependencies = exports.computeControlDeps = void 0;
 var fs = __importStar(require("fs"));
 var esprima = __importStar(require("esprima"));
 var datatypes_1 = require("./datatypes");
-var cytoscape_1 = __importDefault(require("cytoscape"));
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 var BranchDependency = /** @class */ (function () {
@@ -45,14 +41,12 @@ var Test = /** @class */ (function () {
     return Test;
 }());
 function computeControlDeps(prog) {
-    var graph = (0, cytoscape_1.default)();
     var ast = (0, recast_1.parse)(prog, {
         parser: esprima,
     });
     var fbody_ast = ast.program.body[0];
     var controlDeps = [];
     var tests = [];
-    var parentTest = [];
     (0, ast_types_1.visit)(fbody_ast, {
         visitIfStatement: function (path) {
             var node = path.node;
