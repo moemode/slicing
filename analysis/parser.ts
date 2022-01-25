@@ -20,7 +20,7 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
             }
             return false;
         },
-        visitStatement(path) {
+        visitStatement(path: NodePath<n.Statement>) {
             const node = path.node;
             if (SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
@@ -48,7 +48,7 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
             }
             return false;
         },
-        visitSwitchCase(path) {
+        visitSwitchCase(path: NodePath<n.SwitchCase>) {
             if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(path.node.loc, rloc))) {
                 // if was not reached in execution -> remove fully
                 path.prune();
