@@ -7,10 +7,7 @@ var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
     var ast = (0, recast_1.parse)(prog);
-    /* {
-        parser: esprima,
-    })*/
-    (0, ast_types_1.visit)(ast, {
+    var pruningVisitor = {
         visitVariableDeclaration: function (path) {
             var node = path.node;
             if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); }) &&
@@ -61,7 +58,8 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
             }
             return false;
         }
-    });
+    };
+    (0, ast_types_1.visit)(ast, pruningVisitor);
     return (0, recast_1.print)(ast);
 }
 function prune(progInPath, progOutPath, graph, lineNb) {

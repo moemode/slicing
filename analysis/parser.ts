@@ -8,10 +8,7 @@ import { NodePath } from "ast-types/lib/node-path";
 
 function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: any[], relevant_vars: string | unknown[]) {
     const ast = parse(prog);
-    /* {
-        parser: esprima,
-    })*/
-    visit(ast, {
+    const pruningVisitor = {
         visitVariableDeclaration(path: NodePath<n.VariableDeclaration>) {
             const node = path.node;
             if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc)) &&
@@ -55,7 +52,8 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
             }
             return false;
         }
-    });
+    };
+    visit(ast, pruningVisitor);
     return print(ast);
 }
 
