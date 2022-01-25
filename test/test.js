@@ -2,6 +2,8 @@ const fs = require('fs');
 const levenshtein = require('fast-levenshtein');
 const { ArgumentParser } = require("argparse");
 const assert = require('assert');
+const escodegen = require('escodegen');
+const { Parser } = require('acorn');
 const { execSync } = require('child_process');
 const parser = new ArgumentParser({
     description: "Executes the slice.js file on provided arguments.",
@@ -14,7 +16,7 @@ function readFile(fileName) {
     return fs.readFileSync(fileName, 'utf8');
 }
 
-function compare(originalFile, predictedFile, ignoreSpaces) {
+function compare_old(originalFile, predictedFile, ignoreSpaces) {
     expectedSlice = readFile(originalFile);
     predictedSlice = readFile(predictedFile);
     if (ignoreSpaces) {
@@ -28,6 +30,26 @@ function compare(originalFile, predictedFile, ignoreSpaces) {
         console.log(levenshtein.get(expectedSlice, predictedSlice));
     }
     return dist;
+}
+
+function reformatTestCode(codeString){
+    const program = Parser.parse(codeString,
+        { ecmaVersion: 5, locations: true }
+    )
+    const program_string = escodegen.generate(program)
+    return program_string
+}
+
+function compare(originalFile, predictedFile){
+    expectedSlice  = reformatTestCode(readFile(originalFile));
+    predictedSlice = reformatTestCode(readFile(predictedFile));
+    if (expectedSlice === predictedSlice){
+        console.log("exact match");
+        return 0;
+    }else{
+        console.log(levenshtein.get(expectedSlice,predictedSlice));
+        return 1;
+    }
 }
 
 function read_criteria_file(sourceFile) {

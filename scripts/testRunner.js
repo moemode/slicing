@@ -1,5 +1,7 @@
 (function() {
 	const fs = require('fs');
+	const escodegen = require('escodegen');
+    const { Parser } = require('acorn');
 	var levenshtein = require('fast-levenshtein');
 	const { ArgumentParser } = require("argparse");
 	const parser = new ArgumentParser({
@@ -11,12 +13,20 @@
     const args = parser.parse_args();
 	
 	function readFile(fileName){
-		return fs.readFileSync(fileName, 'utf8');	
+		return fs.readFileSync(fileName, 'utf8');
+	}
+
+	function reformatTestCode(codeString){
+		const program = Parser.parse(codeString,
+            { ecmaVersion: 5, locations: true }
+        )
+		const program_string = escodegen.generate(program)
+		return program_string
 	}
 
 	function compare(originalFile, predictedFile){
-		expectedSlice = readFile(originalFile);
-		predictedSlice = readFile(predictedFile);
+		expectedSlice  = reformatTestCode(readFile(originalFile));
+		predictedSlice = reformatTestCode(readFile(predictedFile));
 
 		if (expectedSlice === predictedSlice){
 			console.log("exact match");
@@ -38,7 +48,7 @@
 		// create input parameters from args ditcionary
 		inputArgs = " --inFile "+element["inFile"]+" --outFile "+element["outFile"]+" --lineNb "+element["lineNb"];
 		stmt = 'node slice.js' + inputArgs;
-					
+				
 		var exec = require('child_process').exec,
 		    child;
 		
