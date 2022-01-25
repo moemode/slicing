@@ -24,16 +24,35 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
             if (datatypes_1.SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
             }
-            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
+            else if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
                 path.prune();
                 return false;
             }
-            if (node.type != "ExpressionStatement") {
+            else if (node.type === "IfStatement") {
+                var _loop_1 = function (branchPath) {
+                    if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(branchPath.node.loc, rloc); })) {
+                        if (branchPath.name === "consequent") {
+                            branchPath.replace(ast_types_1.builders.blockStatement([]));
+                        }
+                        else {
+                            branchPath.prune();
+                        }
+                        //branchPath.node = b.blockStatement([]);
+                    }
+                    else {
+                        this_1.traverse(branchPath);
+                    }
+                };
+                var this_1 = this;
+                for (var _i = 0, _a = [path.get("consequent"), path.get("alternate")].filter(function (x) { return x.value; }); _i < _a.length; _i++) {
+                    var branchPath = _a[_i];
+                    _loop_1(branchPath);
+                }
+            }
+            else if (node.type != "ExpressionStatement") {
                 this.traverse(path);
             }
-            else {
-                return false;
-            }
+            return false;
         },
         visitSwitchCase: function (path) {
             if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(path.node.loc, rloc); })) {

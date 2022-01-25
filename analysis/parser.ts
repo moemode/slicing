@@ -2,7 +2,8 @@ import { PathOrFileDescriptor, readFileSync, writeFileSync } from "fs";
 import { SourceLocation } from "./datatypes";
 import { parse, print } from "recast";
 import * as esprima from "esprima";
-import { visit } from "ast-types";
+import { visit, Visitor, namedTypes as n, builders as b} from "ast-types";
+import { NodePath } from "ast-types/lib/node-path";
 
 
 function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: any[], relevant_vars: string | unknown[]) {
@@ -11,7 +12,7 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
         parser: esprima,
     })*/
     visit(ast, {
-        visitVariableDeclaration(path) {
+        visitVariableDeclaration(path: NodePath<n.VariableDeclaration>) {
             const node = path.node;
             if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc)) &&
                 !relevant_vars.includes(node.declarations[0].id.name)) {
@@ -23,16 +24,29 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
             const node = path.node;
             if (SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
-            }
-            if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc))) {
+            } 
+            else if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc))) {
                 path.prune();
                 return false;
             }
-            if (node.type != "ExpressionStatement") {
-                this.traverse(path);
-            } else {
-                return false;
+            else if (node.type === "IfStatement") {
+                for (let branchPath of [path.get("consequent"), path.get("alternate")].filter(x => x.value)) {
+                    if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(branchPath.node.loc, rloc))) {
+                        if(branchPath.name === "consequent") {
+                            branchPath.replace(b.blockStatement([]));
+                        } else {
+                            branchPath.prune();
+                        }
+                        //branchPath.node = b.blockStatement([]);
+                    } else {
+                        this.traverse(branchPath);
+                    }
+                }
             }
+            else if (node.type != "ExpressionStatement") {
+                this.traverse(path);
+            }
+            return false;
         },
         visitSwitchCase(path) {
             if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(path.node.loc, rloc))) {

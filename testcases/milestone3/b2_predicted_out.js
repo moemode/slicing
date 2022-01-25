@@ -4,7 +4,8 @@ function sliceMe() {
     var length = str.length;
     // looping through the items
     for (var i = 0; i < length; i++) {
-        str.charAt(i) == letter;
+        // check if the character is at that position
+        if (str.charAt(i) == letter) {}
     }
 }
 
