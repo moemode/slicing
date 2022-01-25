@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "acorn": "^8.6.0",
+    "acorn-walk": "^8.2.0",
     "argparse": "^2.0.1",
     "ast-types": "^0.14.2",
     "cytoscape": "^3.20.0",

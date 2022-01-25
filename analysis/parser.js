@@ -5,8 +5,9 @@ var fs_1 = require("fs");
 var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
+var acorn_walk_1 = require("acorn-walk");
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
-    var ast = (0, recast_1.parse)(prog);
+    var ast = (0, recast_1.parse)(prog, { range: true });
     /* {
         parser: esprima,
     })*/
@@ -29,6 +30,8 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
                 return false;
             }
             else if (node.type === "IfStatement") {
+                var n_1 = (0, acorn_walk_1.findNodeAfter)(ast.program, node.range[1]);
+                console.log(n_1);
                 var _loop_1 = function (branchPath) {
                     if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(branchPath.node.loc, rloc); })) {
                         if (branchPath.name === "consequent") {

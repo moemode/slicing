@@ -5,8 +5,7 @@ function sliceMe() {
         if (x > 100) {} else if (x < 50) {
             y = 1;
         }
-    } else
-        {}
+    }
     return y;
 }
 

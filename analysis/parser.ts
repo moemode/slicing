@@ -4,10 +4,11 @@ import { parse, print } from "recast";
 import * as esprima from "esprima";
 import { visit, Visitor, namedTypes as n, builders as b} from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
+import { findNodeAfter } from "acorn-walk";
 
 
 function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: any[], relevant_vars: string | unknown[]) {
-    const ast = parse(prog);
+    const ast = parse(prog, {range: true});
     /* {
         parser: esprima,
     })*/
@@ -24,12 +25,14 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
             const node = path.node;
             if (SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
-            } 
+            }
             else if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc))) {
                 path.prune();
                 return false;
             }
             else if (node.type === "IfStatement") {
+                const n = findNodeAfter(ast.program, node.range[1]);
+                console.log(n);
                 for (let branchPath of [path.get("consequent"), path.get("alternate")].filter(x => x.value)) {
                     if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(branchPath.node.loc, rloc))) {
                         if(branchPath.name === "consequent") {
