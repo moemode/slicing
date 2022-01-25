@@ -3,7 +3,7 @@ function sliceMe() {
     var letter = "s"
     var length = str.length;
     for (var i = 0; i < length; i++) {
-        if (str.charAt(i) == letter) {}
+        str.charAt(i) == letter;
     }
 }
 

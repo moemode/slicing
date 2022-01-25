@@ -37,6 +37,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.readsForWrite = [];
         this.currentExprNodes = [];
         this.lastWrites = {};
+        this.lastDeclare = {};
         //lastPut[objectId][offset] = putNode
         this.lastPut = {};
         this.nextObjectIds = 1;
@@ -61,7 +62,7 @@ var SliceAnalysis = /** @class */ (function () {
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             line: rhs_line, name: name, varname: name, val: String(val), type: "declare"
         });
-        this.lastWrites[name] = declareNode;
+        this.lastDeclare[name] = declareNode;
         if (typeof val === "object" && val.__id__ === undefined) {
             val.__id__ = this.nextObjectIds++;
             return { result: val };
@@ -92,6 +93,13 @@ var SliceAnalysis = /** @class */ (function () {
         this.lastWrites[name] = writeNode;
         var readsForWrite = this.currentExprNodes.filter(function (node) { return datatypes_1.SourceLocation.in_between_inclusive(lhsLocation, node.data.loc); });
         readsForWrite.forEach(function (node) { return _this.addEdge(writeNode, node); });
+        var declareNode = this.lastDeclare[name];
+        if (declareNode) {
+            this.addEdge(writeNode, declareNode);
+        }
+        else {
+            console.log("Write without declare");
+        }
         if (typeof val === "object" && val.__id__ === undefined) {
             val.__id__ = this.nextObjectIds++;
             return { result: val };
@@ -107,6 +115,13 @@ var SliceAnalysis = /** @class */ (function () {
             line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         this.currentExprNodes.push(readNode);
+        var declareNode = this.lastDeclare[name];
+        if (declareNode) {
+            this.addEdge(readNode, declareNode);
+        }
+        else {
+            console.log("Read without declare");
+        }
         var lastWriteNode = this.lastWrites[name];
         if (lastWriteNode) {
             this.addEdge(readNode, lastWriteNode);

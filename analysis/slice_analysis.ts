@@ -22,6 +22,7 @@ class SliceAnalysis {
 
     currentExprNodes = [];
     lastWrites = {};
+    lastDeclare = {};
     //lastPut[objectId][offset] = putNode
     lastPut = {};
     nextObjectIds = 1;
@@ -49,7 +50,7 @@ class SliceAnalysis {
             loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             line: rhs_line, name: name, varname: name, val: String(val), type: "declare"
         });
-        this.lastWrites[name] = declareNode;
+        this.lastDeclare[name] = declareNode;
         if (typeof val === "object" && val.__id__ === undefined) {
             val.__id__ = this.nextObjectIds++;
             return { result: val };
@@ -81,6 +82,14 @@ class SliceAnalysis {
         this.lastWrites[name] = writeNode;
         const readsForWrite = this.currentExprNodes.filter(node => SourceLocation.in_between_inclusive(lhsLocation, node.data.loc));
         readsForWrite.forEach(node => this.addEdge(writeNode, node))
+        
+        const declareNode = this.lastDeclare[name];
+        if (declareNode) {
+            this.addEdge(writeNode, declareNode);
+        } else {
+            console.log("Write without declare");
+        }
+
         if (typeof val === "object" && val.__id__ === undefined) {
             val.__id__ = this.nextObjectIds++;
             return { result: val };
@@ -98,6 +107,12 @@ class SliceAnalysis {
             line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         this.currentExprNodes.push(readNode);
+        const declareNode = this.lastDeclare[name];
+        if (declareNode) {
+            this.addEdge(readNode, declareNode);
+        } else {
+            console.log("Read without declare");
+        }
         const lastWriteNode = this.lastWrites[name];
         if (lastWriteNode) {
             this.addEdge(readNode, lastWriteNode);

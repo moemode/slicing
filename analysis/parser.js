@@ -11,68 +11,36 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
         parser: esprima,
     })*/
     (0, ast_types_1.visit)(ast, {
-        visitNode: function (path) {
+        visitVariableDeclaration: function (path) {
             var node = path.node;
-            if (node.type === "ExpressionStatement" && node.expression.type === "CallExpression") {
-                if (relevantLocs.some(function (nLoc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, nLoc); })) {
-                    return false;
-                }
+            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); }) &&
+                !relevant_vars.includes(node.declarations[0].id.name)) {
                 path.prune();
-                return false;
             }
-            if (node.type === "FunctionDeclaration" || node.type === "ExpressionStatement") {
-                this.traverse(path);
-            }
+            return false;
+        },
+        visitStatement: function (path) {
+            var node = path.node;
             if (datatypes_1.SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
             }
-            if (node.type == 'VariableDeclaration') {
-                if (relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
-                    return false;
-                }
-                if (!relevant_vars.includes(node.declarations[0].id.name)) {
-                    path.prune();
-                    return false;
-                }
+            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
+                path.prune();
+                return false;
             }
-            if (node.type === "IfStatement") {
-                if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.test.loc, rloc); })) {
-                    // if was not reached in execution -> remove fully
-                    // Todo: this is wrong what if if was reached without relevant nodes?
-                    path.prune();
-                    return false;
-                } /*else {
-                    const branchPaths = [path.get("consequent"), path.get("alternate")].filter(x => x.value)
-                    for (let branchPath of branchPaths) {
-                        this.traverse(branchPath);
-                    }
-                    console.log(branchPaths);
-                }*/
+            if (node.type != "ExpressionStatement") {
+                this.traverse(path);
             }
-            if (node.type == 'ExpressionStatement' || node.type == 'ReturnStatement') {
-                if (relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
-                    return false;
-                }
-                else {
-                    path.prune();
-                    return false;
-                }
+            else {
+                return false;
             }
-            if (node.type === "SwitchStatement") {
-                if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
-                    // if was not reached in execution -> remove fully
-                    path.prune();
-                    return false;
-                }
+        },
+        visitSwitchCase: function (path) {
+            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(path.node.loc, rloc); })) {
+                // if was not reached in execution -> remove fully
+                path.prune();
             }
-            if (node.type === "SwitchCase") {
-                if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
-                    // if was not reached in execution -> remove fully
-                    path.prune();
-                    return false;
-                }
-            }
-            this.traverse(path);
+            return false;
         }
     });
     return (0, recast_1.print)(ast);
