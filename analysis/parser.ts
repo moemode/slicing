@@ -1,15 +1,51 @@
 import { PathOrFileDescriptor, readFileSync, writeFileSync } from "fs";
 import { SourceLocation } from "./datatypes";
 import { parse, print } from "recast";
-import * as esprima from "esprima";
-import { visit } from "ast-types";
+import * as parser from "@babel/parser";
+import traverse from "@babel/traverse";
+import {NodePath } from "@babel/core";
+import { Statement, VariableDeclaration, SwitchCase } from "@babel/types";
 
 
 function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: any[], relevant_vars: string | unknown[]) {
     const ast = parse(prog);
+    const pruningVisitor = {
+        Statement(path: NodePath<Statement>) {
+            const node = path.node;
+            if (SourceLocation.within_line(node.loc, lineNb)) {
+                path.skip();
+            }
+            if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc))) {
+                path.remove();
+                path.skip()
+            }
+            if (node.type != "ExpressionStatement") {
+                path.traverse();
+            } else {
+                path.skip()
+            }
+        },
+        VariableDeclaration(path: NodePath<VariableDeclaration>) {
+            const node = path.node;
+            if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc)) &&
+                !relevant_vars.includes(node.declarations[0].id.name)) {
+                path.remove()
+            }
+            path.skip();
+        },
+        SwitchCase(path: NodePath<SwitchCase>) {
+            if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(path.node.loc, rloc))) {
+                path.remove();
+            }
+            path.skip();
+        }
+        
+    }
+    traverse(ast, pruningVisitor);
     /* {
         parser: esprima,
     })*/
+    /*
     visit(ast, {
         visitVariableDeclaration(path) {
             const node = path.node;
@@ -42,6 +78,7 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
             return false;
         }
     });
+    */
     return print(ast);
 }
 

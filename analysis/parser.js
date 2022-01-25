@@ -1,48 +1,85 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.prune = void 0;
 var fs_1 = require("fs");
 var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
-var ast_types_1 = require("ast-types");
+var traverse_1 = __importDefault(require("@babel/traverse"));
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
     var ast = (0, recast_1.parse)(prog);
+    var pruningVisitor = {
+        Statement: function (path) {
+            var node = path.node;
+            if (datatypes_1.SourceLocation.within_line(node.loc, lineNb)) {
+                path.skip();
+            }
+            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
+                path.remove();
+                path.skip();
+            }
+            if (node.type != "ExpressionStatement") {
+                path.traverse();
+            }
+            else {
+                path.skip();
+            }
+        },
+        VariableDeclaration: function (path) {
+            var node = path.node;
+            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); }) &&
+                !relevant_vars.includes(node.declarations[0].id.name)) {
+                path.remove();
+            }
+            path.skip();
+        },
+        SwitchCase: function (path) {
+            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(path.node.loc, rloc); })) {
+                path.remove();
+            }
+            path.skip();
+        }
+    };
+    (0, traverse_1.default)(ast, pruningVisitor);
     /* {
         parser: esprima,
     })*/
-    (0, ast_types_1.visit)(ast, {
-        visitVariableDeclaration: function (path) {
-            var node = path.node;
-            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); }) &&
+    /*
+    visit(ast, {
+        visitVariableDeclaration(path) {
+            const node = path.node;
+            if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc)) &&
                 !relevant_vars.includes(node.declarations[0].id.name)) {
                 path.prune();
             }
             return false;
         },
-        visitStatement: function (path) {
-            var node = path.node;
-            if (datatypes_1.SourceLocation.within_line(node.loc, lineNb)) {
+        visitStatement(path) {
+            const node = path.node;
+            if (SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
             }
-            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
+            if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc))) {
                 path.prune();
                 return false;
             }
             if (node.type != "ExpressionStatement") {
                 this.traverse(path);
-            }
-            else {
+            } else {
                 return false;
             }
         },
-        visitSwitchCase: function (path) {
-            if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(path.node.loc, rloc); })) {
+        visitSwitchCase(path) {
+            if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(path.node.loc, rloc))) {
                 // if was not reached in execution -> remove fully
                 path.prune();
             }
             return false;
         }
     });
+    */
     return (0, recast_1.print)(ast);
 }
 function prune(progInPath, progOutPath, graph, lineNb) {
