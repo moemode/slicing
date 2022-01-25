@@ -2,7 +2,7 @@ import { PathOrFileDescriptor, readFileSync, writeFileSync } from "fs";
 import { SourceLocation } from "./datatypes";
 import { parse, print } from "recast";
 import * as esprima from "esprima";
-import { visit, Visitor, namedTypes as n, builders as b} from "ast-types";
+import { visit, namedTypes as n, builders as b} from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 
 
@@ -22,32 +22,24 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
             if (SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
             } 
+            else if (path.name === "consequent") {
+                if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc))) {
+                        path.replace(b.blockStatement([]));
+                        return false;
+                }
+            }
             else if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc))) {
                 path.prune();
                 return false;
             }
-            else if (node.type === "IfStatement") {
-                for (let branchPath of [path.get("consequent"), path.get("alternate")].filter(x => x.value)) {
-                    if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(branchPath.node.loc, rloc))) {
-                        if(branchPath.name === "consequent") {
-                            branchPath.replace(b.blockStatement([]));
-                        } else {
-                            branchPath.prune();
-                        }
-                        //branchPath.node = b.blockStatement([]);
-                    } else {
-                        this.traverse(branchPath);
-                    }
-                }
+            else if (node.type === "ExpressionStatement") {
+                return false;
             }
-            else if (node.type != "ExpressionStatement") {
-                this.traverse(path);
-            }
-            return false;
+            this.traverse(path);
         },
+        
         visitSwitchCase(path: NodePath<n.SwitchCase>) {
             if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(path.node.loc, rloc))) {
-                // if was not reached in execution -> remove fully
                 path.prune();
             }
             return false;
