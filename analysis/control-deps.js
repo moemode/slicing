@@ -21,7 +21,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findControlDep = exports.controlDependencies = exports.computeControlDeps = void 0;
 var fs = __importStar(require("fs"));
-var esprima = __importStar(require("esprima"));
 var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
@@ -41,9 +40,7 @@ var Test = /** @class */ (function () {
     return Test;
 }());
 function computeControlDeps(prog) {
-    var ast = (0, recast_1.parse)(prog, {
-        parser: esprima,
-    });
+    var ast = (0, recast_1.parse)(prog);
     var fbody_ast = ast.program.body[0];
     var controlDeps = [];
     var tests = [];

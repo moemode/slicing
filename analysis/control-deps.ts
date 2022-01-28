@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import * as esprima from "esprima";
 import { SourceLocation, Position } from "./datatypes";
 import { parse } from "recast";
 import { visit } from "ast-types";
@@ -13,9 +12,7 @@ class Test {
 }
 
 function computeControlDeps(prog): [BranchDependency[], Test[]]{
-    const ast = parse(prog, {
-        parser: esprima,
-    })
+    const ast = parse(prog);
     const fbody_ast = ast.program.body[0];
     const controlDeps: BranchDependency[] = [];
     const tests: Test[] = [];

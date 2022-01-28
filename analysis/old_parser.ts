@@ -7,9 +7,6 @@ import {visit} from "ast-types";
 
 function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: any[], relevant_vars: string | unknown[]) {
     const ast = parse(prog);
-    /* {
-        parser: esprima,
-    })*/
     visit(ast, {
         visitNode(path) {
             const node = path.node;

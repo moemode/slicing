@@ -19,7 +19,8 @@
     "estraverse": "^5.3.0",
     "estree-walker": "^3.0.0",
     "fast-levenshtein": "^3.0.0",
-    "recast": "^0.20.5"
+    "recast": "^0.20.5",
+    "source-map": "^0.6.0"
   },
   "devDependencies": {
     "@types/cytoscape": "^3.19.2",

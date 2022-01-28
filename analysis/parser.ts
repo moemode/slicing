@@ -1,7 +1,6 @@
 import { PathOrFileDescriptor, readFileSync, writeFileSync } from "fs";
 import { SourceLocation } from "./datatypes";
 import { parse, print } from "recast";
-import * as esprima from "esprima";
 import { visit, namedTypes as n, builders as b} from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 

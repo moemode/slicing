@@ -7,9 +7,6 @@ var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
     var ast = (0, recast_1.parse)(prog);
-    /* {
-        parser: esprima,
-    })*/
     (0, ast_types_1.visit)(ast, {
         visitNode: function (path) {
             var node = path.node;
