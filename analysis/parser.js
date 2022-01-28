@@ -6,7 +6,6 @@ var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
-    var ast = (0, recast_1.parse)(prog);
     var pruningVisitor = {
         visitVariableDeclaration: function (path) {
             var node = path.node;
@@ -43,6 +42,7 @@ function pruneProgram(prog, lineNb, graph, relevantLocs, relevant_vars) {
             return false;
         }
     };
+    var ast = (0, recast_1.parse)(prog);
     (0, ast_types_1.visit)(ast, pruningVisitor);
     return (0, recast_1.print)(ast);
 }

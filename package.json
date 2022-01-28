@@ -4,7 +4,8 @@
   "description": "Dynamic program slicing for single function js-programs using Jalangi2. Coursework for PA 21 at Uni Stuttgart.",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --exit"
+    "test": "mocha --exit",
+    "test-fail": "mocha test-fail/**/*.js"
   },
   "author": "Moritz Pfeffer",
   "license": "ISC",

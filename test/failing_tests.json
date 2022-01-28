@@ -1,6 +1,0 @@
-[
-    {"inFile": "./testcases/pm2/e2_in.js", "outFile": "./testcases/pm2/e2_predicted_out.js", "lineNb":8, "goldFile": "./testcases/pm2/e2_out.js"}
-]
-    
-    
-    

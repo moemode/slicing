@@ -1,0 +1,26 @@
+[
+    {
+        "inFile": "../testcases/progress_meeting_3/e1_in.js",
+        "outFile": "../testcases/progress_meeting_3/e1_predicted_out.js",
+        "lineNb": 11,
+        "goldFile": "../testcases/progress_meeting_3/e1_out.js"
+    },
+    {
+        "inFile": "../testcases/progress_meeting_3/e2_in.js",
+        "outFile": "../testcases/progress_meeting_3/e2_predicted_out.js",
+        "lineNb": 11,
+        "goldFile": "../testcases/progress_meeting_3/e2_out.js"
+    },
+    {
+        "inFile": "../testcases/progress_meeting_3/e3_in.js",
+        "outFile": "../testcases/progress_meeting_3/e3_predicted_out.js",
+        "lineNb": 17,
+        "goldFile": "../testcases/progress_meeting_3/e3_out.js"
+    },
+    {
+        "inFile": "../testcases/progress_meeting_3/e4_in.js",
+        "outFile": "../testcases/progress_meeting_3/e4_predicted_out.js",
+        "lineNb": 14,
+        "goldFile": "../testcases/progress_meeting_3/e4_out.js"
+    }
+]

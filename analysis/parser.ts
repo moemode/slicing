@@ -7,7 +7,6 @@ import { NodePath } from "ast-types/lib/node-path";
 
 
 function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: any[], relevant_vars: string | unknown[]) {
-    const ast = parse(prog);
     const pruningVisitor = {
         visitVariableDeclaration(path: NodePath<n.VariableDeclaration>) {
             const node = path.node;
@@ -45,6 +44,7 @@ function pruneProgram(prog: string, lineNb: number, graph: any, relevantLocs: an
             return false;
         }
     };
+    const ast = parse(prog);
     visit(ast, pruningVisitor);
     return print(ast);
 }
