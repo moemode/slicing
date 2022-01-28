@@ -35,6 +35,8 @@ var SliceAnalysis = /** @class */ (function () {
         // the specified line is 0-based but we use 1-based internally
         this.lineNb = parseInt(J$.initParams["lineNb"]);
         this.bmarkerPath = J$.initParams["bmarkerPath"];
+        this.bmarkers = [];
+        this.executedIfTrueBreaks = [];
         this.readsForWrite = [];
         this.currentExprNodes = [];
         this.lastWrites = {};
@@ -55,7 +57,7 @@ var SliceAnalysis = /** @class */ (function () {
         var _a;
         var bmarkerJSON = (0, fs_1.readFileSync)(this.bmarkerPath).toString();
         var a = JSON.parse(bmarkerJSON);
-        var bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
+        this.bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
         _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
         this.currentObjectRetrievals = [];
     };
@@ -257,6 +259,7 @@ var SliceAnalysis = /** @class */ (function () {
     SliceAnalysis.prototype.endExpression = function (iid) {
         var _this = this;
         var loc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        this.handleBreak(loc);
         //switch expression does not result in callback to this.conditional -> handle it here
         var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test && test.type === "switch-disc") {
@@ -275,6 +278,11 @@ var SliceAnalysis = /** @class */ (function () {
         this.currentExprNodes = [];
         this.currentObjectRetrievals = [];
     };
+    SliceAnalysis.prototype.handleBreak = function (loc) {
+        if (this.bmarkers.some(function (bmarkerLoc) { return datatypes_1.SourceLocation.locEq(loc, bmarkerLoc); })) {
+            this.executedIfTrueBreaks.push(loc);
+        }
+    };
     SliceAnalysis.prototype.endExecution = function () {
         var inFilePath = J$.smap[1].originalCodeFileName;
         try {
@@ -285,7 +293,7 @@ var SliceAnalysis = /** @class */ (function () {
         }
         ;
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
-        (0, parser_1.prune)(inFilePath, this.outFile, this.graph, this.lineNb);
+        (0, parser_1.prune)(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.lineNb);
     };
     SliceAnalysis.prototype.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
         var callerLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));

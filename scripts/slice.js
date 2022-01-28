@@ -43,7 +43,7 @@ const fs = require("fs");
         let analysisParams = "--initParam outFile:" + outFile;
         analysisParams += " --initParam lineNb:" + lineNb;
         analysisParams += " --initParam bmarkerPath:" + bmarkerPath;
-        stmt = 'node ' + jalangiPath + " " + analysisParams + ' --inlineIID --inlineSource --analysis ' + analysisPath + " " + inFile;
+        stmt = 'node ' + jalangiPath + " " + analysisParams + ' --inlineIID --inlineSource --analysis ' + analysisPath + " " + preprocPath;
         console.log("Jalangi call: " + stmt);
         child = execSync(stmt);
         /*

@@ -19,6 +19,9 @@ class SliceAnalysis {
     // the specified line is 0-based but we use 1-based internally
     lineNb = parseInt(J$.initParams["lineNb"]);
     bmarkerPath = J$.initParams["bmarkerPath"];
+    bmarkers: SourceLocation[] = []
+
+    executedIfTrueBreaks: SourceLocation[] = []
     readsForWrite = []
 
     currentExprNodes = [];
@@ -42,7 +45,7 @@ class SliceAnalysis {
     scriptEnter(iid, instrumentedFileName, originalFileName) {
         const bmarkerJSON = readFileSync(this.bmarkerPath).toString();
         const a = JSON.parse(bmarkerJSON);
-        const bmarkers: SourceLocation[] = a.map(obj => SourceLocation.fromJSON(obj));
+        this.bmarkers = a.map(obj => SourceLocation.fromJSON(obj));
         [this.controlDeps, this.tests] = controlDependencies(originalFileName);
         this.currentObjectRetrievals = [];
     }
@@ -254,6 +257,7 @@ class SliceAnalysis {
 
     endExpression(iid) {
         const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        this.handleBreak(loc);
         //switch expression does not result in callback to this.conditional -> handle it here
         const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
         if (test && test.type === "switch-disc") {
@@ -274,6 +278,12 @@ class SliceAnalysis {
         this.currentObjectRetrievals = [];
     }
 
+    handleBreak(loc: SourceLocation) {
+        if (this.bmarkers.some((bmarkerLoc: SourceLocation) => SourceLocation.locEq(loc, bmarkerLoc))) {
+            this.executedIfTrueBreaks.push(loc);
+        }
+    }
+
     endExecution() {
         const inFilePath = J$.smap[1].originalCodeFileName;
         try {
@@ -282,7 +292,7 @@ class SliceAnalysis {
             //this error is expected as it is thrown when the graphs directory esists already
         };
         writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
-        prune(inFilePath, this.outFile, this.graph, this.lineNb)
+        prune(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.lineNb)
     }
 
     invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
