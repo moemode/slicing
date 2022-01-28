@@ -15,6 +15,10 @@ export class Position {
 export class SourceLocation {
 
     constructor(public readonly start: Position, public readonly end: Position, public readonly p?: string,) { }
+
+    static fromJSON(d: any): SourceLocation {
+        return new SourceLocation(d.start, d.end);
+    }
     
     public static within_line(location: SourceLocation, line: number) {
         return location.start.line == location.end.line && location.end.line == line;

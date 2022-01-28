@@ -19,7 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.insertBreakMarkersFile = exports.insertBreakMarkers = void 0;
+exports.preprocessFile = exports.insertBreakMarkers = void 0;
 var fs = __importStar(require("fs"));
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
@@ -65,7 +65,7 @@ function preprocessFile(progInPath, progOutPath, lineNb) {
     fs.writeFileSync(progOutPath, newprog);
     var locs = locateBreakMarkers({ code: newprog, path: progOutPath });
     console.log(locs);
+    return locs;
 }
-exports.insertBreakMarkersFile = preprocessFile;
-preprocessFile("/home/v/slicing/testcases/progress_meeting_3/e3_in.js", "./egal.js", 17);
+exports.preprocessFile = preprocessFile;
 //# sourceMappingURL=preprocess.js.map

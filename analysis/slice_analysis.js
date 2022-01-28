@@ -34,6 +34,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.outFile = J$.initParams["outFile"];
         // the specified line is 0-based but we use 1-based internally
         this.lineNb = parseInt(J$.initParams["lineNb"]);
+        this.bmarkerPath = J$.initParams["bmarkerPath"];
         this.readsForWrite = [];
         this.currentExprNodes = [];
         this.lastWrites = {};
@@ -52,6 +53,9 @@ var SliceAnalysis = /** @class */ (function () {
     }
     SliceAnalysis.prototype.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
         var _a;
+        var bmarkerJSON = (0, fs_1.readFileSync)(this.bmarkerPath).toString();
+        var a = JSON.parse(bmarkerJSON);
+        var bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
         _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
         this.currentObjectRetrievals = [];
     };

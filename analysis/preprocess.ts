@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { print, parse } from "recast";
 import { visit, builders as b, namedTypes as n} from "ast-types";
-import nodePathPlugin, { NodePath } from "ast-types/lib/node-path";
+import { NodePath } from "ast-types/lib/node-path";
 import { SourceMapConsumer } from "source-map";
 import { SourceLocation } from "./datatypes";
 
@@ -27,7 +27,7 @@ function insertBreakMarkers(program: Program) {
     return print(ast, {sourceMapName: "map.json"});
 }
 
-function locateBreakMarkers(program: Program) {
+function locateBreakMarkers(program: Program): SourceLocation[] {
     const ast = parse(program.code, {
         "sourceFileName": program.path
     });
@@ -44,7 +44,7 @@ function locateBreakMarkers(program: Program) {
     return breakMarkerLocations;
 }
 
-function preprocessFile(progInPath, progOutPath, lineNb) {
+function preprocessFile(progInPath, progOutPath, lineNb): SourceLocation[] {
     const code = fs.readFileSync(progInPath).toString();
     const result = insertBreakMarkers({code, path: progInPath});
     const map = new SourceMapConsumer(result.map);
@@ -52,12 +52,13 @@ function preprocessFile(progInPath, progOutPath, lineNb) {
     fs.writeFileSync(progOutPath, newprog);
     const locs = locateBreakMarkers({code: newprog, path: progOutPath});
     console.log(locs);
+    return locs;
 }
 
-preprocessFile("/home/v/slicing/testcases/progress_meeting_3/e3_in.js", "./egal.js", 17);
+//preprocessFile("/home/v/slicing/testcases/progress_meeting_3/e3_in.js", "./egal.js", 17);
 
 export {
     insertBreakMarkers,
-    preprocessFile as insertBreakMarkersFile,
+    preprocessFile,
     //findBreakMarkers
 };

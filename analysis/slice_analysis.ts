@@ -1,5 +1,5 @@
 import cytoscape = require("cytoscape");
-import {writeFileSync, mkdirSync} from "fs";
+import {writeFileSync, mkdirSync, readFileSync} from "fs";
 import { prune } from "./parser";
 import { Position, SourceLocation, JalangiLocation, CallStackEntry} from "./datatypes";
 import {controlDependencies, findControlDep} from "./control-deps";
@@ -18,6 +18,7 @@ class SliceAnalysis {
     outFile = J$.initParams["outFile"];
     // the specified line is 0-based but we use 1-based internally
     lineNb = parseInt(J$.initParams["lineNb"]);
+    bmarkerPath = J$.initParams["bmarkerPath"];
     readsForWrite = []
 
     currentExprNodes = [];
@@ -39,6 +40,9 @@ class SliceAnalysis {
     tests = null;
 
     scriptEnter(iid, instrumentedFileName, originalFileName) {
+        const bmarkerJSON = readFileSync(this.bmarkerPath).toString();
+        const a = JSON.parse(bmarkerJSON);
+        const bmarkers: SourceLocation[] = a.map(obj => SourceLocation.fromJSON(obj));
         [this.controlDeps, this.tests] = controlDependencies(originalFileName);
         this.currentObjectRetrievals = [];
     }

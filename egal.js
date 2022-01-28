@@ -1,12 +1,23 @@
 function sliceMe() {
-    var x = 10;
+    var x;
     var y = 0;
-    if (x > 0) {
-        if (x > 100) {} else if (x < 50) {
-            y = 1;
+    var z = 0;
+    for(x = 0;x<10;x++){
+        if(x < 5){
+            y+=x;
         }
-    }
-    return y;
+        else{
+            z+=1;
+
+            if (true)
+                break;
+        }
+    }    
+    if (y>11){
+        z = y + y;    
+    }    
+    return z;
 }
 
 sliceMe();
+//criteria: line 17

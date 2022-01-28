@@ -24,6 +24,9 @@ var SourceLocation = /** @class */ (function () {
         this.end = end;
         this.p = p;
     }
+    SourceLocation.fromJSON = function (d) {
+        return new SourceLocation(d.start, d.end);
+    };
     SourceLocation.within_line = function (location, line) {
         return location.start.line == location.end.line && location.end.line == line;
     };
