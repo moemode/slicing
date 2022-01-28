@@ -24,6 +24,7 @@ var fs = __importStar(require("fs"));
 var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
+var esprima = __importStar(require("esprima"));
 var BranchDependency = /** @class */ (function () {
     function BranchDependency(testLoc, branchLoc, type) {
         this.testLoc = testLoc;
@@ -40,7 +41,9 @@ var Test = /** @class */ (function () {
     return Test;
 }());
 function computeControlDeps(prog) {
-    var ast = (0, recast_1.parse)(prog);
+    var ast = (0, recast_1.parse)(prog, {
+        parser: esprima,
+    });
     var fbody_ast = ast.program.body[0];
     var controlDeps = [];
     var tests = [];
