@@ -1,13 +1,8 @@
 function sliceMe() {
-    var x;
-    var y = 0;
     for(x = 0;x<10;x++){
-        if (x < 5) {
-            y+=x;
+        if(x < 5){}
+        else{
+            break;
         }
     }
-    if (y>11){}
 }
-
-sliceMe();
-//criteria: line 14

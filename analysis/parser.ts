@@ -4,9 +4,22 @@ import { parse, print } from "recast";
 import { visit, namedTypes as n, builders as b} from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 
-
 function pruneProgram(prog: string, lineNb: number, relevantLocs: any[], relevant_vars: string | unknown[]) {
-    const pruningVisitor = {
+    let ast = parse(prog);
+    visit(ast,  {
+        visitIfStatement(path: NodePath<n.IfStatement>) {
+            const node = path.node;
+            if(node.test.type === "Literal" && node.test.value === true && node.consequent.type === "BreakStatement") {
+                if (relevantLocs.some((rloc: SourceLocation) => SourceLocation.locEq(node.loc, rloc))) {
+                    path.replace(b.breakStatement());
+                } else {
+                    path.prune();
+                }
+                return false;
+            } else {
+                return this.visitStatement(path);
+            }
+        },
         visitVariableDeclaration(path: NodePath<n.VariableDeclaration>) {
             const node = path.node;
             if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(node.loc, rloc)) &&
@@ -39,12 +52,11 @@ function pruneProgram(prog: string, lineNb: number, relevantLocs: any[], relevan
         visitSwitchCase(path: NodePath<n.SwitchCase>) {
             if (!relevantLocs.some((rloc: SourceLocation) => SourceLocation.in_between_inclusive(path.node.loc, rloc))) {
                 path.prune();
+                return false;
             }
-            return false;
-        }
-    };
-    const ast = parse(prog);
-    visit(ast, pruningVisitor);
+            this.traverse(path);
+        },
+    });
     return print(ast);
 }
 
@@ -64,7 +76,7 @@ function prune(progInPath: PathOrFileDescriptor, progOutPath: PathOrFileDescript
         new location.Position(lineNb, 0),
         new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     const prog = readFileSync(progInPath).toString();
-    const newprog = pruneProgram(prog, lineNb, relevantLocs, relevantVars)
+    const newprog = pruneProgram(prog, lineNb, relevantLocs, relevantVars);
     writeFileSync(progOutPath, newprog.code);
 }
 

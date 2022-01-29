@@ -7,6 +7,7 @@ function sliceMe() {
         x = 10;
     default:
         z = x;
+
         break;
     }
     return z;

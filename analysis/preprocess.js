@@ -25,7 +25,6 @@ var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 var source_map_1 = require("source-map");
 var datatypes_1 = require("./datatypes");
-var BREAK_MARKER_NUMBER = 1000;
 function insertBreakMarkers(program) {
     var ast = (0, recast_1.parse)(program.code, {
         "sourceFileName": program.path
@@ -65,7 +64,11 @@ function preprocessFile(progInPath, progOutPath, lineNb) {
     fs.writeFileSync(progOutPath, newprog);
     var locs = locateBreakMarkers({ code: newprog, path: progOutPath });
     console.log(locs);
-    return locs;
+    var lineNbGenPos = map.allGeneratedPositionsFor({ source: progInPath, line: lineNb });
+    if (lineNbGenPos.length > 0) {
+        lineNb = lineNbGenPos[0].line;
+    }
+    return [lineNb, locs];
 }
 exports.preprocessFile = preprocessFile;
 //# sourceMappingURL=preprocess.js.map

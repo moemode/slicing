@@ -33,15 +33,16 @@ const fs = require("fs");
 
 
     function run_jalangi_slice(inFile, outFile, lineNb) {
+        inFile = path.resolve(inFile);
+        outFile = path.resolve(outFile);
         const preprocFileName = "preproc_" + path.basename(inFile);
         const preprocPath = path.join(path.dirname(inFile), preprocFileName);
-        const breakMarkerLocations = preproc.preprocessFile(inFile, preprocPath, lineNb);
+        const [mappedLineNb, breakMarkerLocations] = preproc.preprocessFile(inFile, preprocPath, lineNb);
         const bmarkerPath = path.join(path.dirname(inFile), path.basename(inFile, path.extname(inFile)) + "_bmarkers.json");
         fs.writeFileSync(bmarkerPath, JSON.stringify(breakMarkerLocations));
         // create input parameters from args ditcionary
-        const inputArgs = " --outFile " + outFile + " --lineNb " + lineNb;
         let analysisParams = "--initParam outFile:" + outFile;
-        analysisParams += " --initParam lineNb:" + lineNb;
+        analysisParams += " --initParam lineNb:" + mappedLineNb;
         analysisParams += " --initParam bmarkerPath:" + bmarkerPath;
         stmt = 'node ' + jalangiPath + " " + analysisParams + ' --inlineIID --inlineSource --analysis ' + analysisPath + " " + preprocPath;
         console.log("Jalangi call: " + stmt);

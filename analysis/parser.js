@@ -6,7 +6,23 @@ var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 function pruneProgram(prog, lineNb, relevantLocs, relevant_vars) {
-    var pruningVisitor = {
+    var ast = (0, recast_1.parse)(prog);
+    (0, ast_types_1.visit)(ast, {
+        visitIfStatement: function (path) {
+            var node = path.node;
+            if (node.test.type === "Literal" && node.test.value === true && node.consequent.type === "BreakStatement") {
+                if (relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.locEq(node.loc, rloc); })) {
+                    path.replace(ast_types_1.builders.breakStatement());
+                }
+                else {
+                    path.prune();
+                }
+                return false;
+            }
+            else {
+                return this.visitStatement(path);
+            }
+        },
         visitVariableDeclaration: function (path) {
             var node = path.node;
             if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); }) &&
@@ -38,12 +54,11 @@ function pruneProgram(prog, lineNb, relevantLocs, relevant_vars) {
         visitSwitchCase: function (path) {
             if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(path.node.loc, rloc); })) {
                 path.prune();
+                return false;
             }
-            return false;
-        }
-    };
-    var ast = (0, recast_1.parse)(prog);
-    (0, ast_types_1.visit)(ast, pruningVisitor);
+            this.traverse(path);
+        },
+    });
     return (0, recast_1.print)(ast);
 }
 function prune(progInPath, progOutPath, graph, execBreakLocs, lineNb) {
