@@ -6,18 +6,6 @@
         "goldFile": "./testcases/pm2/e2_out.js"
     },
     {
-        "inFile": "./testcases/progress_meeting_3/e3_in.js",
-        "outFile": "./testcases/progress_meeting_3/e3_predicted_out.js",
-        "lineNb": 17,
-        "goldFile": "./testcases/progress_meeting_3/e3_out.js"
-    },
-    {
-        "inFile": "./testcases/progress_meeting_3/e4_in.js",
-        "outFile": "./testcases/progress_meeting_3/e4_predicted_out.js",
-        "lineNb": 14,
-        "goldFile": "./testcases/progress_meeting_3/e4_out.js"
-    },
-    {
         "inFile": "./testcases/mine/break_fail_in.js",
         "outFile": "./testcases/mine/break_fail_predicted_out.js",
         "goldFile": "./testcases/mine/break_fail_out.js",
