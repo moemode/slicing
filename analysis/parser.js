@@ -1,30 +1,10 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.prune = void 0;
 var fs_1 = require("fs");
 var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
-var cy = __importStar(require("cytoscape"));
 function pruneProgram(prog, lineNb, relevantLocs, relevant_vars) {
     var ast = (0, recast_1.parse)(prog);
     (0, ast_types_1.visit)(ast, {
@@ -98,7 +78,6 @@ function prune(progInPath, progOutPath, graph, execBreakLocs, executedBreakNodes
 }
 exports.prune = prune;
 function relevantBreakNodesAndDeps(executedBreakNodes) {
-    console.log(cy);
     return executedBreakNodes.union(executedBreakNodes.successors("node"));
 }
 //# sourceMappingURL=parser.js.map

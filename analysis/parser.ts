@@ -3,7 +3,6 @@ import { SourceLocation } from "./datatypes";
 import { parse, print } from "recast";
 import { visit, namedTypes as n, builders as b} from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
-import * as cy from "cytoscape";
 
 function pruneProgram(prog: string, lineNb: number, relevantLocs: any[], relevant_vars: string | unknown[]) {
     let ast = parse(prog);
@@ -80,7 +79,6 @@ function prune(progInPath: PathOrFileDescriptor, progOutPath: PathOrFileDescript
 
 
 function relevantBreakNodesAndDeps( executedBreakNodes) {
-    console.log(cy);
     return executedBreakNodes.union(executedBreakNodes.successors("node"));
 }   
 
