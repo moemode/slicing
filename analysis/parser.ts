@@ -3,7 +3,6 @@ import { SourceLocation } from "./datatypes";
 import { parse, print } from "recast";
 import { visit, namedTypes as n, builders as b} from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
-import { NodeCollection } from "cytoscape";
 import * as cy from "cytoscape";
 
 function pruneProgram(prog: string, lineNb: number, relevantLocs: any[], relevant_vars: string | unknown[]) {
@@ -73,10 +72,6 @@ function prune(progInPath: PathOrFileDescriptor, progOutPath: PathOrFileDescript
     const nodeLocs = Array.from(new Set(allRelevantNodes.map((node: { data: (arg0: string) => any; }) => node.data("loc"))));
     const callerLocs = Array.from(new Set(allRelevantNodes.map((node: { data: (arg0: string) => any; }) => node.data("callerLoc")).filter((x: any) => x)));
     const relevantVars = Array.from(new Set(allRelevantNodes.map((node: { data: (arg0: string) => any; }) => node.data("varname")).filter((x: any) => x)));
-    /*relevant_locs.push(new location.SourceLocation(progInPath,
-        new location.Position(lineNb, 0),
-        new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
-
     const relevantLocs = nodeLocs.concat(callerLocs);//.concat(execBreakLocs);
     const prog = readFileSync(progInPath).toString();
     const newprog = pruneProgram(prog, lineNb, relevantLocs, relevantVars);

@@ -91,9 +91,6 @@ function prune(progInPath, progOutPath, graph, execBreakLocs, executedBreakNodes
     var nodeLocs = Array.from(new Set(allRelevantNodes.map(function (node) { return node.data("loc"); })));
     var callerLocs = Array.from(new Set(allRelevantNodes.map(function (node) { return node.data("callerLoc"); }).filter(function (x) { return x; })));
     var relevantVars = Array.from(new Set(allRelevantNodes.map(function (node) { return node.data("varname"); }).filter(function (x) { return x; })));
-    /*relevant_locs.push(new location.SourceLocation(progInPath,
-        new location.Position(lineNb, 0),
-        new location.Position(lineNb, Number.POSITIVE_INFINITY)))*/
     var relevantLocs = nodeLocs.concat(callerLocs); //.concat(execBreakLocs);
     var prog = (0, fs_1.readFileSync)(progInPath).toString();
     var newprog = pruneProgram(prog, lineNb, relevantLocs, relevantVars);
