@@ -1,16 +1,13 @@
 function sliceMe() {
-    var x = 0;
-    var y = 1;
-    var z = 2;
-    switch (y) {
-    case 1:
-        x = 10;
-    default:
-        z = x;
-
-        break;
+    var r = 1;
+    var c = 0;
+    while (true) {
+        r = r + 1;
+        if (c == 0) {
+            break;
+        }
     }
-    return z;
+    return r;
 }
 
 sliceMe();

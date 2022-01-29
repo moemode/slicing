@@ -1,4 +1,5 @@
 import cytoscape = require("cytoscape");
+import { Collection } from "cytoscape";
 import {writeFileSync, mkdirSync, readFileSync} from "fs";
 import { prune } from "./parser";
 import { Position, SourceLocation, JalangiLocation, CallStackEntry} from "./datatypes";
@@ -22,6 +23,7 @@ class SliceAnalysis {
     bmarkers: SourceLocation[] = []
 
     executedIfTrueBreaks: SourceLocation[] = []
+    executedBreakNodes = null;
     readsForWrite = []
 
     currentExprNodes = [];
@@ -48,6 +50,7 @@ class SliceAnalysis {
         this.bmarkers = a.map(obj => SourceLocation.fromJSON(obj));
         [this.controlDeps, this.tests] = controlDependencies(originalFileName);
         this.currentObjectRetrievals = [];
+        this.executedBreakNodes = this.graph.collection();
     }
 
     declare(iid, name, val, isArgument, argumentIndex, isCatchParam) {
@@ -242,22 +245,41 @@ class SliceAnalysis {
         return testNode;
     }
 
+    private addBreakNode(loc: SourceLocation) {
+        const breakNode = {
+            group: 'nodes',
+            data: {
+                id: `n${this.nextNodeId++}`,
+                loc: loc,
+                line: loc.start.line,
+                name: `break`,
+            },
+        };
+        const bNode: cytoscape.Collection = this.graph.add(breakNode);
+        this.addTestDependency(breakNode);
+        return bNode;
+    }
+
     conditional(iid, result) {
         const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
-        const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
-        if (test) {
-            console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
-            const testNode = this.addTestNode(test, result);
-            //currentExprNodes were created for the for/if test
-            this.lastTest[Position.toString(test.loc.start)] = testNode;
-            //TODO: Only include read nodes?
-            this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
+        if(this.handleBreak(loc)) {
+            return;
+        }
+        else {
+            const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
+            if (test) {
+                console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
+                const testNode = this.addTestNode(test, result);
+                //currentExprNodes were created for the for/if test
+                this.lastTest[Position.toString(test.loc.start)] = testNode;
+                //TODO: Only include read nodes?
+                this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
+            }
         }
     }
 
     endExpression(iid) {
         const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
-        this.handleBreak(loc);
         //switch expression does not result in callback to this.conditional -> handle it here
         const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
         if (test && test.type === "switch-disc") {
@@ -278,10 +300,18 @@ class SliceAnalysis {
         this.currentObjectRetrievals = [];
     }
 
-    handleBreak(loc: SourceLocation) {
-        if (this.bmarkers.some((bmarkerLoc: SourceLocation) => SourceLocation.locEq(loc, bmarkerLoc))) {
+    handleBreak(wrappingIfPredicateLocation: SourceLocation): boolean {
+        const loc = this.bmarkers.filter(bLoc => SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation))[0];
+        if(loc) {
+        //if (this.bmarkers.some((bmarkerLoc: SourceLocation) => SourceLocation.locEq(loc, bmarkerLoc))) {
             this.executedIfTrueBreaks.push(loc);
+            const breakNode: Collection = this.addBreakNode(loc);
+            this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
+
+            //this.executedBreakNodes.push(breakNode);
+            return true;
         }
+        return false;
     }
 
     endExecution() {
@@ -292,7 +322,7 @@ class SliceAnalysis {
             //this error is expected as it is thrown when the graphs directory esists already
         };
         writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
-        prune(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.lineNb)
+        prune(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.executedBreakNodes, this.lineNb)
     }
 
     invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {

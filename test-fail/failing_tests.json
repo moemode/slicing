@@ -4,11 +4,5 @@
         "outFile": "./testcases/pm2/e2_predicted_out.js",
         "lineNb": 8,
         "goldFile": "./testcases/pm2/e2_out.js"
-    },
-    {
-        "inFile": "./testcases/mine/break_fail_in.js",
-        "outFile": "./testcases/mine/break_fail_predicted_out.js",
-        "goldFile": "./testcases/mine/break_fail_out.js",
-        "lineNb": 10
     }
 ]
