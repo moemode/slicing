@@ -26,6 +26,8 @@ class SliceAnalysis {
     executedBreakNodes = null;
     readsForWrite = []
 
+    //objects that have been read without being the base for a getField/putField
+    readOnlyObjects = [];
     currentExprNodes = [];
     lastWrites = {};
     lastDeclare = {};
@@ -108,6 +110,9 @@ class SliceAnalysis {
     }
 
     read(iid, name, val, isGlobal, isScriptLocal) {
+        if(isGlobal) {
+            return;
+        }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
         const readNode = this.addNode({
@@ -116,6 +121,12 @@ class SliceAnalysis {
             val: String(val), type: "read",
             line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
+        if(typeof val === "object") {
+            if(!val.__id__) {
+                console.log("valid undef");
+            }
+            this.readOnlyObjects.push(val.__id__ );
+        }
         this.currentExprNodes.push(readNode);
         const declareNode = this.lastDeclare[name];
         if (declareNode) {
@@ -143,6 +154,7 @@ class SliceAnalysis {
     }
 
     putField(iid, base, offset, val, isComputed, isOpAssign) {
+        this.readOnlyObjects = this.readOnlyObjects.filter(objectId => objectId != base.__id__);
         const retrievalNode = this.currentObjectRetrievals[base.__id__];
         const putFieldNode = this.addNode({
             loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
@@ -164,6 +176,7 @@ class SliceAnalysis {
     }
 
     getField(iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+        this.readOnlyObjects = this.readOnlyObjects.filter(objectId => objectId != base.__id__);
         //Todo: This does not work for string objects
         const retrievalNode = this.currentObjectRetrievals[base.__id__];
         const getFieldNode = this.addNode({
@@ -182,6 +195,9 @@ class SliceAnalysis {
         But then we must have read a variable containing this object and the read node
         transitively depends on this write of the  into a original variable
         */
+       if(baseObjectPuts == undefined ){
+           console.log("baseObjectPuts undefined");
+       }
         if (baseObjectPuts !== undefined) {
             const putFieldNode = this.lastPut[base.__id__][offset];
             if (putFieldNode) {
@@ -286,6 +302,14 @@ class SliceAnalysis {
             loc: loc, line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             type: "end-expression"
         });
+        for(let objectId of this.readOnlyObjects) {
+            for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
+                const readNode = this.currentObjectRetrievals[objectId];
+                this.addEdge(readNode, putFieldNode);
+            }
+            this.lastPut[objectId];
+        }
+        this.readOnlyObjects = [];
         this.currentExprNodes = [];
         this.currentObjectRetrievals = [];
     }

@@ -39,6 +39,8 @@ var SliceAnalysis = /** @class */ (function () {
         this.executedIfTrueBreaks = [];
         this.executedBreakNodes = null;
         this.readsForWrite = [];
+        //objects that have been read without being the base for a getField/putField
+        this.readOnlyObjects = [];
         this.currentExprNodes = [];
         this.lastWrites = {};
         this.lastDeclare = {};
@@ -114,6 +116,9 @@ var SliceAnalysis = /** @class */ (function () {
         }
     };
     SliceAnalysis.prototype.read = function (iid, name, val, isGlobal, isScriptLocal) {
+        if (isGlobal) {
+            return;
+        }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
         var readNode = this.addNode({
@@ -122,6 +127,12 @@ var SliceAnalysis = /** @class */ (function () {
             val: String(val), type: "read",
             line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
+        if (typeof val === "object") {
+            if (!val.__id__) {
+                console.log("valid undef");
+            }
+            this.readOnlyObjects.push(val.__id__);
+        }
         this.currentExprNodes.push(readNode);
         var declareNode = this.lastDeclare[name];
         if (declareNode) {
@@ -150,6 +161,7 @@ var SliceAnalysis = /** @class */ (function () {
     };
     SliceAnalysis.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
         var _this = this;
+        this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         var retrievalNode = this.currentObjectRetrievals[base.__id__];
         var putFieldNode = this.addNode({
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
@@ -170,6 +182,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.lastPut[base.__id__][offset] = putFieldNode;
     };
     SliceAnalysis.prototype.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+        this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         //Todo: This does not work for string objects
         var retrievalNode = this.currentObjectRetrievals[base.__id__];
         var getFieldNode = this.addNode({
@@ -188,6 +201,9 @@ var SliceAnalysis = /** @class */ (function () {
         But then we must have read a variable containing this object and the read node
         transitively depends on this write of the  into a original variable
         */
+        if (baseObjectPuts == undefined) {
+            console.log("baseObjectPuts undefined");
+        }
         if (baseObjectPuts !== undefined) {
             var putFieldNode = this.lastPut[base.__id__][offset];
             if (putFieldNode) {
@@ -278,9 +294,28 @@ var SliceAnalysis = /** @class */ (function () {
         }
     };
     SliceAnalysis.prototype.endExpression = function (iid) {
-        var _this = this;
         var loc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
+        this.handleSwitch(loc);
+        this.addNode({
+            loc: loc, line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            type: "end-expression"
+        });
+        for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {
+            var objectId = _a[_i];
+            for (var _b = 0, _c = Object.entries(this.lastPut[objectId]); _b < _c.length; _b++) {
+                var _d = _c[_b], fieldName = _d[0], putFieldNode = _d[1];
+                var readNode = this.currentObjectRetrievals[objectId];
+                this.addEdge(readNode, putFieldNode);
+            }
+            this.lastPut[objectId];
+        }
+        this.readOnlyObjects = [];
+        this.currentExprNodes = [];
+        this.currentObjectRetrievals = [];
+    };
+    SliceAnalysis.prototype.handleSwitch = function (loc) {
+        var _this = this;
         var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test && test.type === "switch-disc") {
             // todo duplicate of conditional
@@ -290,22 +325,16 @@ var SliceAnalysis = /** @class */ (function () {
             this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode_2;
             //TODO: Only include read nodes?
             this.currentExprNodes.forEach(function (node) { return (_this.addEdge(testNode_2, node)); });
+            return true;
         }
-        this.addNode({
-            loc: loc, line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
-            type: "end-expression"
-        });
-        this.currentExprNodes = [];
-        this.currentObjectRetrievals = [];
+        return false;
     };
     SliceAnalysis.prototype.handleBreak = function (wrappingIfPredicateLocation) {
         var loc = this.bmarkers.filter(function (bLoc) { return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation); })[0];
         if (loc) {
-            //if (this.bmarkers.some((bmarkerLoc: SourceLocation) => SourceLocation.locEq(loc, bmarkerLoc))) {
             this.executedIfTrueBreaks.push(loc);
             var breakNode = this.addBreakNode(loc);
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
-            //this.executedBreakNodes.push(breakNode);
             return true;
         }
         return false;
