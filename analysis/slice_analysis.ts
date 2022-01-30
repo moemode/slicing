@@ -281,6 +281,16 @@ class SliceAnalysis {
     endExpression(iid) {
         const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
+        this.handleSwitch(loc);
+        this.addNode({
+            loc: loc, line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            type: "end-expression"
+        });
+        this.currentExprNodes = [];
+        this.currentObjectRetrievals = [];
+    }
+
+    handleSwitch(loc: SourceLocation): boolean  {
         const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
         if (test && test.type === "switch-disc") {
             // todo duplicate of conditional
@@ -290,25 +300,17 @@ class SliceAnalysis {
             this.lastTest[Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
             this.currentExprNodes.forEach(node => (this.addEdge(testNode, node)));
-
+            return true;
         }
-        this.addNode({
-            loc: loc, line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
-            type: "end-expression"
-        });
-        this.currentExprNodes = [];
-        this.currentObjectRetrievals = [];
+        return false;
     }
 
     handleBreak(wrappingIfPredicateLocation: SourceLocation): boolean {
         const loc = this.bmarkers.filter(bLoc => SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation))[0];
         if(loc) {
-        //if (this.bmarkers.some((bmarkerLoc: SourceLocation) => SourceLocation.locEq(loc, bmarkerLoc))) {
             this.executedIfTrueBreaks.push(loc);
             const breakNode: Collection = this.addBreakNode(loc);
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
-
-            //this.executedBreakNodes.push(breakNode);
             return true;
         }
         return false;
@@ -346,10 +348,4 @@ class SliceAnalysis {
     };
 
 }
-
-
-
-
-
-
 J$.analysis = new SliceAnalysis();
