@@ -36,7 +36,7 @@ class SliceAnalysis {
     nextObjectIds = 1;
     //lastTest[location] = testNode
     lastTest = {}
-    currentObjectRetrievals = [];
+    currentObjectReads = [];
 
     callStack = [];
 
@@ -51,7 +51,7 @@ class SliceAnalysis {
         const a = JSON.parse(bmarkerJSON);
         this.bmarkers = a.map(obj => SourceLocation.fromJSON(obj));
         [this.controlDeps, this.tests] = controlDependencies(originalFileName);
-        this.currentObjectRetrievals = [];
+        this.currentObjectReads = [];
         this.executedBreakNodes = this.graph.collection();
     }
 
@@ -110,9 +110,6 @@ class SliceAnalysis {
     }
 
     read(iid, name, val, isGlobal, isScriptLocal) {
-        if(isGlobal) {
-            return;
-        }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
         const readNode = this.addNode({
@@ -122,9 +119,7 @@ class SliceAnalysis {
             line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         if(typeof val === "object") {
-            if(!val.__id__) {
-                console.log("valid undef");
-            }
+            this.addObjectRead(val, readNode);
             this.readOnlyObjects.push(val.__id__ );
         }
         this.currentExprNodes.push(readNode);
@@ -140,7 +135,6 @@ class SliceAnalysis {
         } else {
             console.log("Read without write");
         }
-        return this.addObjectRetrieval(val, readNode);
     }
 
     addTestDependency(node) {
@@ -155,7 +149,7 @@ class SliceAnalysis {
 
     putField(iid, base, offset, val, isComputed, isOpAssign) {
         this.readOnlyObjects = this.readOnlyObjects.filter(objectId => objectId != base.__id__);
-        const retrievalNode = this.currentObjectRetrievals[base.__id__];
+        const retrievalNode = this.currentObjectReads[base.__id__];
         const putFieldNode = this.addNode({
             loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: `putfield ${offset}:${val}`, val: val, type: "putField",
@@ -178,7 +172,7 @@ class SliceAnalysis {
     getField(iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
         this.readOnlyObjects = this.readOnlyObjects.filter(objectId => objectId != base.__id__);
         //Todo: This does not work for string objects
-        const retrievalNode = this.currentObjectRetrievals[base.__id__];
+        const retrievalNode = this.currentObjectReads[base.__id__];
         const getFieldNode = this.addNode({
             loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: `getfield ${offset}:${val}`, val: val, type: "getField",
@@ -204,17 +198,17 @@ class SliceAnalysis {
                 this.addEdge(getFieldNode, putFieldNode);
             }
         }
-        return this.addObjectRetrieval(val, retrievalNode);
+        return this.addObjectRead(val, retrievalNode);
     }
 
-    private addObjectRetrieval(val, retrievalNode) {
+    private addObjectRead(val, retrievalNode) {
         if (typeof val !== "object") {
             return;
         }
         if (val.__id__ === undefined) {
             val.__id__ = this.nextObjectIds++;
         }
-        this.currentObjectRetrievals[val.__id__] = retrievalNode;
+        this.currentObjectReads[val.__id__] = retrievalNode;
         return { result: val };
     }
 
@@ -304,14 +298,14 @@ class SliceAnalysis {
         });
         for(let objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
-                const readNode = this.currentObjectRetrievals[objectId];
+                const readNode = this.currentObjectReads[objectId];
                 this.addEdge(readNode, putFieldNode);
             }
             this.lastPut[objectId];
         }
         this.readOnlyObjects = [];
         this.currentExprNodes = [];
-        this.currentObjectRetrievals = [];
+        this.currentObjectReads = [];
     }
 
     handleSwitch(loc: SourceLocation): boolean  {

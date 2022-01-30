@@ -49,7 +49,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.nextObjectIds = 1;
         //lastTest[location] = testNode
         this.lastTest = {};
-        this.currentObjectRetrievals = [];
+        this.currentObjectReads = [];
         this.callStack = [];
         this.currentCallerLoc = null;
         this.currentCalleeLoc = null;
@@ -62,7 +62,7 @@ var SliceAnalysis = /** @class */ (function () {
         var a = JSON.parse(bmarkerJSON);
         this.bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
         _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
-        this.currentObjectRetrievals = [];
+        this.currentObjectReads = [];
         this.executedBreakNodes = this.graph.collection();
     };
     SliceAnalysis.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
@@ -116,9 +116,6 @@ var SliceAnalysis = /** @class */ (function () {
         }
     };
     SliceAnalysis.prototype.read = function (iid, name, val, isGlobal, isScriptLocal) {
-        if (isGlobal) {
-            return;
-        }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
         var readNode = this.addNode({
@@ -128,9 +125,7 @@ var SliceAnalysis = /** @class */ (function () {
             line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
         });
         if (typeof val === "object") {
-            if (!val.__id__) {
-                console.log("valid undef");
-            }
+            this.addObjectRead(val, readNode);
             this.readOnlyObjects.push(val.__id__);
         }
         this.currentExprNodes.push(readNode);
@@ -148,7 +143,6 @@ var SliceAnalysis = /** @class */ (function () {
         else {
             console.log("Read without write");
         }
-        return this.addObjectRetrieval(val, readNode);
     };
     SliceAnalysis.prototype.addTestDependency = function (node) {
         //found whether the current location has a control dependency
@@ -162,7 +156,7 @@ var SliceAnalysis = /** @class */ (function () {
     SliceAnalysis.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
         var _this = this;
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
-        var retrievalNode = this.currentObjectRetrievals[base.__id__];
+        var retrievalNode = this.currentObjectReads[base.__id__];
         var putFieldNode = this.addNode({
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: "putfield ".concat(offset, ":").concat(val), val: val, type: "putField",
@@ -184,7 +178,7 @@ var SliceAnalysis = /** @class */ (function () {
     SliceAnalysis.prototype.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         //Todo: This does not work for string objects
-        var retrievalNode = this.currentObjectRetrievals[base.__id__];
+        var retrievalNode = this.currentObjectReads[base.__id__];
         var getFieldNode = this.addNode({
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
             name: "getfield ".concat(offset, ":").concat(val), val: val, type: "getField",
@@ -210,16 +204,16 @@ var SliceAnalysis = /** @class */ (function () {
                 this.addEdge(getFieldNode, putFieldNode);
             }
         }
-        return this.addObjectRetrieval(val, retrievalNode);
+        return this.addObjectRead(val, retrievalNode);
     };
-    SliceAnalysis.prototype.addObjectRetrieval = function (val, retrievalNode) {
+    SliceAnalysis.prototype.addObjectRead = function (val, retrievalNode) {
         if (typeof val !== "object") {
             return;
         }
         if (val.__id__ === undefined) {
             val.__id__ = this.nextObjectIds++;
         }
-        this.currentObjectRetrievals[val.__id__] = retrievalNode;
+        this.currentObjectReads[val.__id__] = retrievalNode;
         return { result: val };
     };
     SliceAnalysis.prototype.addNode = function (data) {
@@ -305,14 +299,14 @@ var SliceAnalysis = /** @class */ (function () {
             var objectId = _a[_i];
             for (var _b = 0, _c = Object.entries(this.lastPut[objectId]); _b < _c.length; _b++) {
                 var _d = _c[_b], fieldName = _d[0], putFieldNode = _d[1];
-                var readNode = this.currentObjectRetrievals[objectId];
+                var readNode = this.currentObjectReads[objectId];
                 this.addEdge(readNode, putFieldNode);
             }
             this.lastPut[objectId];
         }
         this.readOnlyObjects = [];
         this.currentExprNodes = [];
-        this.currentObjectRetrievals = [];
+        this.currentObjectReads = [];
     };
     SliceAnalysis.prototype.handleSwitch = function (loc) {
         var _this = this;
