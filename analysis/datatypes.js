@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CallStackEntry = exports.JalangiLocation = exports.SourceLocation = exports.Position = void 0;
+exports.Test = exports.BranchDependency = exports.CallStackEntry = exports.JalangiLocation = exports.SourceLocation = exports.Position = void 0;
 var Position = /** @class */ (function () {
     function Position(line, column) {
         this.line = line;
@@ -69,4 +69,21 @@ var CallStackEntry = /** @class */ (function () {
     return CallStackEntry;
 }());
 exports.CallStackEntry = CallStackEntry;
+var BranchDependency = /** @class */ (function () {
+    function BranchDependency(testLoc, branchLoc, type) {
+        this.testLoc = testLoc;
+        this.branchLoc = branchLoc;
+        this.type = type;
+    }
+    return BranchDependency;
+}());
+exports.BranchDependency = BranchDependency;
+var Test = /** @class */ (function () {
+    function Test(loc, type) {
+        this.loc = loc;
+        this.type = type;
+    }
+    return Test;
+}());
+exports.Test = Test;
 //# sourceMappingURL=datatypes.js.map

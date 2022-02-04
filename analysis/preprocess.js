@@ -66,9 +66,11 @@ function preprocessFile(progInPath, progOutPath, lineNb) {
     console.log(locs);
     var lineNbGenPos = map.allGeneratedPositionsFor({ source: progInPath, line: lineNb });
     if (lineNbGenPos.length > 0) {
-        lineNb = lineNbGenPos[0].line;
+        var _a = [lineNbGenPos[0], lineNbGenPos[lineNbGenPos.length - 1]], first = _a[0], last = _a[1];
+        return [new datatypes_1.SourceLocation(first, last), locs];
     }
-    return [lineNb, locs];
+    return [new datatypes_1.SourceLocation(new datatypes_1.Position(parseInt(lineNb), 0), new datatypes_1.Position(parseInt(lineNb), Number.POSITIVE_INFINITY)),
+        locs];
 }
 exports.preprocessFile = preprocessFile;
 //# sourceMappingURL=preprocess.js.map

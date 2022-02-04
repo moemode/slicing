@@ -32,12 +32,9 @@ var SliceAnalysis = /** @class */ (function () {
         this.nextNodeId = 1;
         this.nextEdgeId = 1;
         this.outFile = J$.initParams["outFile"];
-        // the specified line is 0-based but we use 1-based internally
-        this.lineNb = parseInt(J$.initParams["lineNb"]);
         this.bmarkerPath = J$.initParams["bmarkerPath"];
         this.bmarkers = [];
         this.executedIfTrueBreaks = [];
-        this.executedBreakNodes = null;
         this.readsForWrite = [];
         //objects that have been read without being the base for a getField/putField
         this.readOnlyObjects = [];
@@ -51,13 +48,15 @@ var SliceAnalysis = /** @class */ (function () {
         this.lastTest = {};
         this.currentObjectReads = [];
         this.callStack = [];
-        this.currentCallerLoc = null;
-        this.currentCalleeLoc = null;
-        this.controlDeps = null;
-        this.tests = null;
     }
+    SliceAnalysis.prototype.initializeCriterion = function () {
+        var start = new datatypes_1.Position(parseInt(J$.initParams["criterion-start-line"]), parseInt(J$.initParams["criterion-start-col"]));
+        var end = new datatypes_1.Position(parseInt(J$.initParams["criterion-end-line"]), parseInt(J$.initParams["criterion-end-col"]));
+        this.slicingCriterion = new datatypes_1.SourceLocation(start, end);
+    };
     SliceAnalysis.prototype.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
         var _a;
+        this.initializeCriterion();
         var bmarkerJSON = (0, fs_1.readFileSync)(this.bmarkerPath).toString();
         var a = JSON.parse(bmarkerJSON);
         this.bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
@@ -343,7 +342,7 @@ var SliceAnalysis = /** @class */ (function () {
         }
         ;
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
-        (0, parser_1.prune)(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.executedBreakNodes, this.lineNb);
+        (0, parser_1.prune)(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.executedBreakNodes, this.slicingCriterion);
     };
     SliceAnalysis.prototype.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
         var callerLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));

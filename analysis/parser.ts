@@ -3,6 +3,7 @@ import { SourceLocation } from "./datatypes";
 import { parse, print } from "recast";
 import { visit, namedTypes as n, builders as b} from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
+import { Collection, Core } from "cytoscape";
 
 function pruneProgram(prog: string, lineNb: number, relevantLocs: any[], relevant_vars: string | unknown[]) {
     let ast = parse(prog);
@@ -61,11 +62,14 @@ function pruneProgram(prog: string, lineNb: number, relevantLocs: any[], relevan
 }
 
 function prune(progInPath: PathOrFileDescriptor, progOutPath: PathOrFileDescriptor, 
-    graph: { nodes: (arg0: string) => any; }, execBreakLocs: SourceLocation[], executedBreakNodes: any[], lineNb: number) {
+                graph:  Core, execBreakLocs: SourceLocation[], executedBreakNodes: Collection, slicingCriterion: SourceLocation) {
+    const lineNb = slicingCriterion.start.line;
     const readsInLineNbCriterion = `node[type="write"][line=${lineNb}], node[type="read"][line=${lineNb}], node[type="getField"][line=${lineNb}]`
     const testsInLineNbCriterion = `node[type="if-test"][line=${lineNb}], node[type="for-test"][line=${lineNb}], node[type="switch-test-test"][line=${lineNb}], node[type="switch-disc-test"][line=${lineNb}]`;
     const endExpressionCrit = `node[type="end-expression"][line=${lineNb}]`
     const relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion + ", " + endExpressionCrit);
+    //const criterionNodes = graph.nodes().filter((e, i) => SourceLocation.in_between_inclusive(slicingCriterion, e.data("loc"))).union(execBreakNodes);
+
     const reachableNodes = relevantNodesInLine.successors("node");
     const allRelevantNodes = reachableNodes.union(relevantNodesInLine).union(relevantBreakNodesAndDeps(executedBreakNodes));
     const nodeLocs = Array.from(new Set(allRelevantNodes.map((node: { data: (arg0: string) => any; }) => node.data("loc"))));

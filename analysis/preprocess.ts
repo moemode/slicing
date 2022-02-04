@@ -3,7 +3,7 @@ import { print, parse } from "recast";
 import { visit, builders as b, namedTypes as n } from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 import { SourceMapConsumer } from "source-map";
-import { SourceLocation } from "./datatypes";
+import { Position, SourceLocation } from "./datatypes";
 
 interface Program {
     code: string,
@@ -42,7 +42,7 @@ function locateBreakMarkers(program: Program): SourceLocation[] {
     return breakMarkerLocations;
 }
 
-function preprocessFile(progInPath, progOutPath, lineNb): [number, SourceLocation[]] {
+function preprocessFile(progInPath: string, progOutPath: string, lineNb: string): [SourceLocation, SourceLocation[]] {
     const code = fs.readFileSync(progInPath).toString();
     const result = insertBreakMarkers({ code, path: progInPath });
     const map = new SourceMapConsumer(result.map);
@@ -50,11 +50,15 @@ function preprocessFile(progInPath, progOutPath, lineNb): [number, SourceLocatio
     fs.writeFileSync(progOutPath, newprog);
     const locs = locateBreakMarkers({ code: newprog, path: progOutPath });
     console.log(locs);
-    const lineNbGenPos = map.allGeneratedPositionsFor({source: progInPath, line: lineNb});
-    if(lineNbGenPos.length > 0) {
-        lineNb = lineNbGenPos[0].line;
+    const lineNbGenPos = map.allGeneratedPositionsFor({ source: progInPath, line: lineNb });
+    if (lineNbGenPos.length > 0) {
+        const [first, last] = [lineNbGenPos[0], lineNbGenPos[lineNbGenPos.length - 1]]
+        return [new SourceLocation(first, last), locs];
+
     }
-    return [lineNb,locs];
+    return [new SourceLocation(new Position(parseInt(lineNb), 0), 
+            new Position(parseInt(lineNb), Number.POSITIVE_INFINITY)), 
+            locs];
 }
 
 //preprocessFile("/home/v/slicing/testcases/progress_meeting_3/e3_in.js", "./egal.js", 17);

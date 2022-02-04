@@ -1,16 +1,8 @@
 import * as fs from "fs";
-import { SourceLocation, Position } from "./datatypes";
+import { SourceLocation, Position, BranchDependency, Test } from "./datatypes";
 import { parse } from "recast";
 import { visit } from "ast-types";
 import * as esprima from "esprima";
-
-class BranchDependency {
-    constructor(public readonly testLoc: SourceLocation, public readonly branchLoc: SourceLocation, public readonly type: string) {}
-}
-
-class Test {
-    constructor(public readonly loc: SourceLocation, public readonly type: string) {}
-}
 
 function computeControlDeps(prog): [BranchDependency[], Test[]]{
     const ast = parse(prog, {

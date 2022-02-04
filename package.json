@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha --exit",
-    "test-fail": "mocha test-fail/**/*.js"
+    "test-fail": "mocha test-fail/**/*.js",
+    "lint": "eslint -c .eslintrc.js --ext .ts ."
   },
   "author": "Moritz Pfeffer",
   "license": "ISC",
@@ -27,7 +28,13 @@
     "@types/esprima": "4.0.3",
     "@types/estraverse": "5.1.1",
     "@types/node": "17.0.10",
+    "@typescript-eslint/eslint-plugin": "^5.10.2",
+    "@typescript-eslint/parser": "^5.10.2",
     "chai": "4.3.4",
-    "mocha": "9.1.3"
+    "eslint": "^8.8.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.25.4",
+    "mocha": "9.1.3",
+    "typescript": "^4.5.5"
   }
 }

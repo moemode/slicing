@@ -61,11 +61,13 @@ function pruneProgram(prog, lineNb, relevantLocs, relevant_vars) {
     });
     return (0, recast_1.print)(ast);
 }
-function prune(progInPath, progOutPath, graph, execBreakLocs, executedBreakNodes, lineNb) {
+function prune(progInPath, progOutPath, graph, execBreakLocs, executedBreakNodes, slicingCriterion) {
+    var lineNb = slicingCriterion.start.line;
     var readsInLineNbCriterion = "node[type=\"write\"][line=".concat(lineNb, "], node[type=\"read\"][line=").concat(lineNb, "], node[type=\"getField\"][line=").concat(lineNb, "]");
     var testsInLineNbCriterion = "node[type=\"if-test\"][line=".concat(lineNb, "], node[type=\"for-test\"][line=").concat(lineNb, "], node[type=\"switch-test-test\"][line=").concat(lineNb, "], node[type=\"switch-disc-test\"][line=").concat(lineNb, "]");
     var endExpressionCrit = "node[type=\"end-expression\"][line=".concat(lineNb, "]");
     var relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion + ", " + endExpressionCrit);
+    //const criterionNodes = graph.nodes().filter((e, i) => SourceLocation.in_between_inclusive(slicingCriterion, e.data("loc"))).union(execBreakNodes);
     var reachableNodes = relevantNodesInLine.successors("node");
     var allRelevantNodes = reachableNodes.union(relevantNodesInLine).union(relevantBreakNodesAndDeps(executedBreakNodes));
     var nodeLocs = Array.from(new Set(allRelevantNodes.map(function (node) { return node.data("loc"); })));

@@ -57,3 +57,11 @@ export class JalangiLocation {
 export class CallStackEntry {
     constructor(public readonly callerLoc: Location, public readonly calleeLoc: Location) { }
 }
+
+export class BranchDependency {
+    constructor(public readonly testLoc: SourceLocation, public readonly branchLoc: SourceLocation, public readonly type: string) {}
+}
+
+export class Test {
+    constructor(public readonly loc: SourceLocation, public readonly type: string) {}
+}

@@ -1,1 +1,4 @@
-[]
+[
+    {"inFile": "./testcases/mine/putField_in.js", "outFile": "./testcases/mine/putField_predicted_out.js", "lineNb":3, "goldFile": "./testcases/mine/putField_out.js"}
+
+]

@@ -2,7 +2,7 @@ import cytoscape = require("cytoscape");
 import { Collection } from "cytoscape";
 import {writeFileSync, mkdirSync, readFileSync} from "fs";
 import { prune } from "./parser";
-import { Position, SourceLocation, JalangiLocation, CallStackEntry} from "./datatypes";
+import { Position, SourceLocation, JalangiLocation, CallStackEntry, BranchDependency,Test} from "./datatypes";
 import {controlDependencies, findControlDep} from "./control-deps";
 import * as path from "path";
 
@@ -14,16 +14,15 @@ declare var J$: any;
 class SliceAnalysis {
     writtenValues = [];
     graph = cytoscape();
-    nextNodeId = 1;
-    nextEdgeId = 1;
+    nextNodeId: number = 1;
+    nextEdgeId: number = 1;
     outFile = J$.initParams["outFile"];
-    // the specified line is 0-based but we use 1-based internally
-    lineNb = parseInt(J$.initParams["lineNb"]);
+    slicingCriterion: SourceLocation;
     bmarkerPath = J$.initParams["bmarkerPath"];
     bmarkers: SourceLocation[] = []
 
     executedIfTrueBreaks: SourceLocation[] = []
-    executedBreakNodes = null;
+    executedBreakNodes: Collection;
     readsForWrite = []
 
     //objects that have been read without being the base for a getField/putField
@@ -40,13 +39,20 @@ class SliceAnalysis {
 
     callStack = [];
 
-    currentCallerLoc = null;
-    currentCalleeLoc = null;
+    currentCallerLoc: SourceLocation;
+    currentCalleeLoc: SourceLocation;
 
-    controlDeps = null;
-    tests = null;
+    controlDeps: BranchDependency[];
+    tests: Test[];
 
+    initializeCriterion() {
+        const start: Position = new Position(parseInt(J$.initParams["criterion-start-line"]), parseInt(J$.initParams["criterion-start-col"]));
+        const end: Position = new Position(parseInt(J$.initParams["criterion-end-line"]), parseInt(J$.initParams["criterion-end-col"]));
+        this.slicingCriterion = new SourceLocation(start, end);
+    }
+    
     scriptEnter(iid, instrumentedFileName, originalFileName) {
+        this.initializeCriterion()
         const bmarkerJSON = readFileSync(this.bmarkerPath).toString();
         const a = JSON.parse(bmarkerJSON);
         this.bmarkers = a.map(obj => SourceLocation.fromJSON(obj));
@@ -342,7 +348,7 @@ class SliceAnalysis {
             //this error is expected as it is thrown when the graphs directory esists already
         };
         writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
-        prune(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.executedBreakNodes, this.lineNb)
+        prune(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.executedBreakNodes, this.slicingCriterion)
     }
 
     invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
@@ -364,6 +370,6 @@ class SliceAnalysis {
             this.currentCalleeLoc = topCallStackEntry.calleeLoc;
         }
     };
-
 }
+
 J$.analysis = new SliceAnalysis();
