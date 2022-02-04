@@ -24,6 +24,12 @@ export class SourceLocation {
         return location.start.line == location.end.line && location.end.line == line;
     }
 
+    public static boundingLocation(locations: SourceLocation[]): SourceLocation {
+        const start = locations.map(l => l.start).reduce((a,b) => Position.posIsSmallerEq(a, b) ? a : b);
+        const end = locations.map(l=>l.end).reduce((a,b) => Position.posIsSmallerEq(a, b) ? b : a);
+        return new SourceLocation(start, end);
+    }
+
     public static fromJalangiLocation(jalangiLocation: string): SourceLocation {
         let r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/
         let m = jalangiLocation.match(r)

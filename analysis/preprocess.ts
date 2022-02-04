@@ -53,6 +53,7 @@ function preprocessFile(progInPath: string, progOutPath: string, lineNb: string)
     const lineNbGenPos = map.allGeneratedPositionsFor({ source: progInPath, line: lineNb });
     if (lineNbGenPos.length > 0) {
         const [first, last] = [lineNbGenPos[0], lineNbGenPos[lineNbGenPos.length - 1]]
+        last.column += 1;
         return [new SourceLocation(first, last), locs];
 
     }

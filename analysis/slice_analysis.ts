@@ -295,11 +295,15 @@ class SliceAnalysis {
     }
 
     endExpression(iid) {
-        const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        let loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
         this.handleSwitch(loc);
+        let graphLoc = loc
+        if(this.currentExprNodes.length > 0) {
+            graphLoc = SourceLocation.boundingLocation(this.currentExprNodes.map(n => n.data.loc));
+        }
         this.addNode({
-            loc: loc, line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: graphLoc, line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             type: "end-expression"
         });
         for(let objectId of this.readOnlyObjects) {

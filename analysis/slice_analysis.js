@@ -290,8 +290,12 @@ var SliceAnalysis = /** @class */ (function () {
         var loc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
         this.handleSwitch(loc);
+        var graphLoc = loc;
+        if (this.currentExprNodes.length > 0) {
+            graphLoc = datatypes_1.SourceLocation.boundingLocation(this.currentExprNodes.map(function (n) { return n.data.loc; }));
+        }
         this.addNode({
-            loc: loc, line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: graphLoc, line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             type: "end-expression"
         });
         for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {

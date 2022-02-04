@@ -1,5 +1,5 @@
 import { PathOrFileDescriptor, readFileSync, writeFileSync } from "fs";
-import { SourceLocation } from "./datatypes";
+import { Position, SourceLocation } from "./datatypes";
 import { parse, print } from "recast";
 import { visit, namedTypes as n, builders as b} from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
@@ -68,6 +68,10 @@ function prune(progInPath: PathOrFileDescriptor, progOutPath: PathOrFileDescript
     const testsInLineNbCriterion = `node[type="if-test"][line=${lineNb}], node[type="for-test"][line=${lineNb}], node[type="switch-test-test"][line=${lineNb}], node[type="switch-disc-test"][line=${lineNb}]`;
     const endExpressionCrit = `node[type="end-expression"][line=${lineNb}]`
     const relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion + ", " + endExpressionCrit);
+    const relevantNodesInLine2 =  graph.nodes().filter((e, i) => SourceLocation.in_between_inclusive(slicingCriterion, e.data("loc")));
+    if (relevantNodesInLine.length != relevantNodesInLine2.length){
+        console.log("mm");
+    }
     //const criterionNodes = graph.nodes().filter((e, i) => SourceLocation.in_between_inclusive(slicingCriterion, e.data("loc"))).union(execBreakNodes);
 
     const reachableNodes = relevantNodesInLine.successors("node");

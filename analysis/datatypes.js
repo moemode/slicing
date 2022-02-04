@@ -30,6 +30,11 @@ var SourceLocation = /** @class */ (function () {
     SourceLocation.within_line = function (location, line) {
         return location.start.line == location.end.line && location.end.line == line;
     };
+    SourceLocation.boundingLocation = function (locations) {
+        var start = locations.map(function (l) { return l.start; }).reduce(function (a, b) { return Position.posIsSmallerEq(a, b) ? a : b; });
+        var end = locations.map(function (l) { return l.end; }).reduce(function (a, b) { return Position.posIsSmallerEq(a, b) ? b : a; });
+        return new SourceLocation(start, end);
+    };
     SourceLocation.fromJalangiLocation = function (jalangiLocation) {
         var r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/;
         var m = jalangiLocation.match(r);

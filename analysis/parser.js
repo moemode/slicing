@@ -67,6 +67,10 @@ function prune(progInPath, progOutPath, graph, execBreakLocs, executedBreakNodes
     var testsInLineNbCriterion = "node[type=\"if-test\"][line=".concat(lineNb, "], node[type=\"for-test\"][line=").concat(lineNb, "], node[type=\"switch-test-test\"][line=").concat(lineNb, "], node[type=\"switch-disc-test\"][line=").concat(lineNb, "]");
     var endExpressionCrit = "node[type=\"end-expression\"][line=".concat(lineNb, "]");
     var relevantNodesInLine = graph.nodes(readsInLineNbCriterion + ", " + testsInLineNbCriterion + ", " + endExpressionCrit);
+    var relevantNodesInLine2 = graph.nodes().filter(function (e, i) { return datatypes_1.SourceLocation.in_between_inclusive(slicingCriterion, e.data("loc")); });
+    if (relevantNodesInLine.length != relevantNodesInLine2.length) {
+        console.log("mm");
+    }
     //const criterionNodes = graph.nodes().filter((e, i) => SourceLocation.in_between_inclusive(slicingCriterion, e.data("loc"))).union(execBreakNodes);
     var reachableNodes = relevantNodesInLine.successors("node");
     var allRelevantNodes = reachableNodes.union(relevantNodesInLine).union(relevantBreakNodesAndDeps(executedBreakNodes));
