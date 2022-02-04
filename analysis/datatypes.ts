@@ -9,6 +9,10 @@ export class Position {
     public static toString(position: Position): string {
         return `line:${position.line};column:${position.column}`
     }
+    public static in_between(left, inner, right): boolean {
+        return Position.posIsSmallerEq(left, inner) && Position.posIsSmallerEq(inner, right);
+    }
+
 
 }
 
@@ -43,6 +47,10 @@ export class SourceLocation {
     }
     public static locEq(loc1: SourceLocation, loc2: SourceLocation): boolean {
         return Position.posEq(loc1.start, loc2.start) && Position.posEq(loc1.end, loc2.end);
+    }
+
+    public static overlap(loc1: SourceLocation, loc2: SourceLocation): boolean {
+        return Position.in_between(loc1.start, loc2.start, loc1.end) || Position.in_between(loc2.start, loc1.start, loc2.end)
     }
 
     public static in_between_inclusive(outer: SourceLocation, inner: SourceLocation): boolean {

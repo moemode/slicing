@@ -15,6 +15,9 @@ var Position = /** @class */ (function () {
     Position.toString = function (position) {
         return "line:".concat(position.line, ";column:").concat(position.column);
     };
+    Position.in_between = function (left, inner, right) {
+        return Position.posIsSmallerEq(left, inner) && Position.posIsSmallerEq(inner, right);
+    };
     return Position;
 }());
 exports.Position = Position;
@@ -47,6 +50,9 @@ var SourceLocation = /** @class */ (function () {
     };
     SourceLocation.locEq = function (loc1, loc2) {
         return Position.posEq(loc1.start, loc2.start) && Position.posEq(loc1.end, loc2.end);
+    };
+    SourceLocation.overlap = function (loc1, loc2) {
+        return Position.in_between(loc1.start, loc2.start, loc1.end) || Position.in_between(loc2.start, loc1.start, loc2.end);
     };
     SourceLocation.in_between_inclusive = function (outer, inner) {
         var includesStart = Position.posIsSmallerEq(outer.start, inner.start);
