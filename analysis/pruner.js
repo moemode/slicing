@@ -103,8 +103,8 @@ function sliceLocs(nodes, slicingCriterion) {
     return locs;
 }
 /**
- * Do reachability analysis on graph. T
- * hen prune the preprocessed program at progInPath and write it to progOutPath.
+ * Do reachability analysis on graph.
+ * Then prune read the preprocessed program from progInPath, prune it and write it to progOutPath.
  * @param progInPath path of preprocessed program
  * @param progOutPath path to writer pruned program to
  * @param graph full graph constructed by dynamic analysis

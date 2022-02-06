@@ -1,4 +1,8 @@
 [
-    {"inFile": "./testcases/mine/isolatedCriterion_in.js", "outFile": "./testcases/mine/isolatedCriterion_predicted_out.js", "lineNb":4, "goldFile": "./testcases/mine/isolatedCriterion_out.js"}
-
+    {
+        "inFile": "./testcases/mine/fcall_within_in.js",
+        "outFile": "./testcases/mine/fcall_within_predicted_out.js",
+        "lineNb": 4,
+        "goldFile": "./testcases/mine/fcall_within_out.js"
+    }
 ]

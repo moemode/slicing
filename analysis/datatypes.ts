@@ -1,3 +1,7 @@
+/**
+ * Data class  storing positions in a program consisting of line and column number.
+ * Contains some static helper methods for comparing Position objects.
+ */
 export class Position {
     
     constructor(public readonly line: number, public readonly column: number) { }
@@ -19,6 +23,11 @@ export class Position {
     }
 }
 
+
+/**
+ * Data class storing locations in a program consisting of a start and an end Position.
+ * Contains some static helper methods for construction and comparison of SourceLocation objects.
+ */
 export class SourceLocation {
     
     constructor(public readonly start: Position, public readonly end: Position, public readonly p?: string) { }
@@ -81,14 +90,4 @@ export class CallStackEntry {
     constructor(public readonly callerLoc: SourceLocation, public readonly calleeLoc: SourceLocation) { }
 }
 
-export class ControlDependency {
-    constructor(
-        public readonly testLoc: SourceLocation,
-        public readonly branchLoc: SourceLocation,
-        public readonly type: string
-    ) { }
-}
 
-export class Test {
-    constructor(public readonly loc: SourceLocation, public readonly type: string) { }
-}

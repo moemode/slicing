@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Test = exports.ControlDependency = exports.CallStackEntry = exports.JalangiLocation = exports.SourceLocation = exports.Position = void 0;
+exports.CallStackEntry = exports.JalangiLocation = exports.SourceLocation = exports.Position = void 0;
+/**
+ * Data class  storing positions in a program consisting of line and column number.
+ * Contains some static helper methods for comparing Position objects.
+ */
 var Position = /** @class */ (function () {
     function Position(line, column) {
         this.line = line;
@@ -21,6 +25,10 @@ var Position = /** @class */ (function () {
     return Position;
 }());
 exports.Position = Position;
+/**
+ * Data class storing locations in a program consisting of a start and an end Position.
+ * Contains some static helper methods for construction and comparison of SourceLocation objects.
+ */
 var SourceLocation = /** @class */ (function () {
     function SourceLocation(start, end, p) {
         this.start = start;
@@ -81,21 +89,4 @@ var CallStackEntry = /** @class */ (function () {
     return CallStackEntry;
 }());
 exports.CallStackEntry = CallStackEntry;
-var ControlDependency = /** @class */ (function () {
-    function ControlDependency(testLoc, branchLoc, type) {
-        this.testLoc = testLoc;
-        this.branchLoc = branchLoc;
-        this.type = type;
-    }
-    return ControlDependency;
-}());
-exports.ControlDependency = ControlDependency;
-var Test = /** @class */ (function () {
-    function Test(loc, type) {
-        this.loc = loc;
-        this.type = type;
-    }
-    return Test;
-}());
-exports.Test = Test;
 //# sourceMappingURL=datatypes.js.map

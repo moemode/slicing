@@ -1,9 +1,9 @@
 import cytoscape = require("cytoscape");
 import { Collection } from "cytoscape";
+import { Position, SourceLocation, JalangiLocation, CallStackEntry} from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
-import { Position, SourceLocation, JalangiLocation, CallStackEntry, ControlDependency, Test } from "./datatypes";
-import { controlDependencies, cDepForLoc } from "./control-deps";
+import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
 import * as path from "path";
 
 // Run the analysis with:
@@ -58,7 +58,7 @@ class SliceAnalysis {
         this.slicingCriterion = new SourceLocation(start, end);
     }
 
-    scriptEnter(iid, instrumentedFileName, originalFileName) {
+    scriptEnter(iid, instrumentedFileName, originalFileName): void {
         this.initializeCriterion();
         const bmarkerJSON = readFileSync(this.bmarkerPath).toString();
         const a = JSON.parse(bmarkerJSON);

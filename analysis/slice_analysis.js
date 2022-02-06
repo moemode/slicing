@@ -20,9 +20,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var cytoscape = require("cytoscape");
+var datatypes_1 = require("./datatypes");
 var fs_1 = require("fs");
 var pruner_1 = require("./pruner");
-var datatypes_1 = require("./datatypes");
 var control_deps_1 = require("./control-deps");
 var path = __importStar(require("path"));
 var SliceAnalysis = /** @class */ (function () {

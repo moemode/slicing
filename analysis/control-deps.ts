@@ -1,9 +1,22 @@
 import * as fs from "fs";
-import { SourceLocation, Position, ControlDependency, Test } from "./datatypes";
+import { SourceLocation, Position } from "./datatypes";
 import { parse } from "recast";
 import { visit, namedTypes as n } from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 import * as esprima from "esprima";
+
+
+class ControlDependency {
+    constructor(
+        public readonly testLoc: SourceLocation,
+        public readonly branchLoc: SourceLocation,
+        public readonly type: string
+    ) { }
+}
+
+class Test {
+    constructor(public readonly loc: SourceLocation, public readonly type: string) { }
+}
 
 /**
  * This is not a full PDG computation. Walks the AST of the program to find
@@ -107,4 +120,4 @@ function controlDependencies(progInPath: string): [ControlDependency[], Test[]] 
     return controlData;
 }
 
-export { controlDependencies, cDepForLoc };
+export {ControlDependency, Test ,controlDependencies, cDepForLoc };
