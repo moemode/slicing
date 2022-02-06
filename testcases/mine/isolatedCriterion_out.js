@@ -1,0 +1,5 @@
+function sliceMe() {
+    return;
+}
+
+sliceMe();

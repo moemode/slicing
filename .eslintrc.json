@@ -4,7 +4,6 @@
         "es2021": true
     },
     "extends": [
-        "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
         "plugin:@typescript-eslint/eslint-recommended"
     ],
@@ -19,12 +18,22 @@
     "rules": {
         "quotes": "off",
         "@typescript-eslint/quotes": [
-            "error", "double",
+            "error",
+            "double",
             {
                 "allowTemplateLiterals": true
             }
         ],
-        "@typescript-eslint/explicit-function-return-type": "error"
+        "@typescript-eslint/explicit-function-return-type": "error",
+        "@typescript-eslint/lines-between-class-members": [
+            "error", "always",
+            {
+                "exceptAfterSingleLine": "true"
+            }
+        ]
     },
-    "ignorePatterns": ["*.js", "control-deps.ts"]
+    "ignorePatterns": [
+        "*.js",
+        "control-deps.ts"
+    ]
 }

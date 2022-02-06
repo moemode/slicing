@@ -21,7 +21,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var cytoscape = require("cytoscape");
 var fs_1 = require("fs");
-var parser_1 = require("./parser");
+var pruner_1 = require("./pruner");
 var datatypes_1 = require("./datatypes");
 var control_deps_1 = require("./control-deps");
 var path = __importStar(require("path"));
@@ -366,7 +366,7 @@ var SliceAnalysis = /** @class */ (function () {
             //this error is expected as it is thrown when the graphs directory esists already
         }
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
-        (0, parser_1.prune)(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.executedBreakNodes, this.slicingCriterion);
+        (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.graph, this.executedBreakNodes, this.slicingCriterion);
     };
     SliceAnalysis.prototype.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
         var callerLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));

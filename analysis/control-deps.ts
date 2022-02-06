@@ -6,7 +6,8 @@ import { NodePath } from "ast-types/lib/node-path";
 import * as esprima from "esprima";
 
 /**
- * This is not a full PDG computation.
+ * This is not a full PDG computation. Walks the AST of the program to find
+ * control dependencies.
  * @param prog program text
  * @returns control dependencies introduced by if-, for- and switch statements and
  * information about every test e.g. if condition.

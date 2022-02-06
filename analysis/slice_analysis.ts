@@ -1,21 +1,22 @@
 import cytoscape = require("cytoscape");
 import { Collection } from "cytoscape";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
-import { prune } from "./parser";
+import { graphBasedPrune } from "./pruner";
 import { Position, SourceLocation, JalangiLocation, CallStackEntry, ControlDependency, Test } from "./datatypes";
 import { controlDependencies, cDepForLoc } from "./control-deps";
 import * as path from "path";
 
 // Run the analysis with:
 // node src/js/commands/jalangi.js --inlineIID --inlineSource --analysis exampleAnalysis.js program.js
-declare var J$: any;
+declare let J$: any;
 
 class SliceAnalysis {
     writtenValues = [];
     graph = cytoscape();
-    nextNodeId: number = 1;
-    nextEdgeId: number = 1;
+    nextNodeId = 1;
+    nextEdgeId = 1;
     outFile = J$.initParams["outFile"];
+
     slicingCriterion: SourceLocation;
     bmarkerPath = J$.initParams["bmarkerPath"];
     bmarkers: SourceLocation[] = [];
@@ -26,6 +27,7 @@ class SliceAnalysis {
 
     //objects that have been read without being the base for a getField/putField
     readOnlyObjects = [];
+    
     currentExprNodes = [];
     lastWrites = {};
     lastDeclare = {};
@@ -44,7 +46,7 @@ class SliceAnalysis {
     controlDeps: ControlDependency[];
     tests: Test[];
 
-    initializeCriterion() {
+    initializeCriterion(): void {
         const start: Position = new Position(
             parseInt(J$.initParams["criterion-start-line"]),
             parseInt(J$.initParams["criterion-start-col"])
@@ -314,7 +316,7 @@ class SliceAnalysis {
     }
 
     endExpression(iid) {
-        let loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
         this.handleSwitch(loc);
         let graphLoc = loc;
@@ -326,7 +328,7 @@ class SliceAnalysis {
             line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             type: "end-expression"
         });
-        for (let objectId of this.readOnlyObjects) {
+        for (const objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
                 const readNode = this.currentObjectReads[objectId];
                 this.addEdge(readNode, putFieldNode);
@@ -366,7 +368,7 @@ class SliceAnalysis {
         return false;
     }
 
-    endExecution() {
+    endExecution(): void {
         const inFilePath = J$.smap[1].originalCodeFileName;
         try {
             mkdirSync(`../graphs`);
@@ -374,17 +376,16 @@ class SliceAnalysis {
             //this error is expected as it is thrown when the graphs directory esists already
         }
         writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
-        prune(
+        graphBasedPrune(
             inFilePath,
             this.outFile,
             this.graph,
-            this.executedIfTrueBreaks,
             this.executedBreakNodes,
             this.slicingCriterion
         );
     }
 
-    invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
+    invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid): void {
         const callerLoc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));
         let calleeLoc = J$.iidToLocation(functionSid, functionIid);
         if (calleeLoc !== "undefined") {

@@ -27,7 +27,8 @@
     "outFile": "./testcases/pm2/e2_predicted_out.js",
     "lineNb": 8,
     "goldFile": "./testcases/pm2/e2_out.js"
-}
+},
+{"inFile": "./testcases/mine/putField_in.js", "outFile": "./testcases/mine/putField_predicted_out.js", "lineNb":3, "goldFile": "./testcases/mine/putField_out.js"}
 ]
 
 

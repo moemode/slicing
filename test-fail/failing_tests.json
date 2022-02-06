@@ -1,4 +1,4 @@
 [
-    {"inFile": "./testcases/mine/putField_in.js", "outFile": "./testcases/mine/putField_predicted_out.js", "lineNb":3, "goldFile": "./testcases/mine/putField_out.js"}
+    {"inFile": "./testcases/mine/isolatedCriterion_in.js", "outFile": "./testcases/mine/isolatedCriterion_predicted_out.js", "lineNb":4, "goldFile": "./testcases/mine/isolatedCriterion_out.js"}
 
 ]

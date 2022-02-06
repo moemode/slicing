@@ -1,5 +1,7 @@
 export class Position {
+    
     constructor(public readonly line: number, public readonly column: number) { }
+
     public static posEq(pos1: Position, pos2: Position): boolean {
         return pos1.line === pos2.line && pos1.column == pos2.column;
     }
@@ -18,6 +20,7 @@ export class Position {
 }
 
 export class SourceLocation {
+    
     constructor(public readonly start: Position, public readonly end: Position, public readonly p?: string) { }
 
     static fromJSON(d: {start: Position, end:Position}): SourceLocation {
@@ -49,6 +52,7 @@ export class SourceLocation {
                                       new Position(-1, -1));
         }
     }
+
     public static locEq(loc1: SourceLocation, loc2: SourceLocation): boolean {
         return Position.posEq(loc1.start, loc2.start) && Position.posEq(loc1.end, loc2.end);
     }
@@ -74,7 +78,7 @@ export class JalangiLocation {
 }
 
 export class CallStackEntry {
-    constructor(public readonly callerLoc: Location, public readonly calleeLoc: Location) { }
+    constructor(public readonly callerLoc: SourceLocation, public readonly calleeLoc: SourceLocation) { }
 }
 
 export class ControlDependency {

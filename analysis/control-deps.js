@@ -26,7 +26,8 @@ var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 var esprima = __importStar(require("esprima"));
 /**
- * This is not a full PDG computation.
+ * This is not a full PDG computation. Walks the AST of the program to find
+ * control dependencies.
  * @param prog program text
  * @returns control dependencies introduced by if-, for- and switch statements and
  * information about every test e.g. if condition.
