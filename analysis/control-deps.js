@@ -25,6 +25,12 @@ var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 var esprima = __importStar(require("esprima"));
+/**
+ * This is not a full PDG computation.
+ * @param prog program text
+ * @returns control dependencies introduced by if-, for- and switch statements and
+ * information about every test e.g. if condition.
+ */
 function computeControlDependencies(prog) {
     var ast = (0, recast_1.parse)(prog, {
         parser: esprima
@@ -76,6 +82,13 @@ function computeControlDependencies(prog) {
     });
     return [controlDeps, tests];
 }
+/**
+ *
+ * @param loc a location that might be in a conditional block, e.g. in body of for
+ * @param deps all control depenendencies as computed by computeControlDependencies
+ * @returns data about innermost control dependency. Thus, if loc is within if which is within
+ * for, only information about if is returned. If there is no dependency, return value is undefined.
+ */
 function cDepForLoc(loc, deps) {
     var enclosingDeps = deps.filter(function (d) { return datatypes_1.SourceLocation.in_between_inclusive(d.branchLoc, loc); });
     if (enclosingDeps.length > 0) {
@@ -86,6 +99,12 @@ function cDepForLoc(loc, deps) {
     }
 }
 exports.cDepForLoc = cDepForLoc;
+/**
+ * Open program at progInPath an call computeControlDependencies on it.
+ * @param progInPath path of program
+ * @returns control dependencies introduced by if-, for- and switch statements and
+ * information about every test e.g. if condition.
+ */
 function controlDependencies(progInPath) {
     var prog = fs.readFileSync(progInPath).toString();
     var controlData = computeControlDependencies(prog);

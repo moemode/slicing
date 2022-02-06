@@ -5,7 +5,12 @@ import { visit, namedTypes as n } from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 import * as esprima from "esprima";
 
-
+/**
+ * This is not a full PDG computation.
+ * @param prog program text
+ * @returns control dependencies introduced by if-, for- and switch statements and
+ * information about every test e.g. if condition.
+ */
 function computeControlDependencies(prog: string): [ControlDependency[], Test[]] {
     const ast = parse(prog, {
         parser: esprima
@@ -72,6 +77,13 @@ function computeControlDependencies(prog: string): [ControlDependency[], Test[]]
     return [controlDeps, tests];
 }
 
+/**
+ * 
+ * @param loc a location that might be in a conditional block, e.g. in body of for
+ * @param deps all control depenendencies as computed by computeControlDependencies
+ * @returns data about innermost control dependency. Thus, if loc is within if which is within
+ * for, only information about if is returned. If there is no dependency, return value is undefined.
+ */
 function cDepForLoc(loc: SourceLocation, deps: ControlDependency[]): ControlDependency | undefined {
     const enclosingDeps = deps.filter((d) => SourceLocation.in_between_inclusive(d.branchLoc, loc));
     if (enclosingDeps.length > 0) {
@@ -82,6 +94,12 @@ function cDepForLoc(loc: SourceLocation, deps: ControlDependency[]): ControlDepe
     }
 }
 
+/**
+ * Open program at progInPath an call computeControlDependencies on it.
+ * @param progInPath path of program
+ * @returns control dependencies introduced by if-, for- and switch statements and
+ * information about every test e.g. if condition.
+ */
 function controlDependencies(progInPath: string): [ControlDependency[], Test[]] {
     const prog = fs.readFileSync(progInPath).toString();
     const controlData = computeControlDependencies(prog);
