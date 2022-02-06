@@ -1,6 +1,6 @@
 import cytoscape = require("cytoscape");
 import { Collection } from "cytoscape";
-import { Position, SourceLocation, JalangiLocation, CallStackEntry} from "./datatypes";
+import { Position, SourceLocation, JalangiLocation} from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
@@ -38,10 +38,7 @@ class SliceAnalysis {
     lastTest = {};
     currentObjectReads = [];
 
-    callStack = [];
 
-    currentCallerLoc: SourceLocation;
-    currentCalleeLoc: SourceLocation;
 
     controlDeps: ControlDependency[];
     tests: Test[];
@@ -247,9 +244,6 @@ class SliceAnalysis {
             data: data
         };
         node.data.id = `n${this.nextNodeId++}`;
-        if (this.currentCallerLoc) {
-            node.data.callerLoc = this.currentCallerLoc;
-        }
         this.graph.add(node);
         this.addTestDependency(node);
         return node;
@@ -383,26 +377,6 @@ class SliceAnalysis {
             this.executedBreakNodes,
             this.slicingCriterion
         );
-    }
-
-    invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid): void {
-        const callerLoc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));
-        let calleeLoc = J$.iidToLocation(functionSid, functionIid);
-        if (calleeLoc !== "undefined") {
-            calleeLoc = SourceLocation.fromJalangiLocation(J$.iidToLocation(functionSid, functionIid));
-        }
-        this.callStack.push(new CallStackEntry(callerLoc, calleeLoc));
-        this.currentCallerLoc = callerLoc;
-        this.currentCalleeLoc = calleeLoc;
-    }
-
-    invokeFun(iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
-        this.callStack.pop();
-        if (this.callStack.length > 0) {
-            const topCallStackEntry = this.callStack[this.callStack.length - 1];
-            this.currentCallerLoc = topCallStackEntry.callerLoc;
-            this.currentCalleeLoc = topCallStackEntry.calleeLoc;
-        }
     }
 }
 

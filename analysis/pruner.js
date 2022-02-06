@@ -15,6 +15,7 @@ var ast_types_1 = require("ast-types");
  */
 function prune(prog, relevantLocs, relevant_vars) {
     var ast = (0, recast_1.parse)(prog);
+    var sliceMeCall = ast.program.body[ast.program.body.length - 1];
     (0, ast_types_1.visit)(ast, {
         visitStatement: function (path) {
             var node = path.node;
@@ -70,8 +71,9 @@ function prune(prog, relevantLocs, relevant_vars) {
                 return false;
             }
             this.traverse(path);
-        }
+        },
     });
+    ast.program.body.push(sliceMeCall);
     return (0, recast_1.print)(ast);
 }
 /**
@@ -97,8 +99,6 @@ function sliceNodes(graph, executedBreakNodes, slicingCriterion) {
  */
 function sliceLocs(nodes, slicingCriterion) {
     var locs = Array.from(new Set(nodes.map(function (node) { return node.data("loc"); })));
-    var callerLocs = Array.from(new Set(nodes.map(function (node) { return node.data("callerLoc"); }).filter(function (x) { return x; })));
-    locs.push.apply(locs, callerLocs);
     locs.push(slicingCriterion);
     return locs;
 }

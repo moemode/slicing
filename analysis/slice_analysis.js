@@ -47,7 +47,6 @@ var SliceAnalysis = /** @class */ (function () {
         //lastTest[location] = testNode
         this.lastTest = {};
         this.currentObjectReads = [];
-        this.callStack = [];
     }
     SliceAnalysis.prototype.initializeCriterion = function () {
         var start = new datatypes_1.Position(parseInt(J$.initParams["criterion-start-line"]), parseInt(J$.initParams["criterion-start-col"]));
@@ -239,9 +238,6 @@ var SliceAnalysis = /** @class */ (function () {
             data: data
         };
         node.data.id = "n".concat(this.nextNodeId++);
-        if (this.currentCallerLoc) {
-            node.data.callerLoc = this.currentCallerLoc;
-        }
         this.graph.add(node);
         this.addTestDependency(node);
         return node;
@@ -367,24 +363,6 @@ var SliceAnalysis = /** @class */ (function () {
         }
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
         (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.graph, this.executedBreakNodes, this.slicingCriterion);
-    };
-    SliceAnalysis.prototype.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
-        var callerLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));
-        var calleeLoc = J$.iidToLocation(functionSid, functionIid);
-        if (calleeLoc !== "undefined") {
-            calleeLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(functionSid, functionIid));
-        }
-        this.callStack.push(new datatypes_1.CallStackEntry(callerLoc, calleeLoc));
-        this.currentCallerLoc = callerLoc;
-        this.currentCalleeLoc = calleeLoc;
-    };
-    SliceAnalysis.prototype.invokeFun = function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
-        this.callStack.pop();
-        if (this.callStack.length > 0) {
-            var topCallStackEntry = this.callStack[this.callStack.length - 1];
-            this.currentCallerLoc = topCallStackEntry.callerLoc;
-            this.currentCalleeLoc = topCallStackEntry.calleeLoc;
-        }
     };
     return SliceAnalysis;
 }());

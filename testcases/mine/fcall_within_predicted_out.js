@@ -3,5 +3,3 @@ function sliceMe() {
     var c = {value: 2};
     c.r = callMe(b);
 }
-
-sliceMe();

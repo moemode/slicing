@@ -86,8 +86,5 @@ export class JalangiLocation {
     }
 }
 
-export class CallStackEntry {
-    constructor(public readonly callerLoc: SourceLocation, public readonly calleeLoc: SourceLocation) { }
-}
 
 

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CallStackEntry = exports.JalangiLocation = exports.SourceLocation = exports.Position = void 0;
+exports.JalangiLocation = exports.SourceLocation = exports.Position = void 0;
 /**
  * Data class  storing positions in a program consisting of line and column number.
  * Contains some static helper methods for comparing Position objects.
@@ -81,12 +81,4 @@ var JalangiLocation = /** @class */ (function () {
     return JalangiLocation;
 }());
 exports.JalangiLocation = JalangiLocation;
-var CallStackEntry = /** @class */ (function () {
-    function CallStackEntry(callerLoc, calleeLoc) {
-        this.callerLoc = callerLoc;
-        this.calleeLoc = calleeLoc;
-    }
-    return CallStackEntry;
-}());
-exports.CallStackEntry = CallStackEntry;
 //# sourceMappingURL=datatypes.js.map

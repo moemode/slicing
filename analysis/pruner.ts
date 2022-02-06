@@ -16,6 +16,7 @@ import { PrintResultType } from "recast/lib/printer";
  */
 function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: string | unknown[]): PrintResultType {
     const ast = parse(prog);
+    const sliceMeCall = ast.program.body[ast.program.body.length - 1];
     visit(ast, {
         visitStatement(path: NodePath<n.Statement>) {
             const node = path.node;
@@ -73,8 +74,10 @@ function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: stri
                 return false;
             }
             this.traverse(path);
-        }
+        },
+
     });
+    ast.program.body.push(sliceMeCall);
     return print(ast);
 }
 
@@ -102,8 +105,6 @@ function sliceNodes(graph: Core, executedBreakNodes: Collection, slicingCriterio
  */
 function sliceLocs(nodes: Collection, slicingCriterion: SourceLocation): SourceLocation[] {
     const locs: SourceLocation[] = Array.from(new Set(nodes.map((node) => node.data("loc"))));
-    const callerLocs = Array.from(new Set(nodes.map((node) => node.data("callerLoc")).filter((x) => x)));
-    locs.push(...callerLocs);
     locs.push(slicingCriterion);
     return locs;
 }
