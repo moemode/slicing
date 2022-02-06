@@ -4,21 +4,21 @@ import { visit, builders as b, namedTypes as n } from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 import { SourceMapConsumer } from "source-map";
 import { Position, SourceLocation } from "./datatypes";
+import { PrintResultType } from "recast/lib/printer";
 
 interface Program {
-    code: string,
-    path: string
+    code: string;
+    path: string;
 }
 
-function insertBreakMarkers(program: Program) {
+function insertBreakMarkers(program: Program): PrintResultType{
     const ast = parse(program.code, {
-        "sourceFileName": program.path
+        sourceFileName: program.path
     });
     visit(ast, {
         visitBreakStatement(path: NodePath<n.BreakStatement>) {
             const ifTrueBreak = b.ifStatement(b.literal(true), b.breakStatement());
             path.replace(ifTrueBreak);
-            //path.insertBefore(b.expressionStatement(b.literal(BREAK_MARKER_NUMBER)));
             return false;
         }
     });
@@ -27,9 +27,9 @@ function insertBreakMarkers(program: Program) {
 
 function locateBreakMarkers(program: Program): SourceLocation[] {
     const ast = parse(program.code, {
-        "sourceFileName": program.path
+        sourceFileName: program.path
     });
-    let breakMarkerLocations: SourceLocation[] = [];
+    const breakMarkerLocations: SourceLocation[] = [];
     visit(ast, {
         visitIfStatement(path: NodePath<n.IfStatement>) {
             const node = path.node;
@@ -52,20 +52,20 @@ function preprocessFile(progInPath: string, progOutPath: string, lineNb: string)
     console.log(locs);
     const lineNbGenPos = map.allGeneratedPositionsFor({ source: progInPath, line: lineNb });
     if (lineNbGenPos.length > 0) {
-        const [first, last] = [lineNbGenPos[0], lineNbGenPos[lineNbGenPos.length - 1]]
+        const [first, last] = [lineNbGenPos[0], lineNbGenPos[lineNbGenPos.length - 1]];
         last.column += 1;
         return [new SourceLocation(first, last), locs];
-
     }
-    return [new SourceLocation(new Position(parseInt(lineNb), 0), 
-            new Position(parseInt(lineNb), Number.POSITIVE_INFINITY)), 
-            locs];
+    return [
+        new SourceLocation(new Position(parseInt(lineNb), 0), new Position(parseInt(lineNb), Number.POSITIVE_INFINITY)),
+        locs
+    ];
 }
 
 //preprocessFile("/home/v/slicing/testcases/progress_meeting_3/e3_in.js", "./egal.js", 17);
 
 export {
     insertBreakMarkers,
-    preprocessFile,
+    preprocessFile
     //findBreakMarkers
 };

@@ -69,7 +69,11 @@ var SliceAnalysis = /** @class */ (function () {
         var rhs_line = datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
         var declareNode = this.addNode({
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            line: rhs_line, name: name, varname: name, val: String(val), type: "declare"
+            line: rhs_line,
+            name: name,
+            varname: name,
+            val: String(val),
+            type: "declare"
         });
         this.lastDeclare[name] = declareNode;
         if (typeof val === "object" && val.__id__ === undefined) {
@@ -95,12 +99,18 @@ var SliceAnalysis = /** @class */ (function () {
         var _this = this;
         var lhsLocation = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         var writeNode = this.addNode({
-            loc: lhsLocation, name: name, varname: name, val: val, type: "write",
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: lhsLocation,
+            name: name,
+            varname: name,
+            val: val,
+            type: "write",
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
         });
         this.currentExprNodes.push(writeNode);
         this.lastWrites[name] = writeNode;
-        var readsForWrite = this.currentExprNodes.filter(function (node) { return datatypes_1.SourceLocation.in_between_inclusive(lhsLocation, node.data.loc); });
+        var readsForWrite = this.currentExprNodes.filter(function (node) {
+            return datatypes_1.SourceLocation.in_between_inclusive(lhsLocation, node.data.loc);
+        });
         readsForWrite.forEach(function (node) { return _this.addEdge(writeNode, node); });
         var declareNode = this.lastDeclare[name];
         if (declareNode) {
@@ -119,9 +129,11 @@ var SliceAnalysis = /** @class */ (function () {
         //assert val is lastWrites val
         var readNode = this.addNode({
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: name, varname: name,
-            val: String(val), type: "read",
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            name: name,
+            varname: name,
+            val: String(val),
+            type: "read",
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
         });
         if (typeof val === "object") {
             this.addObjectRead(val, readNode);
@@ -145,7 +157,7 @@ var SliceAnalysis = /** @class */ (function () {
     };
     SliceAnalysis.prototype.addTestDependency = function (node) {
         //found whether the current location has a control dependency
-        var branchDependency = (0, control_deps_1.findControlDep)(node.data.loc, this.controlDeps);
+        var branchDependency = (0, control_deps_1.cDepForLoc)(node.data.loc, this.controlDeps);
         if (branchDependency) {
             //Todo: not going to work because of hash bs
             var testNode = this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
@@ -158,14 +170,18 @@ var SliceAnalysis = /** @class */ (function () {
         var retrievalNode = this.currentObjectReads[base.__id__];
         var putFieldNode = this.addNode({
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: "putfield ".concat(offset, ":").concat(val), val: val, type: "putField",
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            name: "putfield ".concat(offset, ":").concat(val),
+            val: val,
+            type: "putField",
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
         });
         //no retrieval node if called via literal
         if (retrievalNode) {
             this.addEdge(putFieldNode, retrievalNode);
         }
-        var readsForPut = this.currentExprNodes.filter(function (node) { return datatypes_1.SourceLocation.in_between_inclusive(putFieldNode.data.loc, node.data.loc); });
+        var readsForPut = this.currentExprNodes.filter(function (node) {
+            return datatypes_1.SourceLocation.in_between_inclusive(putFieldNode.data.loc, node.data.loc);
+        });
         readsForPut.forEach(function (node) { return _this.addEdge(putFieldNode, node); });
         this.currentExprNodes.push(putFieldNode);
         // initialize if first put
@@ -180,8 +196,10 @@ var SliceAnalysis = /** @class */ (function () {
         var retrievalNode = this.currentObjectReads[base.__id__];
         var getFieldNode = this.addNode({
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: "getfield ".concat(offset, ":").concat(val), val: val, type: "getField",
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            name: "getfield ".concat(offset, ":").concat(val),
+            val: val,
+            type: "getField",
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
         });
         this.currentExprNodes.push(getFieldNode);
         //no retrievalNode if val is of primitive type not an object
@@ -217,7 +235,7 @@ var SliceAnalysis = /** @class */ (function () {
     };
     SliceAnalysis.prototype.addNode = function (data) {
         var node = {
-            group: 'nodes',
+            group: "nodes",
             data: data
         };
         node.data.id = "n".concat(this.nextNodeId++);
@@ -230,25 +248,25 @@ var SliceAnalysis = /** @class */ (function () {
     };
     SliceAnalysis.prototype.addEdge = function (source, target) {
         this.graph.add({
-            group: 'edges',
+            group: "edges",
             data: {
                 id: "e".concat(this.nextEdgeId++),
                 source: source.data.id,
-                target: target.data.id,
-            },
+                target: target.data.id
+            }
         });
     };
     SliceAnalysis.prototype.addTestNode = function (test, result) {
         var testNode = {
-            group: 'nodes',
+            group: "nodes",
             data: {
                 id: "n".concat(this.nextNodeId++),
                 loc: test.loc,
                 val: result,
                 line: test.loc.start.line,
                 type: "".concat(test.type, "-test"),
-                name: "".concat(test.type, "-test"),
-            },
+                name: "".concat(test.type, "-test")
+            }
         };
         this.graph.add(testNode);
         this.addTestDependency(testNode);
@@ -256,13 +274,13 @@ var SliceAnalysis = /** @class */ (function () {
     };
     SliceAnalysis.prototype.addBreakNode = function (loc) {
         var breakNode = {
-            group: 'nodes',
+            group: "nodes",
             data: {
                 id: "n".concat(this.nextNodeId++),
                 loc: loc,
                 line: loc.start.line,
-                name: "break",
-            },
+                name: "break"
+            }
         };
         var bNode = this.graph.add(breakNode);
         this.addTestDependency(breakNode);
@@ -282,7 +300,7 @@ var SliceAnalysis = /** @class */ (function () {
                 //currentExprNodes were created for the for/if test
                 this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode_1;
                 //TODO: Only include read nodes?
-                this.currentExprNodes.forEach(function (node) { return (_this.addEdge(testNode_1, node)); });
+                this.currentExprNodes.forEach(function (node) { return _this.addEdge(testNode_1, node); });
             }
         }
     };
@@ -295,7 +313,8 @@ var SliceAnalysis = /** @class */ (function () {
             graphLoc = datatypes_1.SourceLocation.boundingLocation(this.currentExprNodes.map(function (n) { return n.data.loc; }));
         }
         this.addNode({
-            loc: graphLoc, line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            loc: graphLoc,
+            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
             type: "end-expression"
         });
         for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {
@@ -321,13 +340,15 @@ var SliceAnalysis = /** @class */ (function () {
             //currentExprNodes were created for the for/if test
             this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode_2;
             //TODO: Only include read nodes?
-            this.currentExprNodes.forEach(function (node) { return (_this.addEdge(testNode_2, node)); });
+            this.currentExprNodes.forEach(function (node) { return _this.addEdge(testNode_2, node); });
             return true;
         }
         return false;
     };
     SliceAnalysis.prototype.handleBreak = function (wrappingIfPredicateLocation) {
-        var loc = this.bmarkers.filter(function (bLoc) { return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation); })[0];
+        var loc = this.bmarkers.filter(function (bLoc) {
+            return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation);
+        })[0];
         if (loc) {
             this.executedIfTrueBreaks.push(loc);
             var breakNode = this.addBreakNode(loc);
@@ -344,7 +365,6 @@ var SliceAnalysis = /** @class */ (function () {
         catch (e) {
             //this error is expected as it is thrown when the graphs directory esists already
         }
-        ;
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
         (0, parser_1.prune)(inFilePath, this.outFile, this.graph, this.executedIfTrueBreaks, this.executedBreakNodes, this.slicingCriterion);
     };
@@ -358,7 +378,6 @@ var SliceAnalysis = /** @class */ (function () {
         this.currentCallerLoc = callerLoc;
         this.currentCalleeLoc = calleeLoc;
     };
-    ;
     SliceAnalysis.prototype.invokeFun = function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
         this.callStack.pop();
         if (this.callStack.length > 0) {
@@ -367,7 +386,6 @@ var SliceAnalysis = /** @class */ (function () {
             this.currentCalleeLoc = topCallStackEntry.calleeLoc;
         }
     };
-    ;
     return SliceAnalysis;
 }());
 J$.analysis = new SliceAnalysis();

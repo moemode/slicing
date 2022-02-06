@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Test = exports.BranchDependency = exports.CallStackEntry = exports.JalangiLocation = exports.SourceLocation = exports.Position = void 0;
+exports.Test = exports.ControlDependency = exports.CallStackEntry = exports.JalangiLocation = exports.SourceLocation = exports.Position = void 0;
 var Position = /** @class */ (function () {
     function Position(line, column) {
         this.line = line;
@@ -10,7 +10,7 @@ var Position = /** @class */ (function () {
         return pos1.line === pos2.line && pos1.column == pos2.column;
     };
     Position.posIsSmallerEq = function (pos1, pos2) {
-        return (pos1.line < pos2.line) || (pos1.line == pos2.line && pos1.column <= pos2.column);
+        return pos1.line < pos2.line || (pos1.line == pos2.line && pos1.column <= pos2.column);
     };
     Position.toString = function (position) {
         return "line:".concat(position.line, ";column:").concat(position.column);
@@ -34,25 +34,27 @@ var SourceLocation = /** @class */ (function () {
         return location.start.line == location.end.line && location.end.line == line;
     };
     SourceLocation.boundingLocation = function (locations) {
-        var start = locations.map(function (l) { return l.start; }).reduce(function (a, b) { return Position.posIsSmallerEq(a, b) ? a : b; });
-        var end = locations.map(function (l) { return l.end; }).reduce(function (a, b) { return Position.posIsSmallerEq(a, b) ? b : a; });
+        var start = locations.map(function (l) { return l.start; }).reduce(function (a, b) { return (Position.posIsSmallerEq(a, b) ? a : b); });
+        var end = locations.map(function (l) { return l.end; }).reduce(function (a, b) { return (Position.posIsSmallerEq(a, b) ? b : a); });
         return new SourceLocation(start, end);
     };
     SourceLocation.fromJalangiLocation = function (jalangiLocation) {
         var r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/;
         var m = jalangiLocation.match(r);
-        if (m.length == 6) {
+        if (m && m.length == 6) {
             return new SourceLocation(new Position(parseInt(m[2]), parseInt(m[3]) - 1), new Position(parseInt(m[4]), parseInt(m[5]) - 1), m[1]);
         }
         else {
             console.log("error in location conversion");
+            return new SourceLocation(new Position(-1, -1), new Position(-1, -1));
         }
     };
     SourceLocation.locEq = function (loc1, loc2) {
         return Position.posEq(loc1.start, loc2.start) && Position.posEq(loc1.end, loc2.end);
     };
     SourceLocation.overlap = function (loc1, loc2) {
-        return Position.in_between(loc1.start, loc2.start, loc1.end) || Position.in_between(loc2.start, loc1.start, loc2.end);
+        return (Position.in_between(loc1.start, loc2.start, loc1.end) ||
+            Position.in_between(loc2.start, loc1.start, loc2.end));
     };
     SourceLocation.in_between_inclusive = function (outer, inner) {
         var includesStart = Position.posIsSmallerEq(outer.start, inner.start);
@@ -66,8 +68,7 @@ var JalangiLocation = /** @class */ (function () {
     function JalangiLocation() {
     }
     JalangiLocation.getLine = function (jalangiLocation) {
-        var sourceLocation = SourceLocation.fromJalangiLocation(jalangiLocation);
-        return sourceLocation.start.line;
+        return SourceLocation.fromJalangiLocation(jalangiLocation).start.line;
     };
     return JalangiLocation;
 }());
@@ -80,15 +81,15 @@ var CallStackEntry = /** @class */ (function () {
     return CallStackEntry;
 }());
 exports.CallStackEntry = CallStackEntry;
-var BranchDependency = /** @class */ (function () {
-    function BranchDependency(testLoc, branchLoc, type) {
+var ControlDependency = /** @class */ (function () {
+    function ControlDependency(testLoc, branchLoc, type) {
         this.testLoc = testLoc;
         this.branchLoc = branchLoc;
         this.type = type;
     }
-    return BranchDependency;
+    return ControlDependency;
 }());
-exports.BranchDependency = BranchDependency;
+exports.ControlDependency = ControlDependency;
 var Test = /** @class */ (function () {
     function Test(loc, type) {
         this.loc = loc;

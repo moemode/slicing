@@ -19,15 +19,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findControlDep = exports.controlDependencies = exports.computeControlDeps = void 0;
+exports.cDepForLoc = exports.controlDependencies = void 0;
 var fs = __importStar(require("fs"));
 var datatypes_1 = require("./datatypes");
 var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 var esprima = __importStar(require("esprima"));
-function computeControlDeps(prog) {
+function computeControlDependencies(prog) {
     var ast = (0, recast_1.parse)(prog, {
-        parser: esprima,
+        parser: esprima
     });
     var fbody_ast = ast.program.body[0];
     var controlDeps = [];
@@ -36,9 +36,9 @@ function computeControlDeps(prog) {
         visitIfStatement: function (path) {
             var node = path.node;
             tests.push(new datatypes_1.Test(node.test.loc, "if"));
-            controlDeps.push(new datatypes_1.BranchDependency(node.test.loc, node.consequent.loc, "ifthen"));
+            controlDeps.push(new datatypes_1.ControlDependency(node.test.loc, node.consequent.loc, "ifthen"));
             if (node.alternate) {
-                controlDeps.push(new datatypes_1.BranchDependency(node.test.loc, node.alternate.loc, "ifelse"));
+                controlDeps.push(new datatypes_1.ControlDependency(node.test.loc, node.alternate.loc, "ifelse"));
             }
             this.traverse(path);
         },
@@ -46,8 +46,8 @@ function computeControlDeps(prog) {
             var node = path.node;
             //const forHeadLoc = computeForHeadLocation([node.init, node.test, node.update], node.loc);
             tests.push(new datatypes_1.Test(node.test.loc, "for"));
-            controlDeps.push(new datatypes_1.BranchDependency(node.test.loc, node.body.loc, "for"));
-            controlDeps.push(new datatypes_1.BranchDependency(node.test.loc, node.update.loc, "for"));
+            controlDeps.push(new datatypes_1.ControlDependency(node.test.loc, node.body.loc, "for"));
+            controlDeps.push(new datatypes_1.ControlDependency(node.test.loc, node.update.loc, "for"));
             this.traverse(path);
         },
         visitSwitchStatement: function (path) {
@@ -56,7 +56,7 @@ function computeControlDeps(prog) {
             if (caseCount > 0) {
                 tests.push(new datatypes_1.Test(node.discriminant.loc, "switch-disc"));
                 // track dependency of everything in switch to the discriminant
-                controlDeps.push(new datatypes_1.BranchDependency(node.discriminant.loc, new datatypes_1.SourceLocation(node.cases[0].loc.start, node.cases[caseCount - 1].loc.end), "switch-disc"));
+                controlDeps.push(new datatypes_1.ControlDependency(node.discriminant.loc, new datatypes_1.SourceLocation(node.cases[0].loc.start, node.cases[caseCount - 1].loc.end), "switch-disc"));
                 // track dependency of everything in a case body on that case
                 for (var _i = 0, _a = node.cases; _i < _a.length; _i++) {
                     var scase = _a[_i];
@@ -64,7 +64,7 @@ function computeControlDeps(prog) {
                     var consequentLenght = scase.consequent.length;
                     if (consequentLenght > 0 && scase.test !== null) {
                         tests.push(new datatypes_1.Test(scase.test.loc, "switch-test"));
-                        controlDeps.push(new datatypes_1.BranchDependency(scase.test.loc, new datatypes_1.SourceLocation(scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end), "switch-test"));
+                        controlDeps.push(new datatypes_1.ControlDependency(scase.test.loc, new datatypes_1.SourceLocation(scase.consequent[0].loc.start, scase.consequent[consequentLenght - 1].loc.end), "switch-test"));
                     }
                 }
             }
@@ -76,19 +76,19 @@ function computeControlDeps(prog) {
     });
     return [controlDeps, tests];
 }
-exports.computeControlDeps = computeControlDeps;
-function findControlDep(loc, controlDeps) {
-    var locDeps = controlDeps.filter(function (cD) { return datatypes_1.SourceLocation.in_between_inclusive(cD.branchLoc, loc); });
-    //find smallest branchLoc
-    if (locDeps.length > 0) {
-        var locCD = locDeps.reduce(function (prev, curr) { return datatypes_1.Position.posIsSmallerEq(prev.branchLoc.start, curr.branchLoc.start) ? curr : prev; });
-        return locCD;
+function cDepForLoc(loc, deps) {
+    var enclosingDeps = deps.filter(function (d) { return datatypes_1.SourceLocation.in_between_inclusive(d.branchLoc, loc); });
+    if (enclosingDeps.length > 0) {
+        var innermost = enclosingDeps.reduce(function (prev, curr) {
+            return datatypes_1.Position.posIsSmallerEq(prev.branchLoc.start, curr.branchLoc.start) ? curr : prev;
+        });
+        return innermost;
     }
 }
-exports.findControlDep = findControlDep;
+exports.cDepForLoc = cDepForLoc;
 function controlDependencies(progInPath) {
     var prog = fs.readFileSync(progInPath).toString();
-    var controlData = computeControlDeps(prog);
+    var controlData = computeControlDependencies(prog);
     return controlData;
 }
 exports.controlDependencies = controlDependencies;

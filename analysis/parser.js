@@ -37,8 +37,7 @@ function pruneProgram(prog, relevantLocs, relevant_vars) {
             if (SourceLocation.within_line(node.loc, lineNb)) {
                 return false;
             }*/
-            if (false) { }
-            else if (path.name === "consequent") {
+            if (path.name === "consequent") {
                 if (!relevantLocs.some(function (rloc) { return datatypes_1.SourceLocation.in_between_inclusive(node.loc, rloc); })) {
                     path.replace(ast_types_1.builders.blockStatement([]));
                     return false;
@@ -59,12 +58,14 @@ function pruneProgram(prog, relevantLocs, relevant_vars) {
                 return false;
             }
             this.traverse(path);
-        },
+        }
     });
     return (0, recast_1.print)(ast);
 }
 function prune(progInPath, progOutPath, graph, execBreakLocs, executedBreakNodes, slicingCriterion) {
-    var nodesAtCriterion = graph.nodes().filter(function (e, i) { return datatypes_1.SourceLocation.in_between_inclusive(slicingCriterion, e.data("loc")); });
+    var nodesAtCriterion = graph
+        .nodes()
+        .filter(function (node) { return datatypes_1.SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")); });
     var startNodes = nodesAtCriterion.union(executedBreakNodes);
     var nodes = startNodes.union(startNodes.successors("node"));
     var locs = Array.from(new Set(nodes.map(function (node) { return node.data("loc"); })));

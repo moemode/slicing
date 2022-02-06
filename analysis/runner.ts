@@ -1,14 +1,14 @@
 const { execSync } = require("child_process");
 
-import {writeFileSync} from "fs";
+import { writeFileSync } from "fs";
 import * as path from "path";
 import { preprocessFile } from "./preprocess";
 
-const srcPath = path.resolve(__dirname, '..');
+const srcPath = path.resolve(__dirname, "..");
 const jalangiPath = srcPath + "/jalangi2/src/js/commands/jalangi.js";
 const analysisPath = srcPath + "/analysis/slice_analysis.js";
 
-export function slice(inFile: string, outFile:string, lineNb: string): void {
+export function slice(inFile: string, outFile: string, lineNb: string): void {
     inFile = path.resolve(inFile);
     outFile = path.resolve(outFile);
     const preprocFileName = "preproc_" + path.basename(inFile);
@@ -23,7 +23,15 @@ export function slice(inFile: string, outFile:string, lineNb: string): void {
     analysisParams += " --initParam criterion-end-line:" + slicingCriterion.end.line;
     analysisParams += " --initParam criterion-end-col:" + slicingCriterion.end.column;
     analysisParams += " --initParam bmarkerPath:" + bmarkerPath;
-    const stmt = 'node ' + jalangiPath + " " + analysisParams + ' --inlineIID --inlineSource --analysis ' + analysisPath + " " + preprocPath;
+    const stmt =
+        "node " +
+        jalangiPath +
+        " " +
+        analysisParams +
+        " --inlineIID --inlineSource --analysis " +
+        analysisPath +
+        " " +
+        preprocPath;
     console.log("Launch Jalangi: " + stmt);
     const child = execSync(stmt);
 }

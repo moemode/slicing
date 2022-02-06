@@ -6,7 +6,8 @@
   "scripts": {
     "test": "mocha --exit",
     "test-fail": "mocha test-fail/**/*.js",
-    "lint": "eslint -c .eslintrc.js --ext .ts ."
+    "lint": "eslint -c .eslintrc.js --ext .ts .",
+    "prettier-format": "npx prettier --config .prettierrc 'analysis/**/*.ts' --write"
   },
   "author": "Moritz Pfeffer",
   "license": "ISC",
@@ -35,6 +36,7 @@
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.25.4",
     "mocha": "9.1.3",
+    "prettier": "^2.5.1",
     "typescript": "^4.5.5"
   }
 }

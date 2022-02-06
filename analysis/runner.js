@@ -24,7 +24,7 @@ var execSync = require("child_process").execSync;
 var fs_1 = require("fs");
 var path = __importStar(require("path"));
 var preprocess_1 = require("./preprocess");
-var srcPath = path.resolve(__dirname, '..');
+var srcPath = path.resolve(__dirname, "..");
 var jalangiPath = srcPath + "/jalangi2/src/js/commands/jalangi.js";
 var analysisPath = srcPath + "/analysis/slice_analysis.js";
 function slice(inFile, outFile, lineNb) {
@@ -42,7 +42,14 @@ function slice(inFile, outFile, lineNb) {
     analysisParams += " --initParam criterion-end-line:" + slicingCriterion.end.line;
     analysisParams += " --initParam criterion-end-col:" + slicingCriterion.end.column;
     analysisParams += " --initParam bmarkerPath:" + bmarkerPath;
-    var stmt = 'node ' + jalangiPath + " " + analysisParams + ' --inlineIID --inlineSource --analysis ' + analysisPath + " " + preprocPath;
+    var stmt = "node " +
+        jalangiPath +
+        " " +
+        analysisParams +
+        " --inlineIID --inlineSource --analysis " +
+        analysisPath +
+        " " +
+        preprocPath;
     console.log("Launch Jalangi: " + stmt);
     var child = execSync(stmt);
 }

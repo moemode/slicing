@@ -27,13 +27,12 @@ var source_map_1 = require("source-map");
 var datatypes_1 = require("./datatypes");
 function insertBreakMarkers(program) {
     var ast = (0, recast_1.parse)(program.code, {
-        "sourceFileName": program.path
+        sourceFileName: program.path
     });
     (0, ast_types_1.visit)(ast, {
         visitBreakStatement: function (path) {
             var ifTrueBreak = ast_types_1.builders.ifStatement(ast_types_1.builders.literal(true), ast_types_1.builders.breakStatement());
             path.replace(ifTrueBreak);
-            //path.insertBefore(b.expressionStatement(b.literal(BREAK_MARKER_NUMBER)));
             return false;
         }
     });
@@ -42,7 +41,7 @@ function insertBreakMarkers(program) {
 exports.insertBreakMarkers = insertBreakMarkers;
 function locateBreakMarkers(program) {
     var ast = (0, recast_1.parse)(program.code, {
-        "sourceFileName": program.path
+        sourceFileName: program.path
     });
     var breakMarkerLocations = [];
     (0, ast_types_1.visit)(ast, {
@@ -70,8 +69,10 @@ function preprocessFile(progInPath, progOutPath, lineNb) {
         last.column += 1;
         return [new datatypes_1.SourceLocation(first, last), locs];
     }
-    return [new datatypes_1.SourceLocation(new datatypes_1.Position(parseInt(lineNb), 0), new datatypes_1.Position(parseInt(lineNb), Number.POSITIVE_INFINITY)),
-        locs];
+    return [
+        new datatypes_1.SourceLocation(new datatypes_1.Position(parseInt(lineNb), 0), new datatypes_1.Position(parseInt(lineNb), Number.POSITIVE_INFINITY)),
+        locs
+    ];
 }
 exports.preprocessFile = preprocessFile;
 //# sourceMappingURL=preprocess.js.map
