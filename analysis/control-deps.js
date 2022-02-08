@@ -43,7 +43,7 @@ var Test = /** @class */ (function () {
 }());
 exports.Test = Test;
 /**
- * This is not a full PDG computation. Walks the AST of the program to find
+ * This is not a full PDG computation. Walks the AST of the program to find some
  * control dependencies.
  * @param prog program text
  * @returns control dependencies introduced by if-, for- and switch statements and
@@ -103,9 +103,9 @@ function computeControlDependencies(prog) {
 /**
  *
  * @param loc a location that might be in a conditional block, e.g. in body of for
- * @param deps all control depenendencies as computed by computeControlDependencies
- * @returns data about innermost control dependency. Thus, if loc is within if which is within
- * for, only information about if is returned. If there is no dependency, return value is undefined.
+ * @param deps all control dependencies as computed by computeControlDependencies
+ * @returns data about innermost control dependency. Thus, if loc is within an if which is within
+ * for, only information about if is returned. If there is no dependency, the return value is undefined.
  */
 function cDepForLoc(loc, deps) {
     var enclosingDeps = deps.filter(function (d) { return datatypes_1.SourceLocation.in_between_inclusive(d.branchLoc, loc); });

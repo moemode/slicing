@@ -4,5 +4,23 @@
         "outFile": "./testcases/mine/fcall_within_predicted_out.js",
         "lineNb": 4,
         "goldFile": "./testcases/mine/fcall_within_out.js"
+    },
+    {
+        "inFile": "./testcases/mine/break_fail2_in.js",
+        "outFile": "./testcases/mine/break_fail2_predicted_out.js",
+        "lineNb": 6,
+        "goldFile": "./testcases/mine/break_fail2_out.js"
+    },
+    {
+        "inFile": "./testcases/mine/sliceOnSwitch_in.js",
+        "outFile": "./testcases/mine/sliceOnSwitch_predicted_out.js",
+        "lineNb": 5,
+        "goldFile": "./testcases/mine/sliceOnSwitch_out.js"
+    },
+    {
+        "inFile": "./testcases/mine/fields2_in.js",
+        "outFile": "./testcases/mine/fields2_predicted_out.js",
+        "lineNb": 5,
+        "goldFile": "./testcases/mine/fields2_out.js"
     }
 ]

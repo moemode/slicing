@@ -18,8 +18,9 @@ class Test {
 }
 
 /**
- * This is not a full PDG computation. Walks the AST of the program to find
- * control dependencies.
+ * Walks the AST of the program to find control dependencies introduced by tests of
+ * for, if and switch statements. This misses control dependencies on
+ * break statements.
  * @param prog program text
  * @returns control dependencies introduced by if-, for- and switch statements and
  * information about every test e.g. if condition.
@@ -93,9 +94,9 @@ function computeControlDependencies(prog: string): [ControlDependency[], Test[]]
 /**
  *
  * @param loc a location that might be in a conditional block, e.g. in body of for
- * @param deps all control depenendencies as computed by computeControlDependencies
- * @returns data about innermost control dependency. Thus, if loc is within if which is within
- * for, only information about if is returned. If there is no dependency, return value is undefined.
+ * @param deps all control dependencies as computed by computeControlDependencies
+ * @returns data about innermost control dependency. Thus, if loc is within an if which is within
+ * for, only information about if is returned. If there is no dependency, the return value is undefined.
  */
 function cDepForLoc(loc: SourceLocation, deps: ControlDependency[]): ControlDependency | undefined {
     const enclosingDeps = deps.filter((d) => SourceLocation.in_between_inclusive(d.branchLoc, loc));
