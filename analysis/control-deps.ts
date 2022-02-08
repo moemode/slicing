@@ -5,17 +5,16 @@ import { visit, namedTypes as n } from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 import * as esprima from "esprima";
 
-
 class ControlDependency {
     constructor(
         public readonly testLoc: SourceLocation,
         public readonly branchLoc: SourceLocation,
         public readonly type: string
-    ) { }
+    ) {}
 }
 
 class Test {
-    constructor(public readonly loc: SourceLocation, public readonly type: string) { }
+    constructor(public readonly loc: SourceLocation, public readonly type: string) {}
 }
 
 /**
@@ -92,7 +91,7 @@ function computeControlDependencies(prog: string): [ControlDependency[], Test[]]
 }
 
 /**
- * 
+ *
  * @param loc a location that might be in a conditional block, e.g. in body of for
  * @param deps all control depenendencies as computed by computeControlDependencies
  * @returns data about innermost control dependency. Thus, if loc is within if which is within
@@ -120,4 +119,4 @@ function controlDependencies(progInPath: string): [ControlDependency[], Test[]] 
     return controlData;
 }
 
-export {ControlDependency, Test ,controlDependencies, cDepForLoc };
+export { ControlDependency, Test, controlDependencies, cDepForLoc };

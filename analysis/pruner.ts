@@ -52,8 +52,10 @@ function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: stri
             }
         },
         isBreakMarker(node: n.IfStatement): boolean {
-            return (node.test.type === "Literal" && node.test.value === true && node.consequent.type === "BreakStatement");
-         },
+            return (
+                node.test.type === "Literal" && node.test.value === true && node.consequent.type === "BreakStatement"
+            );
+        },
         // special handling because jalangi does not give accurate locations for variable declarations, do it based on relevant_vars
         visitVariableDeclaration(path: NodePath<n.VariableDeclaration>) {
             const node = path.node;
@@ -88,8 +90,8 @@ function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: stri
  */
 function sliceNodes(graph: Core, executedBreakNodes: Collection, slicingCriterion: SourceLocation): Collection {
     const nodesAtCriterion = graph
-    .nodes()
-    .filter((node) => SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")));
+        .nodes()
+        .filter((node) => SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")));
     const startNodes = nodesAtCriterion.union(executedBreakNodes);
     return startNodes.union(startNodes.successors("node"));
 }
@@ -126,7 +128,7 @@ function graphBasedPrune(
 ): void {
     const nodes = sliceNodes(graph, executedBreakNodes, slicingCriterion);
     const locs = sliceLocs(nodes, slicingCriterion);
-    const vars: string[] = Array.from(new Set(nodes.map((node) => node.data("varname")).filter(x => x)));
+    const vars: string[] = Array.from(new Set(nodes.map((node) => node.data("varname")).filter((x) => x)));
     const prog = readFileSync(progInPath).toString();
     const newprog = prune(prog, locs, vars);
     writeFileSync(progOutPath, newprog.code);

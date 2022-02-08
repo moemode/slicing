@@ -3,8 +3,7 @@
  * Contains some static helper methods for comparing Position objects.
  */
 export class Position {
-    
-    constructor(public readonly line: number, public readonly column: number) { }
+    constructor(public readonly line: number, public readonly column: number) {}
 
     public static posEq(pos1: Position, pos2: Position): boolean {
         return pos1.line === pos2.line && pos1.column == pos2.column;
@@ -23,16 +22,14 @@ export class Position {
     }
 }
 
-
 /**
  * Data class storing locations in a program consisting of a start and an end Position.
  * Contains some static helper methods for construction and comparison of SourceLocation objects.
  */
 export class SourceLocation {
-    
-    constructor(public readonly start: Position, public readonly end: Position, public readonly p?: string) { }
+    constructor(public readonly start: Position, public readonly end: Position, public readonly p?: string) {}
 
-    static fromJSON(d: {start: Position, end:Position}): SourceLocation {
+    static fromJSON(d: { start: Position; end: Position }): SourceLocation {
         return new SourceLocation(d.start, d.end);
     }
 
@@ -57,8 +54,7 @@ export class SourceLocation {
             );
         } else {
             console.log("error in location conversion");
-            return new SourceLocation(new Position(-1, -1),
-                                      new Position(-1, -1));
+            return new SourceLocation(new Position(-1, -1), new Position(-1, -1));
         }
     }
 
@@ -87,7 +83,5 @@ export class JalangiLocation {
 }
 
 export class CallStackEntry {
-    constructor(public readonly callerLoc: SourceLocation, public readonly calleeLoc: SourceLocation) { }
+    constructor(public readonly callerLoc: SourceLocation, public readonly calleeLoc: SourceLocation) {}
 }
-
-

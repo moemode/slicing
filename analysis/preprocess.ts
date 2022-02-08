@@ -11,7 +11,15 @@ interface Program {
     path: string;
 }
 
-function insertBreakMarkers(program: Program): PrintResultType{
+/**
+ * Walk AST of program.code and replace break-statements with
+ * 'if (true) break'. The latter is called a break marker.
+ * @param program
+ * @returns program with break markers replacing break statements and a SourceMap
+ * mapping old locations to new locations. Necessary, because locations change when inserting
+ * break markers.
+ */
+function insertBreakMarkers(program: Program): PrintResultType {
     const ast = parse(program.code, {
         sourceFileName: program.path
     });
@@ -25,6 +33,11 @@ function insertBreakMarkers(program: Program): PrintResultType{
     return print(ast, { sourceMapName: "map.json" });
 }
 
+/**
+ * Typically run after insertBreakMarkers to find the locations
+ * @param program program.code, potentially contains break markers
+ * @returns all locations of break markers in the program
+ */
 function locateBreakMarkers(program: Program): SourceLocation[] {
     const ast = parse(program.code, {
         sourceFileName: program.path
@@ -42,30 +55,40 @@ function locateBreakMarkers(program: Program): SourceLocation[] {
     return breakMarkerLocations;
 }
 
-function preprocessFile(progInPath: string, progOutPath: string, lineNb: string): [SourceLocation, SourceLocation[]] {
-    const code = fs.readFileSync(progInPath).toString();
-    const result = insertBreakMarkers({ code, path: progInPath });
-    const map = new SourceMapConsumer(result.map);
-    const newprog = result.code;
-    fs.writeFileSync(progOutPath, newprog);
-    const locs = locateBreakMarkers({ code: newprog, path: progOutPath });
-    console.log(locs);
-    const lineNbGenPos = map.allGeneratedPositionsFor({ source: progInPath, line: lineNb });
+/**
+ * Used to find out where the slicing criterion has been mapped to in a transformed program.
+ * @param line line number in original program which is located at path source
+ * @param source path of original program
+ * @param map maps locations in souce program to new locations. These are the locations in the program
+ * into which break markers were inserted
+ * @returns SourceLocation in new program, which contains what was in line line in source program
+ */
+function getLineMappedLocation(line: number, source: string, map: SourceMapConsumer): SourceLocation {
+    const lineNbGenPos = map.allGeneratedPositionsFor({ source, line });
     if (lineNbGenPos.length > 0) {
         const [first, last] = [lineNbGenPos[0], lineNbGenPos[lineNbGenPos.length - 1]];
         last.column += 1;
-        return [new SourceLocation(first, last), locs];
+        return new SourceLocation(first, last);
+    } else {
+        return new SourceLocation(new Position(line, 0), new Position(line, Number.POSITIVE_INFINITY));
     }
-    return [
-        new SourceLocation(new Position(parseInt(lineNb), 0), new Position(parseInt(lineNb), Number.POSITIVE_INFINITY)),
-        locs
-    ];
 }
 
-//preprocessFile("/home/v/slicing/testcases/progress_meeting_3/e3_in.js", "./egal.js", 17);
+/**
+ * Load program from progInPath, insert break-arkers into it and write it to progOutPath.
+ * Return new location of lineNb and all break marker locations.
+ * @param progInPath path of program
+ * @param progOutPath path to write program with inserted break markers to
+ * @param lineNb line number in original program at progInPath
+ * @returns new location of lineNb and all break marker locations.
+ */
+function preprocessFile(progInPath: string, progOutPath: string, lineNb: string): [SourceLocation, SourceLocation[]] {
+    const code = fs.readFileSync(progInPath).toString();
+    const result = insertBreakMarkers({ code, path: progInPath });
+    fs.writeFileSync(progOutPath, result.code);
+    const criterionLocation = getLineMappedLocation(parseInt(lineNb), progInPath, new SourceMapConsumer(result.map));
+    const locs = locateBreakMarkers({ code: result.code, path: progOutPath });
+    return [criterionLocation, locs];
+}
 
-export {
-    insertBreakMarkers,
-    preprocessFile
-    //findBreakMarkers
-};
+export { insertBreakMarkers, preprocessFile };

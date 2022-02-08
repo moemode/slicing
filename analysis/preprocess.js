@@ -25,6 +25,14 @@ var recast_1 = require("recast");
 var ast_types_1 = require("ast-types");
 var source_map_1 = require("source-map");
 var datatypes_1 = require("./datatypes");
+/**
+ * Walk AST of program.code and replace break-statements with
+ * 'if (true) break'. The latter is called a break marker.
+ * @param program
+ * @returns program with break markers replacing break statements and a SourceMap
+ * mapping old locations to new locations. Necessary, because locations change when inserting
+ * break markers.
+ */
 function insertBreakMarkers(program) {
     var ast = (0, recast_1.parse)(program.code, {
         sourceFileName: program.path
@@ -39,6 +47,11 @@ function insertBreakMarkers(program) {
     return (0, recast_1.print)(ast, { sourceMapName: "map.json" });
 }
 exports.insertBreakMarkers = insertBreakMarkers;
+/**
+ * Typically run after insertBreakMarkers to find the locations
+ * @param program program.code, potentially contains break markers
+ * @returns all locations of break markers in the program
+ */
 function locateBreakMarkers(program) {
     var ast = (0, recast_1.parse)(program.code, {
         sourceFileName: program.path
@@ -55,24 +68,40 @@ function locateBreakMarkers(program) {
     });
     return breakMarkerLocations;
 }
-function preprocessFile(progInPath, progOutPath, lineNb) {
-    var code = fs.readFileSync(progInPath).toString();
-    var result = insertBreakMarkers({ code: code, path: progInPath });
-    var map = new source_map_1.SourceMapConsumer(result.map);
-    var newprog = result.code;
-    fs.writeFileSync(progOutPath, newprog);
-    var locs = locateBreakMarkers({ code: newprog, path: progOutPath });
-    console.log(locs);
-    var lineNbGenPos = map.allGeneratedPositionsFor({ source: progInPath, line: lineNb });
+/**
+ * Used to find out where the slicing criterion has been mapped to in a transformed program.
+ * @param line line number in original program which is located at path source
+ * @param source path of original program
+ * @param map maps locations in souce program to new locations. These are the locations in the program
+ * into which break markers were inserted
+ * @returns SourceLocation in new program, which contains what was in line line in source program
+ */
+function getLineMappedLocation(line, source, map) {
+    var lineNbGenPos = map.allGeneratedPositionsFor({ source: source, line: line });
     if (lineNbGenPos.length > 0) {
         var _a = [lineNbGenPos[0], lineNbGenPos[lineNbGenPos.length - 1]], first = _a[0], last = _a[1];
         last.column += 1;
-        return [new datatypes_1.SourceLocation(first, last), locs];
+        return new datatypes_1.SourceLocation(first, last);
     }
-    return [
-        new datatypes_1.SourceLocation(new datatypes_1.Position(parseInt(lineNb), 0), new datatypes_1.Position(parseInt(lineNb), Number.POSITIVE_INFINITY)),
-        locs
-    ];
+    else {
+        return new datatypes_1.SourceLocation(new datatypes_1.Position(line, 0), new datatypes_1.Position(line, Number.POSITIVE_INFINITY));
+    }
+}
+/**
+ * Load program from progInPath, insert break-arkers into it and write it to progOutPath.
+ * Return new location of lineNb and all break marker locations.
+ * @param progInPath path of program
+ * @param progOutPath path to write program with inserted break markers to
+ * @param lineNb line number in original program at progInPath
+ * @returns new location of lineNb and all break marker locations.
+ */
+function preprocessFile(progInPath, progOutPath, lineNb) {
+    var code = fs.readFileSync(progInPath).toString();
+    var result = insertBreakMarkers({ code: code, path: progInPath });
+    fs.writeFileSync(progOutPath, result.code);
+    var criterionLocation = getLineMappedLocation(parseInt(lineNb), progInPath, new source_map_1.SourceMapConsumer(result.map));
+    var locs = locateBreakMarkers({ code: result.code, path: progOutPath });
+    return [criterionLocation, locs];
 }
 exports.preprocessFile = preprocessFile;
 //# sourceMappingURL=preprocess.js.map

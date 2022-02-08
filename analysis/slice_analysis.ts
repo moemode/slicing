@@ -1,6 +1,6 @@
 import cytoscape = require("cytoscape");
 import { Collection } from "cytoscape";
-import { Position, SourceLocation, JalangiLocation, CallStackEntry} from "./datatypes";
+import { Position, SourceLocation, JalangiLocation, CallStackEntry } from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
@@ -27,7 +27,7 @@ class SliceAnalysis {
 
     //objects that have been read without being the base for a getField/putField
     readOnlyObjects = [];
-    
+
     currentExprNodes = [];
     lastWrites = {};
     lastDeclare = {};
@@ -376,13 +376,7 @@ class SliceAnalysis {
             //this error is expected as it is thrown when the graphs directory esists already
         }
         writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
-        graphBasedPrune(
-            inFilePath,
-            this.outFile,
-            this.graph,
-            this.executedBreakNodes,
-            this.slicingCriterion
-        );
+        graphBasedPrune(inFilePath, this.outFile, this.graph, this.executedBreakNodes, this.slicingCriterion);
     }
 
     invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid): void {

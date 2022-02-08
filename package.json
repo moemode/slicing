@@ -6,8 +6,8 @@
   "scripts": {
     "test": "mocha --exit",
     "test-fail": "mocha test-fail/**/*.js",
-    "lint": "eslint -c .eslintrc.js --ext .ts .",
-    "prettier-format": "npx prettier --config .prettierrc 'analysis/**/*.ts' --write"
+    "lint": "eslint -c .eslintrc.json --ext .ts .",
+    "prettier-format": "prettier --config .prettierrc 'analysis/**/*.ts' --write"
   },
   "author": "Moritz Pfeffer",
   "license": "ISC",
