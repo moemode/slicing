@@ -25,6 +25,9 @@ var fs_1 = require("fs");
 var pruner_1 = require("./pruner");
 var control_deps_1 = require("./control-deps");
 var path = __importStar(require("path"));
+function iidToLoc(iid) {
+    return datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+}
 var GraphConstructor = /** @class */ (function () {
     function GraphConstructor() {
         this.graph = cytoscape();
@@ -92,34 +95,40 @@ var GraphConstructor = /** @class */ (function () {
             return { result: val };
         }
     };
-    GraphConstructor.prototype.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
+    /**
+     * Handle var = rhs;
+     * Create node with edges to D(var = rhs) = declaration of var + D(rhs).
+     * @param reference jalangi
+     * @returns
+     */
+    GraphConstructor.prototype.write = function (iid, name, val) {
         var _this = this;
-        var lhsLocation = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
-        var writeNode = this.addNode({
-            loc: lhsLocation,
+        var declareNode = this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
+        var rhsLoc = iidToLoc(iid);
+        var rhsNodes = this.getNodesAt(this.currentExprNodes, rhsLoc);
+        var writeNode = this.addWriteNode(iid, rhsLoc, name, val);
+        declareNode.concat(rhsNodes).forEach(function (node) { return _this.addEdge(writeNode, node); });
+        this.currentExprNodes.push(writeNode);
+        this.lastWrites[name] = writeNode;
+        if (typeof val === "object" && val.__id__ === undefined) {
+            val.__id__ = this.nextObjectIds++;
+            return { result: val };
+        }
+    };
+    GraphConstructor.prototype.addWriteNode = function (iid, rhsLoc, name, val) {
+        return this.addNode({
+            loc: rhsLoc,
             name: name,
             varname: name,
             val: val,
             type: "write",
             line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
         });
-        this.currentExprNodes.push(writeNode);
-        this.lastWrites[name] = writeNode;
-        var readsForWrite = this.currentExprNodes.filter(function (node) {
-            return datatypes_1.SourceLocation.in_between_inclusive(lhsLocation, node.data.loc);
+    };
+    GraphConstructor.prototype.getNodesAt = function (nodes, loc) {
+        return nodes.filter(function (node) {
+            return datatypes_1.SourceLocation.in_between_inclusive(loc, node.data.loc);
         });
-        readsForWrite.forEach(function (node) { return _this.addEdge(writeNode, node); });
-        var declareNode = this.lastDeclare[name];
-        if (declareNode) {
-            this.addEdge(writeNode, declareNode);
-        }
-        else {
-            console.log("Write without declare");
-        }
-        if (typeof val === "object" && val.__id__ === undefined) {
-            val.__id__ = this.nextObjectIds++;
-            return { result: val };
-        }
     };
     GraphConstructor.prototype.read = function (iid, name, val, isGlobal, isScriptLocal) {
         //add edge to last write / declare of variable name
