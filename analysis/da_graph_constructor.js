@@ -110,10 +110,6 @@ var GraphConstructor = /** @class */ (function () {
         declareNode.concat(rhsNodes).forEach(function (node) { return _this.addEdge(writeNode, node); });
         this.currentExprNodes.push(writeNode);
         this.lastWrites[name] = writeNode;
-        if (typeof val === "object" && val.__id__ === undefined) {
-            val.__id__ = this.nextObjectIds++;
-            return { result: val };
-        }
     };
     GraphConstructor.prototype.addWriteNode = function (iid, rhsLoc, name, val) {
         return this.addNode({

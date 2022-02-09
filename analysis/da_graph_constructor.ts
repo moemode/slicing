@@ -104,7 +104,7 @@ class GraphConstructor {
      * @param reference jalangi 
      * @returns 
      */
-    write(iid, name, val): {result: unknown} | undefined {
+    write(iid: string, name: string, val: unknown): {result: unknown}| undefined {
         const declareNode =  this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
         const rhsLoc = iidToLoc(iid);
         const rhsNodes = this.getNodesAt(this.currentExprNodes, rhsLoc);
@@ -112,10 +112,6 @@ class GraphConstructor {
         declareNode.concat(rhsNodes).forEach((node) => this.addEdge(writeNode, node));
         this.currentExprNodes.push(writeNode);
         this.lastWrites[name] = writeNode;
-        if (typeof val === "object" && val.__id__ === undefined) {
-            val.__id__ = this.nextObjectIds++;
-            return { result: val };
-        }
     }
 
     addWriteNode(iid, rhsLoc, name, val): ElementDefinition {
