@@ -1,8 +1,8 @@
-J$.iids = {"9":[2,13,2,15],"17":[2,13,2,15],"25":[2,13,2,15],"33":[3,5,3,6],"41":[3,7,3,10],"49":[3,14,3,15],"57":[3,5,3,15],"65":[3,5,3,16],"73":[4,5,4,12],"81":[4,5,4,12],"89":[1,1,5,2],"97":[1,1,5,2],"105":[1,1,5,2],"113":[7,1,7,8],"121":[7,1,7,10],"129":[7,1,7,11],"137":[1,1,7,11],"145":[1,1,5,2],"153":[1,1,7,11],"161":[1,1,5,2],"169":[1,1,5,2],"177":[1,1,7,11],"185":[1,1,7,11],"nBranches":0,"originalCodeFileName":"/home/v/coding/slicing/testcases/mine/preproc_isolatedCriterion_in.js","instrumentedCodeFileName":"/home/v/coding/slicing/testcases/mine/preproc_isolatedCriterion_in_jalangi_.js","code":"function sliceMe() {\n    var o = {};\n    o[\"t\"] = 2;\n    return;\n}\n\nsliceMe();"};
+J$.iids = {"9":[2,13,2,15],"17":[2,13,2,15],"25":[2,13,2,15],"33":[3,5,3,6],"41":[3,7,3,10],"49":[3,14,3,15],"57":[3,5,3,15],"65":[3,5,3,16],"73":[4,5,4,12],"81":[4,5,4,12],"89":[1,1,5,2],"97":[1,1,5,2],"105":[1,1,5,2],"113":[7,1,7,8],"121":[7,1,7,10],"129":[7,1,7,11],"137":[1,1,7,11],"145":[1,1,5,2],"153":[1,1,7,11],"161":[1,1,5,2],"169":[1,1,5,2],"177":[1,1,7,11],"185":[1,1,7,11],"nBranches":0,"originalCodeFileName":"/home/v/slicing/testcases/mine/preproc_isolatedCriterion_in.js","instrumentedCodeFileName":"/home/v/slicing/testcases/mine/preproc_isolatedCriterion_in_jalangi_.js","code":"function sliceMe() {\n    var o = {};\n    o[\"t\"] = 2;\n    return;\n}\n\nsliceMe();"};
 jalangiLabel1:
     while (true) {
         try {
-            J$.Se(137, '/home/v/coding/slicing/testcases/mine/preproc_isolatedCriterion_in_jalangi_.js', '/home/v/coding/slicing/testcases/mine/preproc_isolatedCriterion_in.js');
+            J$.Se(137, '/home/v/slicing/testcases/mine/preproc_isolatedCriterion_in_jalangi_.js', '/home/v/slicing/testcases/mine/preproc_isolatedCriterion_in.js');
             function sliceMe() {
                 jalangiLabel0:
                     while (true) {

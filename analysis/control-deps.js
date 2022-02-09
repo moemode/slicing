@@ -43,8 +43,9 @@ var Test = /** @class */ (function () {
 }());
 exports.Test = Test;
 /**
- * This is not a full PDG computation. Walks the AST of the program to find some
- * control dependencies.
+ * Walks the AST of the program to find control dependencies introduced by tests of
+ * for, if and switch statements. This misses control dependencies on
+ * break statements.
  * @param prog program text
  * @returns control dependencies introduced by if-, for- and switch statements and
  * information about every test e.g. if condition.

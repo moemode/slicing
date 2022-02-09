@@ -25,9 +25,8 @@ var fs_1 = require("fs");
 var pruner_1 = require("./pruner");
 var control_deps_1 = require("./control-deps");
 var path = __importStar(require("path"));
-var SliceAnalysis = /** @class */ (function () {
-    function SliceAnalysis() {
-        this.writtenValues = [];
+var GraphConstructor = /** @class */ (function () {
+    function GraphConstructor() {
         this.graph = cytoscape();
         this.nextNodeId = 1;
         this.nextEdgeId = 1;
@@ -35,8 +34,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.bmarkerPath = J$.initParams["bmarkerPath"];
         this.bmarkers = [];
         this.executedIfTrueBreaks = [];
-        this.readsForWrite = [];
-        //objects that have been read without being the base for a getField/putField
+        //ids of objects that have been read without being the base for a getField/putField
         this.readOnlyObjects = [];
         this.currentExprNodes = [];
         this.lastWrites = {};
@@ -49,12 +47,12 @@ var SliceAnalysis = /** @class */ (function () {
         this.currentObjectReads = [];
         this.callStack = [];
     }
-    SliceAnalysis.prototype.initializeCriterion = function () {
+    GraphConstructor.prototype.initializeCriterion = function () {
         var start = new datatypes_1.Position(parseInt(J$.initParams["criterion-start-line"]), parseInt(J$.initParams["criterion-start-col"]));
         var end = new datatypes_1.Position(parseInt(J$.initParams["criterion-end-line"]), parseInt(J$.initParams["criterion-end-col"]));
         this.slicingCriterion = new datatypes_1.SourceLocation(start, end);
     };
-    SliceAnalysis.prototype.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
+    GraphConstructor.prototype.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
         var _a;
         this.initializeCriterion();
         var bmarkerJSON = (0, fs_1.readFileSync)(this.bmarkerPath).toString();
@@ -64,8 +62,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.currentObjectReads = [];
         this.executedBreakNodes = this.graph.collection();
     };
-    SliceAnalysis.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        this.writtenValues.push(val);
+    GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
         var rhs_line = datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
         var declareNode = this.addNode({
             loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
@@ -81,7 +78,7 @@ var SliceAnalysis = /** @class */ (function () {
             return { result: val };
         }
     };
-    SliceAnalysis.prototype.literal = function (iid, val, hasGetterSetter) {
+    GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
         if (typeof val === "object") {
             if (val.__id__ === undefined) {
                 val.__id__ = this.nextObjectIds++;
@@ -95,7 +92,7 @@ var SliceAnalysis = /** @class */ (function () {
             return { result: val };
         }
     };
-    SliceAnalysis.prototype.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
+    GraphConstructor.prototype.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
         var _this = this;
         var lhsLocation = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         var writeNode = this.addNode({
@@ -124,7 +121,7 @@ var SliceAnalysis = /** @class */ (function () {
             return { result: val };
         }
     };
-    SliceAnalysis.prototype.read = function (iid, name, val, isGlobal, isScriptLocal) {
+    GraphConstructor.prototype.read = function (iid, name, val, isGlobal, isScriptLocal) {
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
         var readNode = this.addNode({
@@ -155,7 +152,7 @@ var SliceAnalysis = /** @class */ (function () {
             console.log("Read without write");
         }
     };
-    SliceAnalysis.prototype.addTestDependency = function (node) {
+    GraphConstructor.prototype.addTestDependency = function (node) {
         //found whether the current location has a control dependency
         var branchDependency = (0, control_deps_1.cDepForLoc)(node.data.loc, this.controlDeps);
         if (branchDependency) {
@@ -164,7 +161,7 @@ var SliceAnalysis = /** @class */ (function () {
             this.addEdge(node, testNode);
         }
     };
-    SliceAnalysis.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
+    GraphConstructor.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
         var _this = this;
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         var retrievalNode = this.currentObjectReads[base.__id__];
@@ -190,7 +187,7 @@ var SliceAnalysis = /** @class */ (function () {
         }
         this.lastPut[base.__id__][offset] = putFieldNode;
     };
-    SliceAnalysis.prototype.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+    GraphConstructor.prototype.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         //Todo: This does not work for string objects
         var retrievalNode = this.currentObjectReads[base.__id__];
@@ -223,7 +220,7 @@ var SliceAnalysis = /** @class */ (function () {
         }
         return this.addObjectRead(val, retrievalNode);
     };
-    SliceAnalysis.prototype.addObjectRead = function (val, retrievalNode) {
+    GraphConstructor.prototype.addObjectRead = function (val, retrievalNode) {
         if (typeof val !== "object") {
             return;
         }
@@ -233,7 +230,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.currentObjectReads[val.__id__] = retrievalNode;
         return { result: val };
     };
-    SliceAnalysis.prototype.addNode = function (data) {
+    GraphConstructor.prototype.addNode = function (data) {
         var node = {
             group: "nodes",
             data: data
@@ -246,7 +243,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.addTestDependency(node);
         return node;
     };
-    SliceAnalysis.prototype.addEdge = function (source, target) {
+    GraphConstructor.prototype.addEdge = function (source, target) {
         this.graph.add({
             group: "edges",
             data: {
@@ -256,7 +253,7 @@ var SliceAnalysis = /** @class */ (function () {
             }
         });
     };
-    SliceAnalysis.prototype.addTestNode = function (test, result) {
+    GraphConstructor.prototype.addTestNode = function (test, result) {
         var testNode = {
             group: "nodes",
             data: {
@@ -272,7 +269,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.addTestDependency(testNode);
         return testNode;
     };
-    SliceAnalysis.prototype.addBreakNode = function (loc) {
+    GraphConstructor.prototype.addBreakNode = function (loc) {
         var breakNode = {
             group: "nodes",
             data: {
@@ -286,7 +283,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.addTestDependency(breakNode);
         return bNode;
     };
-    SliceAnalysis.prototype.conditional = function (iid, result) {
+    GraphConstructor.prototype.conditional = function (iid, result) {
         var _this = this;
         var loc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         if (this.handleBreak(loc)) {
@@ -304,7 +301,7 @@ var SliceAnalysis = /** @class */ (function () {
             }
         }
     };
-    SliceAnalysis.prototype.endExpression = function (iid) {
+    GraphConstructor.prototype.endExpression = function (iid) {
         var loc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
         this.handleSwitch(loc);
@@ -330,7 +327,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.currentExprNodes = [];
         this.currentObjectReads = [];
     };
-    SliceAnalysis.prototype.handleSwitch = function (loc) {
+    GraphConstructor.prototype.handleSwitch = function (loc) {
         var _this = this;
         var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test && test.type === "switch-disc") {
@@ -345,7 +342,7 @@ var SliceAnalysis = /** @class */ (function () {
         }
         return false;
     };
-    SliceAnalysis.prototype.handleBreak = function (wrappingIfPredicateLocation) {
+    GraphConstructor.prototype.handleBreak = function (wrappingIfPredicateLocation) {
         var loc = this.bmarkers.filter(function (bLoc) {
             return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation);
         })[0];
@@ -357,7 +354,7 @@ var SliceAnalysis = /** @class */ (function () {
         }
         return false;
     };
-    SliceAnalysis.prototype.endExecution = function () {
+    GraphConstructor.prototype.endExecution = function () {
         var inFilePath = J$.smap[1].originalCodeFileName;
         try {
             (0, fs_1.mkdirSync)("../graphs");
@@ -368,7 +365,7 @@ var SliceAnalysis = /** @class */ (function () {
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
         (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.graph, this.executedBreakNodes, this.slicingCriterion);
     };
-    SliceAnalysis.prototype.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
+    GraphConstructor.prototype.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
         var callerLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));
         var calleeLoc = J$.iidToLocation(functionSid, functionIid);
         if (calleeLoc !== "undefined") {
@@ -378,7 +375,7 @@ var SliceAnalysis = /** @class */ (function () {
         this.currentCallerLoc = callerLoc;
         this.currentCalleeLoc = calleeLoc;
     };
-    SliceAnalysis.prototype.invokeFun = function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
+    GraphConstructor.prototype.invokeFun = function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
         this.callStack.pop();
         if (this.callStack.length > 0) {
             var topCallStackEntry = this.callStack[this.callStack.length - 1];
@@ -386,7 +383,7 @@ var SliceAnalysis = /** @class */ (function () {
             this.currentCalleeLoc = topCallStackEntry.calleeLoc;
         }
     };
-    return SliceAnalysis;
+    return GraphConstructor;
 }());
-J$.analysis = new SliceAnalysis();
-//# sourceMappingURL=slice_analysis.js.map
+J$.analysis = new GraphConstructor();
+//# sourceMappingURL=da_graph_constructor.js.map

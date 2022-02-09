@@ -20,13 +20,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.slice = void 0;
-var execSync = require("child_process").execSync;
+var child_process_1 = require("child_process");
 var fs_1 = require("fs");
 var path = __importStar(require("path"));
 var preprocess_1 = require("./preprocess");
 var srcPath = path.resolve(__dirname, "..");
 var jalangiPath = srcPath + "/jalangi2/src/js/commands/jalangi.js";
-var analysisPath = srcPath + "/analysis/slice_analysis.js";
+var analysisPath = srcPath + "/analysis/da_graph_constructor.js";
 function slice(inFile, outFile, lineNb) {
     inFile = path.resolve(inFile);
     outFile = path.resolve(outFile);
@@ -51,7 +51,7 @@ function slice(inFile, outFile, lineNb) {
         " " +
         preprocPath;
     console.log("Launch Jalangi: " + stmt);
-    var child = execSync(stmt);
+    (0, child_process_1.execSync)(stmt);
 }
 exports.slice = slice;
 //# sourceMappingURL=runner.js.map

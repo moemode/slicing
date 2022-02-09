@@ -1,12 +1,11 @@
-const { execSync } = require("child_process");
-
+import { execSync } from "child_process";
 import { writeFileSync } from "fs";
 import * as path from "path";
 import { preprocessFile } from "./preprocess";
 
 const srcPath = path.resolve(__dirname, "..");
 const jalangiPath = srcPath + "/jalangi2/src/js/commands/jalangi.js";
-const analysisPath = srcPath + "/analysis/slice_analysis.js";
+const analysisPath = srcPath + "/analysis/da_graph_constructor.js";
 
 export function slice(inFile: string, outFile: string, lineNb: string): void {
     inFile = path.resolve(inFile);
@@ -33,5 +32,5 @@ export function slice(inFile: string, outFile: string, lineNb: string): void {
         " " +
         preprocPath;
     console.log("Launch Jalangi: " + stmt);
-    const child = execSync(stmt);
+    execSync(stmt);
 }

@@ -1,18 +1,15 @@
 import cytoscape = require("cytoscape");
-import { Collection } from "cytoscape";
+import { Core, Collection } from "cytoscape";
 import { Position, SourceLocation, JalangiLocation, CallStackEntry } from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
 import * as path from "path";
 
-// Run the analysis with:
-// node src/js/commands/jalangi.js --inlineIID --inlineSource --analysis exampleAnalysis.js program.js
 declare let J$: any;
 
-class SliceAnalysis {
-    writtenValues = [];
-    graph = cytoscape();
+class GraphConstructor {
+    graph: Core = cytoscape();
     nextNodeId = 1;
     nextEdgeId = 1;
     outFile = J$.initParams["outFile"];
@@ -23,10 +20,8 @@ class SliceAnalysis {
 
     executedIfTrueBreaks: SourceLocation[] = [];
     executedBreakNodes: Collection;
-    readsForWrite = [];
-
-    //objects that have been read without being the base for a getField/putField
-    readOnlyObjects = [];
+    //ids of objects that have been read without being the base for a getField/putField
+    readOnlyObjects: string[] = [];
 
     currentExprNodes = [];
     lastWrites = {};
@@ -69,7 +64,6 @@ class SliceAnalysis {
     }
 
     declare(iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        this.writtenValues.push(val);
         const rhs_line = JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
         const declareNode = this.addNode({
             loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
@@ -400,4 +394,4 @@ class SliceAnalysis {
     }
 }
 
-J$.analysis = new SliceAnalysis();
+J$.analysis = new GraphConstructor();
