@@ -296,8 +296,8 @@ class GraphConstructor {
         return bNode;
     }
 
-    conditional(iid, result) {
-        const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+    conditional(iid: string, result: boolean): void {
+        const loc = iidToLoc(iid);
         if (this.handleBreak(loc)) {
             return;
         } else {
@@ -313,7 +313,7 @@ class GraphConstructor {
         }
     }
 
-    endExpression(iid) {
+    endExpression(iid: string): void {
         const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
         //switch expression does not result in callback to this.conditional -> handle it here
         this.handleSwitch(loc);

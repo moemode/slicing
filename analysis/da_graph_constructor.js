@@ -286,7 +286,7 @@ var GraphConstructor = /** @class */ (function () {
     };
     GraphConstructor.prototype.conditional = function (iid, result) {
         var _this = this;
-        var loc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        var loc = iidToLoc(iid);
         if (this.handleBreak(loc)) {
             return;
         }
