@@ -78,10 +78,6 @@ class GraphConstructor {
             type: "declare"
         });
         this.lastDeclare[name] = declareNode;
-        if (typeof val === "object" && val.__id__ === undefined) {
-            val.__id__ = this.nextObjectIds++;
-            return { result: val };
-        }
     }
 
     literal(iid, val, hasGetterSetter) {

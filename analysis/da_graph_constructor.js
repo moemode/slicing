@@ -76,10 +76,6 @@ var GraphConstructor = /** @class */ (function () {
             type: "declare"
         });
         this.lastDeclare[name] = declareNode;
-        if (typeof val === "object" && val.__id__ === undefined) {
-            val.__id__ = this.nextObjectIds++;
-            return { result: val };
-        }
     };
     GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
         if (typeof val === "object") {
