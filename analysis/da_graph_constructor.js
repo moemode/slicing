@@ -64,24 +64,19 @@ var GraphConstructor = /** @class */ (function () {
         _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
         this.currentObjectReads = [];
         this.executedBreakNodes = this.graph.collection();
+        var node = {
+            group: "nodes",
+            data: { id: "n".concat(this.nextNodeId++) },
+            callerLoc: this.currentCallerLoc
+        };
+        this.currentNode = this.graph.add(node);
     };
     GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        var rhs_line = datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
-        var declareNode = this.addNode({
-            loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            line: rhs_line,
-            name: name,
-            varname: name,
-            val: String(val),
-            type: "declare"
-        });
-        this.lastDeclare[name] = declareNode;
+        this.lastDeclare[name] = this.currentNode;
     };
     GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
         if (typeof val === "object") {
-            if (val.__id__ === undefined) {
-                val.__id__ = this.nextObjectIds++;
-            }
+            this.addId(val);
             for (var _i = 0, _a = Object.entries(val); _i < _a.length; _i++) {
                 var _b = _a[_i], propertyName = _b[0], propertyValue = _b[1];
                 if (propertyName != "__id__") {
@@ -98,52 +93,23 @@ var GraphConstructor = /** @class */ (function () {
      * @returns
      */
     GraphConstructor.prototype.write = function (iid, name, val) {
-        var _this = this;
         var declareNode = this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
-        var rhsLoc = iidToLoc(iid);
-        var rhsNodes = this.getNodesAt(this.currentExprNodes, rhsLoc);
-        var writeNode = this.addWriteNode(iid, rhsLoc, name, val);
-        declareNode.concat(rhsNodes).forEach(function (node) { return _this.addEdge(writeNode, node); });
-        this.currentExprNodes.push(writeNode);
-        this.lastWrites[name] = writeNode;
-    };
-    GraphConstructor.prototype.addWriteNode = function (iid, rhsLoc, name, val) {
-        return this.addNode({
-            loc: rhsLoc,
-            name: name,
-            varname: name,
-            val: val,
-            type: "write",
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-        });
-    };
-    GraphConstructor.prototype.getNodesAt = function (nodes, loc) {
-        return nodes.filter(function (node) {
-            return datatypes_1.SourceLocation.in_between_inclusive(loc, node.data.loc);
-        });
+        if (declareNode) {
+            this.addEdge(this.currentNode, declareNode);
+        }
+        this.lastWrites[name] = this.currentNode;
     };
     GraphConstructor.prototype.read = function (iid, name, val, isGlobal, isScriptLocal) {
+        this.addId(val);
+        var declareNode = this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
+        if (declareNode) {
+            this.addEdge(this.currentNode, declareNode);
+        }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
-        var readNode = this.addNode({
-            loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: name,
-            varname: name,
-            val: String(val),
-            type: "read",
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-        });
+        var readNode = this.currentNode;
         if (typeof val === "object") {
-            this.addObjectRead(val, readNode);
             this.readOnlyObjects.push(val.__id__);
-        }
-        this.currentExprNodes.push(readNode);
-        var declareNode = this.lastDeclare[name];
-        if (declareNode) {
-            this.addEdge(readNode, declareNode);
-        }
-        else {
-            console.log("Read without declare");
         }
         var lastWriteNode = this.lastWrites[name];
         if (lastWriteNode) {
@@ -163,51 +129,26 @@ var GraphConstructor = /** @class */ (function () {
         }
     };
     GraphConstructor.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
-        var _this = this;
+        this.addId(base);
+        this.addId(val);
+        // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
-        var retrievalNode = this.currentObjectReads[base.__id__];
-        var putFieldNode = this.addNode({
-            loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: "putfield ".concat(offset, ":").concat(val),
-            val: val,
-            type: "putField",
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-        });
-        //no retrieval node if called via literal
-        if (retrievalNode) {
-            this.addEdge(putFieldNode, retrievalNode);
-        }
-        var readsForPut = this.currentExprNodes.filter(function (node) {
-            return datatypes_1.SourceLocation.in_between_inclusive(putFieldNode.data.loc, node.data.loc);
-        });
-        readsForPut.forEach(function (node) { return _this.addEdge(putFieldNode, node); });
-        this.currentExprNodes.push(putFieldNode);
-        // initialize if first put
         if (this.lastPut[base.__id__] === undefined) {
             this.lastPut[base.__id__] = {};
         }
-        this.lastPut[base.__id__][offset] = putFieldNode;
+        this.lastPut[base.__id__][offset] = this.currentNode;
     };
     GraphConstructor.prototype.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+        this.addId(val);
+        this.addId(base);
+        // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         //Todo: This does not work for string objects
-        var retrievalNode = this.currentObjectReads[base.__id__];
-        var getFieldNode = this.addNode({
-            loc: datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: "getfield ".concat(offset, ":").concat(val),
-            val: val,
-            type: "getField",
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-        });
+        var getFieldNode = this.currentNode;
         if (typeof val === "object") {
-            this.addObjectRead(val, getFieldNode);
             this.readOnlyObjects.push(val.__id__);
         }
-        this.currentExprNodes.push(getFieldNode);
         //no retrievalNode if val is of primitive type not an object
-        if (retrievalNode) {
-            this.addEdge(getFieldNode, retrievalNode);
-        }
         var baseObjectPuts = this.lastPut[base.__id__];
         /*
         When there is no put for this field on the object it might have been created by a literal.
@@ -223,72 +164,7 @@ var GraphConstructor = /** @class */ (function () {
                 this.addEdge(getFieldNode, putFieldNode);
             }
         }
-        return this.addObjectRead(val, retrievalNode);
-    };
-    GraphConstructor.prototype.addObjectRead = function (val, retrievalNode) {
-        if (typeof val !== "object") {
-            return;
-        }
-        if (val.__id__ === undefined) {
-            val.__id__ = this.nextObjectIds++;
-        }
-        this.currentObjectReads[val.__id__] = retrievalNode;
-        return { result: val };
-    };
-    GraphConstructor.prototype.addNode = function (data) {
-        var node = {
-            group: "nodes",
-            data: data
-        };
-        node.data.id = "n".concat(this.nextNodeId++);
-        if (this.currentCallerLoc) {
-            node.data.callerLoc = this.currentCallerLoc;
-        }
-        this.graph.add(node);
-        this.addTestDependency(node);
-        return node;
-    };
-    GraphConstructor.prototype.addEdge = function (source, target) {
-        this.graph.add({
-            group: "edges",
-            data: {
-                id: "e".concat(this.nextEdgeId++),
-                source: source.data.id,
-                target: target.data.id
-            }
-        });
-    };
-    GraphConstructor.prototype.addTestNode = function (test, result) {
-        var testNode = {
-            group: "nodes",
-            data: {
-                id: "n".concat(this.nextNodeId++),
-                loc: test.loc,
-                val: result,
-                line: test.loc.start.line,
-                type: "".concat(test.type, "-test"),
-                name: "".concat(test.type, "-test"),
-                callerLoc: this.currentCallerLoc
-            }
-        };
-        this.graph.add(testNode);
-        this.addTestDependency(testNode);
-        return testNode;
-    };
-    GraphConstructor.prototype.addBreakNode = function (loc) {
-        var breakNode = {
-            group: "nodes",
-            data: {
-                id: "n".concat(this.nextNodeId++),
-                loc: loc,
-                line: loc.start.line,
-                name: "break",
-                callerLoc: this.currentCallerLoc
-            }
-        };
-        var bNode = this.graph.add(breakNode);
-        this.addTestDependency(breakNode);
-        return bNode;
+        this.addId(val);
     };
     GraphConstructor.prototype.conditional = function (iid, result) {
         var _this = this;
@@ -389,6 +265,69 @@ var GraphConstructor = /** @class */ (function () {
             this.currentCallerLoc = topCallStackEntry.callerLoc;
             this.currentCalleeLoc = topCallStackEntry.calleeLoc;
         }
+    };
+    GraphConstructor.prototype.addId = function (val) {
+        if (typeof val !== "object") {
+            return;
+        }
+        if (val.__id__ === undefined) {
+            val.__id__ = this.nextObjectIds++;
+        }
+    };
+    GraphConstructor.prototype.addNode = function (data) {
+        var node = {
+            group: "nodes",
+            data: data
+        };
+        node.data.id = "n".concat(this.nextNodeId++);
+        if (this.currentCallerLoc) {
+            node.data.callerLoc = this.currentCallerLoc;
+        }
+        this.graph.add(node);
+        this.addTestDependency(node);
+        return node;
+    };
+    GraphConstructor.prototype.addEdge = function (source, target) {
+        this.graph.add({
+            group: "edges",
+            data: {
+                id: "e".concat(this.nextEdgeId++),
+                source: source.data.id,
+                target: target.data.id
+            }
+        });
+    };
+    GraphConstructor.prototype.addTestNode = function (test, result) {
+        var testNode = {
+            group: "nodes",
+            data: {
+                id: "n".concat(this.nextNodeId++),
+                loc: test.loc,
+                val: result,
+                line: test.loc.start.line,
+                type: "".concat(test.type, "-test"),
+                name: "".concat(test.type, "-test"),
+                callerLoc: this.currentCallerLoc
+            }
+        };
+        this.graph.add(testNode);
+        this.addTestDependency(testNode);
+        return testNode;
+    };
+    GraphConstructor.prototype.addBreakNode = function (loc) {
+        var breakNode = {
+            group: "nodes",
+            data: {
+                id: "n".concat(this.nextNodeId++),
+                loc: loc,
+                line: loc.start.line,
+                name: "break",
+                callerLoc: this.currentCallerLoc
+            }
+        };
+        var bNode = this.graph.add(breakNode);
+        this.addTestDependency(breakNode);
+        return bNode;
     };
     return GraphConstructor;
 }());

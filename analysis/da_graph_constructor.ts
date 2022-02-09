@@ -45,6 +45,8 @@ class GraphConstructor {
     controlDeps: ControlDependency[];
     tests: Test[];
 
+    currentNode;
+
     initializeCriterion(): void {
         const start: Position = new Position(
             parseInt(J$.initParams["criterion-start-line"]),
@@ -65,26 +67,21 @@ class GraphConstructor {
         [this.controlDeps, this.tests] = controlDependencies(originalFileName);
         this.currentObjectReads = [];
         this.executedBreakNodes = this.graph.collection();
+        const node = {
+            group: <const> "nodes",
+            data: {id: `n${this.nextNodeId++}`},
+            callerLoc: this.currentCallerLoc
+        };
+        this.currentNode = this.graph.add(node);
     }
 
     declare(iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        const rhs_line = JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
-        const declareNode = this.addNode({
-            loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            line: rhs_line,
-            name: name,
-            varname: name,
-            val: String(val),
-            type: "declare"
-        });
-        this.lastDeclare[name] = declareNode;
+        this.lastDeclare[name] = this.currentNode;
     }
 
     literal(iid, val, hasGetterSetter) {
         if (typeof val === "object") {
-            if (val.__id__ === undefined) {
-                val.__id__ = this.nextObjectIds++;
-            }
+            this.addId(val);
             for (const [propertyName, propertyValue] of Object.entries(val)) {
                 if (propertyName != "__id__") {
                     this.putField(iid, val, propertyName, propertyValue, undefined, undefined);
@@ -102,53 +99,24 @@ class GraphConstructor {
      */
     write(iid: string, name: string, val: unknown): void {
         const declareNode =  this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
-        const rhsLoc = iidToLoc(iid);
-        const rhsNodes = this.getNodesAt(this.currentExprNodes, rhsLoc);
-        const writeNode = this.addWriteNode(iid, rhsLoc, name, val);
-        declareNode.concat(rhsNodes).forEach((node) => this.addEdge(writeNode, node));
-        this.currentExprNodes.push(writeNode);
-        this.lastWrites[name] = writeNode;
-    }
-
-    addWriteNode(iid, rhsLoc, name, val): ElementDefinition {
-        return this.addNode({
-            loc: rhsLoc,
-            name,
-            varname: name,
-            val,
-            type: "write",
-            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-        });
+        if(declareNode) {
+            this.addEdge(this.currentNode, declareNode);
+        }
+        this.lastWrites[name] = this.currentNode;
     }
 
 
-    getNodesAt(nodes: any[], loc: SourceLocation): any[] {
-        return nodes.filter((node) =>
-        SourceLocation.in_between_inclusive(loc, node.data.loc));
-    }
-
-
-    read(iid, name, val, isGlobal, isScriptLocal) {
+    read(iid, name, val, isGlobal, isScriptLocal): void {
+        this.addId(val);
+        const declareNode =  this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
+        if (declareNode) {
+            this.addEdge(this.currentNode, declareNode);
+        }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
-        const readNode = this.addNode({
-            loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: name,
-            varname: name,
-            val: String(val),
-            type: "read",
-            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-        });
+        const readNode = this.currentNode;
         if (typeof val === "object") {
-            this.addObjectRead(val, readNode);
             this.readOnlyObjects.push(val.__id__);
-        }
-        this.currentExprNodes.push(readNode);
-        const declareNode = this.lastDeclare[name];
-        if (declareNode) {
-            this.addEdge(readNode, declareNode);
-        } else {
-            console.log("Read without declare");
         }
         const lastWriteNode = this.lastWrites[name];
         if (lastWriteNode) {
@@ -158,7 +126,7 @@ class GraphConstructor {
         }
     }
 
-    addTestDependency(node) {
+    addTestDependency(node): void {
         //found whether the current location has a control dependency
         const branchDependency = cDepForLoc(node.data.loc, this.controlDeps);
         if (branchDependency) {
@@ -168,52 +136,29 @@ class GraphConstructor {
         }
     }
 
-    putField(iid, base, offset, val, isComputed, isOpAssign) {
+    putField(iid, base, offset, val, isComputed, isOpAssign): void {
+        this.addId(base);
+        this.addId(val);
+        // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
-        const retrievalNode = this.currentObjectReads[base.__id__];
-        const putFieldNode = this.addNode({
-            loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: `putfield ${offset}:${val}`,
-            val: val,
-            type: "putField",
-            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-        });
-        //no retrieval node if called via literal
-        if (retrievalNode) {
-            this.addEdge(putFieldNode, retrievalNode);
-        }
-        const readsForPut = this.currentExprNodes.filter((node) =>
-            SourceLocation.in_between_inclusive(putFieldNode.data.loc, node.data.loc)
-        );
-        readsForPut.forEach((node) => this.addEdge(putFieldNode, node));
-        this.currentExprNodes.push(putFieldNode);
-        // initialize if first put
         if (this.lastPut[base.__id__] === undefined) {
             this.lastPut[base.__id__] = {};
         }
-        this.lastPut[base.__id__][offset] = putFieldNode;
+        this.lastPut[base.__id__][offset] = this.currentNode;
     }
 
+
     getField(iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+        this.addId(val);
+        this.addId(base);
+        // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
         //Todo: This does not work for string objects
-        const retrievalNode = this.currentObjectReads[base.__id__];
-        const getFieldNode = this.addNode({
-            loc: SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid))),
-            name: `getfield ${offset}:${val}`,
-            val: val,
-            type: "getField",
-            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
-        });
+        const getFieldNode = this.currentNode;
         if (typeof val === "object") {
-            this.addObjectRead(val, getFieldNode);
             this.readOnlyObjects.push(val.__id__);
         }
-        this.currentExprNodes.push(getFieldNode);
         //no retrievalNode if val is of primitive type not an object
-        if (retrievalNode) {
-            this.addEdge(getFieldNode, retrievalNode);
-        }
         const baseObjectPuts = this.lastPut[base.__id__];
         /* 
         When there is no put for this field on the object it might have been created by a literal.
@@ -229,78 +174,9 @@ class GraphConstructor {
                 this.addEdge(getFieldNode, putFieldNode);
             }
         }
-        return this.addObjectRead(val, retrievalNode);
+        this.addId(val);
     }
 
-    private addObjectRead(val, retrievalNode) {
-        if (typeof val !== "object") {
-            return;
-        }
-        if (val.__id__ === undefined) {
-            val.__id__ = this.nextObjectIds++;
-        }
-        this.currentObjectReads[val.__id__] = retrievalNode;
-        return { result: val };
-    }
-
-    private addNode(data): ElementDefinition {
-        const node = {
-            group: <const> "nodes",
-            data: data
-        };
-        node.data.id = `n${this.nextNodeId++}`;
-        if (this.currentCallerLoc) {
-            node.data.callerLoc = this.currentCallerLoc;
-        }
-        this.graph.add(node);
-        this.addTestDependency(node);
-        return node;
-    }
-
-    private addEdge(source, target): void {
-        this.graph.add({
-            group: <const> "edges",
-            data: {
-                id: `e${this.nextEdgeId++}`,
-                source: source.data.id,
-                target: target.data.id
-            }
-        });
-    }
-
-    private addTestNode(test, result) {
-        const testNode = {
-            group: <const> "nodes",
-            data: {
-                id: `n${this.nextNodeId++}`,
-                loc: test.loc,
-                val: result,
-                line: test.loc.start.line,
-                type: `${test.type}-test`,
-                name: `${test.type}-test`,
-                callerLoc: this.currentCallerLoc
-            }
-        };
-        this.graph.add(testNode);
-        this.addTestDependency(testNode);
-        return testNode;
-    }
-
-    private addBreakNode(loc: SourceLocation) {
-        const breakNode = {
-            group: <const> "nodes",
-            data: {
-                id: `n${this.nextNodeId++}`,
-                loc: loc,
-                line: loc.start.line,
-                name: `break`,
-                callerLoc: this.currentCallerLoc
-            }
-        };
-        const bNode: cytoscape.Collection = this.graph.add(breakNode);
-        this.addTestDependency(breakNode);
-        return bNode;
-    }
 
     conditional(iid: string, result: boolean): void {
         const loc = iidToLoc(iid);
@@ -402,6 +278,75 @@ class GraphConstructor {
             this.currentCalleeLoc = topCallStackEntry.calleeLoc;
         }
     }
+
+    private addId(val): void {
+        if (typeof val !== "object") {
+            return;
+        }
+        if (val.__id__ === undefined) {
+            val.__id__ = this.nextObjectIds++;
+        }
+    }
+
+    private addNode(data): ElementDefinition {
+        const node = {
+            group: <const> "nodes",
+            data: data
+        };
+        node.data.id = `n${this.nextNodeId++}`;
+        if (this.currentCallerLoc) {
+            node.data.callerLoc = this.currentCallerLoc;
+        }
+        this.graph.add(node);
+        this.addTestDependency(node);
+        return node;
+    }
+
+    private addEdge(source, target): void {
+        this.graph.add({
+            group: <const> "edges",
+            data: {
+                id: `e${this.nextEdgeId++}`,
+                source: source.data.id,
+                target: target.data.id
+            }
+        });
+    }
+
+    private addTestNode(test, result) {
+        const testNode = {
+            group: <const> "nodes",
+            data: {
+                id: `n${this.nextNodeId++}`,
+                loc: test.loc,
+                val: result,
+                line: test.loc.start.line,
+                type: `${test.type}-test`,
+                name: `${test.type}-test`,
+                callerLoc: this.currentCallerLoc
+            }
+        };
+        this.graph.add(testNode);
+        this.addTestDependency(testNode);
+        return testNode;
+    }
+
+    private addBreakNode(loc: SourceLocation) {
+        const breakNode = {
+            group: <const> "nodes",
+            data: {
+                id: `n${this.nextNodeId++}`,
+                loc: loc,
+                line: loc.start.line,
+                name: `break`,
+                callerLoc: this.currentCallerLoc
+            }
+        };
+        const bNode: cytoscape.Collection = this.graph.add(breakNode);
+        this.addTestDependency(breakNode);
+        return bNode;
+    }
+
 }
 
 J$.analysis = new GraphConstructor();
