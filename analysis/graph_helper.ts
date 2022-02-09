@@ -38,6 +38,9 @@ class GraphHelper {
             node.data.callerLoc = currentCallerLoc;
         }
         this.graph.add(node);
+        if(testNode) {
+            this.graph.add()
+        }
         return node;
     }
 

@@ -104,7 +104,7 @@ class GraphConstructor {
      * @param reference jalangi 
      * @returns 
      */
-    write(iid: string, name: string, val: unknown): {result: unknown}| undefined {
+    write(iid: string, name: string, val: unknown): void {
         const declareNode =  this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
         const rhsLoc = iidToLoc(iid);
         const rhsNodes = this.getNodesAt(this.currentExprNodes, rhsLoc);

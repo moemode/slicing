@@ -33,6 +33,9 @@ var GraphHelper = /** @class */ (function () {
             node.data.callerLoc = currentCallerLoc;
         }
         this.graph.add(node);
+        if (testNode) {
+            this.graph.add();
+        }
         return node;
     };
     GraphHelper.prototype.addEdge = function (source, target) {
