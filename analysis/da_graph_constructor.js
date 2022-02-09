@@ -199,6 +199,10 @@ var GraphConstructor = /** @class */ (function () {
             type: "getField",
             line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
         });
+        if (typeof val === "object") {
+            this.addObjectRead(val, getFieldNode);
+            this.readOnlyObjects.push(val.__id__);
+        }
         this.currentExprNodes.push(getFieldNode);
         //no retrievalNode if val is of primitive type not an object
         if (retrievalNode) {
@@ -263,7 +267,8 @@ var GraphConstructor = /** @class */ (function () {
                 val: result,
                 line: test.loc.start.line,
                 type: "".concat(test.type, "-test"),
-                name: "".concat(test.type, "-test")
+                name: "".concat(test.type, "-test"),
+                callerLoc: this.currentCallerLoc
             }
         };
         this.graph.add(testNode);
@@ -277,7 +282,8 @@ var GraphConstructor = /** @class */ (function () {
                 id: "n".concat(this.nextNodeId++),
                 loc: loc,
                 line: loc.start.line,
-                name: "break"
+                name: "break",
+                callerLoc: this.currentCallerLoc
             }
         };
         var bNode = this.graph.add(breakNode);

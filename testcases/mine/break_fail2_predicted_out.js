@@ -5,3 +5,4 @@ function sliceMe() {
         }
     }
 }
+sliceMe();

@@ -205,6 +205,10 @@ class GraphConstructor {
             type: "getField",
             line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)))
         });
+        if (typeof val === "object") {
+            this.addObjectRead(val, getFieldNode);
+            this.readOnlyObjects.push(val.__id__);
+        }
         this.currentExprNodes.push(getFieldNode);
         //no retrievalNode if val is of primitive type not an object
         if (retrievalNode) {
@@ -266,14 +270,15 @@ class GraphConstructor {
 
     private addTestNode(test, result) {
         const testNode = {
-            group: "nodes",
+            group: <const> "nodes",
             data: {
                 id: `n${this.nextNodeId++}`,
                 loc: test.loc,
                 val: result,
                 line: test.loc.start.line,
                 type: `${test.type}-test`,
-                name: `${test.type}-test`
+                name: `${test.type}-test`,
+                callerLoc: this.currentCallerLoc
             }
         };
         this.graph.add(testNode);
@@ -283,12 +288,13 @@ class GraphConstructor {
 
     private addBreakNode(loc: SourceLocation) {
         const breakNode = {
-            group: "nodes",
+            group: <const> "nodes",
             data: {
                 id: `n${this.nextNodeId++}`,
                 loc: loc,
                 line: loc.start.line,
-                name: `break`
+                name: `break`,
+                callerLoc: this.currentCallerLoc
             }
         };
         const bNode: cytoscape.Collection = this.graph.add(breakNode);

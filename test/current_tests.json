@@ -39,7 +39,9 @@
 {"inFile": "./testcases/mine/fields0_in.js", "outFile": "./testcases/mine/fields0_predicted_out.js", "lineNb":3, "goldFile": "./testcases/mine/fields0_out.js"},
 {"inFile": "./testcases/mine/fields01_in.js", "outFile": "./testcases/mine/fields01_predicted_out.js", "lineNb":4, "goldFile": "./testcases/mine/fields01_out.js"},
 {"inFile": "./testcases/mine/fields1_in.js", "outFile": "./testcases/mine/fields1_predicted_out.js", "lineNb":4, "goldFile": "./testcases/mine/fields1_out.js"},
-{"inFile": "./testcases/mine/fields3_in.js", "outFile": "./testcases/mine/fields3_predicted_out.js", "lineNb":7, "goldFile": "./testcases/mine/fields3_out.js"}
+{"inFile": "./testcases/mine/fields3_in.js", "outFile": "./testcases/mine/fields3_predicted_out.js", "lineNb":7, "goldFile": "./testcases/mine/fields3_out.js"},
+{"inFile": "./testcases/mine/fields2_in.js", "outFile": "./testcases/mine/fields2_predicted_out.js", "lineNb": 5, "goldFile": "./testcases/mine/fields2_out.js"},
+{"inFile": "./testcases/mine/break_fail2_in.js", "outFile": "./testcases/mine/break_fail2_predicted_out.js", "lineNb": 6, "goldFile": "./testcases/mine/break_fail2_out.js"}
 ]
 
 

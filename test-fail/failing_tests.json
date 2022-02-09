@@ -1,8 +1,8 @@
 [
     {
-        "inFile": "./testcases/mine/fields2_in.js",
-        "outFile": "./testcases/mine/fields2_predicted_out.js",
+        "inFile": "./testcases/mine/sliceOnSwitch_in.js",
+        "outFile": "./testcases/mine/sliceOnSwitch_predicted_out.js",
         "lineNb": 5,
-        "goldFile": "./testcases/mine/fields2_out.js"
+        "goldFile": "./testcases/mine/sliceOnSwitch_out.js"
     }
 ]
