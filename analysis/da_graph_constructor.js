@@ -226,7 +226,7 @@ var GraphConstructor = /** @class */ (function () {
         })[0];
         if (loc) {
             this.executedIfTrueBreaks.push(loc);
-            var breakNode = this.addBreakNode(loc);
+            var breakNode = this.addNodeRefactor(this.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
             return true;
         }
@@ -306,25 +306,6 @@ var GraphConstructor = /** @class */ (function () {
         var node = this.graph.add(nodeDef).nodes()[0];
         this.addTestDependencyRefactor(node);
         return node;
-    };
-    GraphConstructor.prototype.addNode = function (node) {
-        var c = this.graph.add(node);
-        this.addTestDependency(node);
-        return c.nodes()[0];
-    };
-    GraphConstructor.prototype.addDeclareNode = function (iid, name, val) {
-        var declareNode = this.createDeclareNode(iid, name, val);
-        this.addNode(declareNode);
-        return declareNode;
-    };
-    GraphConstructor.prototype.addTestNode = function (test, result) {
-        var testNode = this.createTestNode(test, result);
-        this.addNode(testNode);
-        return testNode;
-    };
-    GraphConstructor.prototype.addBreakNode = function (loc) {
-        var breakNode = this.createBreakNode(loc);
-        return this.addNodeRefactor(breakNode);
     };
     return GraphConstructor;
 }());

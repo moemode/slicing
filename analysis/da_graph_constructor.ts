@@ -234,7 +234,7 @@ class GraphConstructor {
         )[0];
         if (loc) {
             this.executedIfTrueBreaks.push(loc);
-            const breakNode = this.addBreakNode(loc);
+            const breakNode = this.addNodeRefactor(this.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
             return true;
         }
@@ -322,29 +322,6 @@ class GraphConstructor {
         const node = this.graph.add(nodeDef).nodes()[0];
         this.addTestDependencyRefactor(node);
         return node;
-    }
-
-    private addNode(node): cytoscape.NodeSingular {
-        const c: cytoscape.Collection = this.graph.add(node);
-        this.addTestDependency(node);
-        return c.nodes()[0];
-    }
-
-    private addDeclareNode(iid, name, val): ElementDefinition {
-        const declareNode = this.createDeclareNode(iid, name, val);
-        this.addNode(declareNode);
-        return declareNode;
-    }
-
-    private addTestNode(test, result): ElementDefinition {
-        const testNode = this.createTestNode(test, result);
-        this.addNode(testNode);
-        return testNode;
-    }
-
-    private addBreakNode(loc: SourceLocation): cytoscape.NodeSingular {
-        const breakNode = this.createBreakNode(loc);
-        return this.addNodeRefactor(breakNode);
     }
 }
 
