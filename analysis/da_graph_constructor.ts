@@ -151,21 +151,25 @@ class GraphConstructor {
         }
     }
 
+    /**
+     * Handle get of base[offset]
+     * @dependencies putField-node at this.lastPut[base.__id__][offset] if exists
+     * @state-changes readOnlyObjects
+     */
     getField(_iid: string, base: Record<string, unknown>, offset: string, val: unknown, _isComputed: boolean, _isOpAssign: boolean, _isMethodCall: boolean): void {
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
-        //Todo: This does not work for string objects
-        const getFieldNode = this.currentNode;
         if (this.isIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
         if(this.isIdentifiable(base)) {
-            //no retrievalNode if val is of primitive type not an object
             const baseObjectPuts = this.lastPut[base.__id__];
+            // there might not have been any puts
             if (baseObjectPuts !== undefined) {
                 const putFieldNode = this.lastPut[base.__id__][offset];
+                // there might not have been a put for offset
                 if (putFieldNode) {
-                    this.g.addEdge(getFieldNode, putFieldNode);
+                    this.g.addEdge(this.currentNode, putFieldNode);
                 }
             }
         }
