@@ -10,6 +10,14 @@ class GraphHelper {
         this.graph = graph;
     }
 
+    addEdgeIfBothExist(source: cytoscape.NodeSingular, target: cytoscape.NodeSingular): boolean {
+        if(!source || !target){
+            return false;
+        } else {
+            this.addEdge(source, target);
+        }
+    }
+
     addEdge(source: cytoscape.NodeSingular, target: cytoscape.NodeSingular): void {
         this.graph.add({
             group: <const>"edges",
@@ -57,7 +65,7 @@ class GraphHelper {
         return this.createNode({
             line: loc.start.line,
             loc,
-            name: name,
+            name: `d${name}=${String(val)}`,
             varname: name,
             val: String(val),
             type: "declare"

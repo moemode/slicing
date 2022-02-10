@@ -7,6 +7,14 @@ var GraphHelper = /** @class */ (function () {
         this.nextEdgeId = 1;
         this.graph = graph;
     }
+    GraphHelper.prototype.addEdgeIfBothExist = function (source, target) {
+        if (!source || !target) {
+            return false;
+        }
+        else {
+            this.addEdge(source, target);
+        }
+    };
     GraphHelper.prototype.addEdge = function (source, target) {
         this.graph.add({
             group: "edges",
@@ -49,7 +57,7 @@ var GraphHelper = /** @class */ (function () {
         return this.createNode({
             line: loc.start.line,
             loc: loc,
-            name: name,
+            name: "d".concat(name, "=").concat(String(val)),
             varname: name,
             val: String(val),
             type: "declare"

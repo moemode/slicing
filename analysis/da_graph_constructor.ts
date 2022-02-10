@@ -1,6 +1,6 @@
 import cytoscape = require("cytoscape");
 import { Collection, ElementDefinition } from "cytoscape";
-import { Position, SourceLocation } from "./datatypes";
+import { Position, SourceLocation, isIdentifiable, isIdentifiableObject, Identifiable } from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
@@ -17,7 +17,13 @@ class GraphConstructor {
     /** Input Params */
     outFile = J$.initParams["outFile"];
     bmarkerPath = J$.initParams["bmarkerPath"];
-    slicingCriterion: SourceLocation;
+    slicingCriterion: SourceLocation = SourceLocation.fromParts(
+        J$.initParams["criterion-start-line"],
+        J$.initParams["criterion-start-col"],
+        J$.initParams["criterion-end-line"],
+        J$.initParams["criterion-end-col"]
+    );
+
     /** Static information about source program*/
     bmarkers: SourceLocation[] = [];
     controlDeps: ControlDependency[];
@@ -31,37 +37,49 @@ class GraphConstructor {
     lastPut: Record<string, Record<number, cytoscape.NodeSingular>> = {}; // lastPut[objectId][offset] == most recent put-node
     lastTest: Record<string, cytoscape.NodeSingular> = {}; // lastTest[testLoc.toString()] == most recent test-node
     /** Current Expression  State */
-    readOnlyObjects: string[] = []; //ids of read objects which are not (yet) the base for subsequent getField/putField
+    readOnlyObjects: string[]; //ids of read objects which are not (yet) the base for subsequent getField/putField
     currentNode: cytoscape.NodeSingular;
 
-    initializeCriterion(): void {
-        const start: Position = new Position(
-            parseInt(J$.initParams["criterion-start-line"]),
-            parseInt(J$.initParams["criterion-start-col"])
-        );
-        const end: Position = new Position(
-            parseInt(J$.initParams["criterion-end-line"]),
-            parseInt(J$.initParams["criterion-end-col"])
-        );
-        this.slicingCriterion = new SourceLocation(start, end);
-    }
-
-    scriptEnter(iid, instrumentedFileName, originalFileName): void {
-        this.initializeCriterion();
-        const a = JSON.parse(readFileSync(this.bmarkerPath).toString());
-        this.bmarkers = a.map((obj) => SourceLocation.fromJSON(obj));
-        [this.controlDeps, this.tests] = controlDependencies(originalFileName);
+    /**
+     * Load and compute static program information.
+     * Initialize current expression state of readOnlyObjects + currentNode
+     * @param _iid static, unique instruction identifier
+     * @param _instrumentedFileName 
+     * @param originalFilePath path of preprocessed file
+     */
+    scriptEnter(_iid: string, _instrumentedFileName: string, originalFilePath: string): void {
+        this.bmarkers = JSON.parse(readFileSync(this.bmarkerPath).toString()).map((obj) => SourceLocation.fromJSON(obj));
+        [this.controlDeps, this.tests] = controlDependencies(originalFilePath);
         this.executedBreakNodes = this.g.graph.collection();
+        this.readOnlyObjects = []; 
         this.currentNode = this.g.addCurrentNode();
     }
 
-    declare(iid: string, name: string, val: unknown, isArgument, argumentIndex, isCatchParam): void {
-        //const declareNode = this.addDeclareNode(iid, name, val);
+    /**
+     * Handle var name = rhs; and declaration caused by a function parameter.
+     * Dependencies: None
+     * @param iid static, unique instruction identifier
+     * @param name variable name
+     * @param val if parameter undefined else value of rhs if exists
+     * @param _isArgument 
+     * @param _argumentIndex 
+     * @param _isCatchParam 
+     */
+    declare(iid: string, name: string, val: unknown, _isArgument, _argumentIndex, _isCatchParam): void {
         const declareNode = this.addNode(this.g.createDeclareNode(iidToLoc(iid), name, val));
         this.lastDeclare[name] = declareNode;
     }
 
-    literal(iid, val, hasGetterSetter): { result: unknown } | undefined {
+    /**
+     * Handle be a string literal like 'hi' or an object literal amongst other.
+      * @param iid static, unique instruction identifier
+     * @param val value of literal
+     * @param _hasGetterSetter 
+     * @returns if not object literal nothing -> program uses original val.
+     * If object literal -> return val with an uniquely set __id__ field
+     * The analyzed program then uses this val istead.
+     */
+    literal(iid, val, _hasGetterSetter): { result: unknown } | undefined {
         if (typeof val === "object") {
             this.addId(val);
             for (const [propertyName, propertyValue] of Object.entries(val)) {
@@ -74,12 +92,13 @@ class GraphConstructor {
     }
 
     /**
-     * Handle var = rhs;
-     * Create node with edges to D(var = rhs) = declaration of var + D(rhs).
-     * @param reference jalangi
-     * @returns
+     * Handle write of value into variable called name.
+     * Dependencies: declaration node for variable name.
+     * @param _iid
+     * @param name variable name
+     * @param _val 
      */
-    write(iid: string, name: string, val: unknown): void {
+    write(_iid: string, name: string, _val: unknown): void {
         const declareNode = this.lastDeclare[name];
         if (declareNode) {
             this.g.addEdge(this.currentNode, declareNode);
@@ -87,22 +106,21 @@ class GraphConstructor {
         this.lastWrite[name] = this.currentNode;
     }
 
-    read(iid, name, val, isGlobal, isScriptLocal): void {
-        this.addId(val);
-        const declareNode = this.lastDeclare[name];
-        if (declareNode) {
-            this.g.addEdge(this.currentNode, declareNode);
-        }
-        //add edge to last write / declare of variable name
-        //assert val is lastWrites val
-        const readNode = this.currentNode;
-        if (typeof val === "object") {
+    /**
+     * Handle read of variable called name.
+     * Dependencies: declaration node for variable name + write node of last write to variable
+     * @param _iid 
+     * @param name variable name
+     * @param val read value
+     * @param _isGlobal 
+     * @param _isScriptLocal 
+     */
+    read(_iid, name: string, val: unknown, _isGlobal: boolean, _isScriptLocal: boolean): void {
+        //add edges to declare- & last write-node for variable
+        this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
+        this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name])
+        if (this.addId(val)) {
             this.readOnlyObjects.push(val.__id__);
-        }
-        const lastWriteNode = this.lastWrite[name];
-        //read without write happens when undefined read
-        if (lastWriteNode) {
-            this.g.addEdge(readNode, lastWriteNode);
         }
     }
 
@@ -130,7 +148,7 @@ class GraphConstructor {
         }
     }
 
-    putField(iid, base, offset, val, isComputed, isOpAssign): void {
+    putField(_iid, base, offset, val, _isComputed, _isOpAssign): void {
         this.addId(base);
         this.addId(val);
         // TOdo: BUG only remove last one
@@ -141,7 +159,7 @@ class GraphConstructor {
         this.lastPut[base.__id__][offset] = this.currentNode;
     }
 
-    getField(iid, base, offset, val, isComputed, isOpAssign, isMethodCall): void {
+    getField(_iid, base, offset, val, _isComputed, _isOpAssign, _isMethodCall): void {
         this.addId(val);
         this.addId(base);
         // TOdo: BUG only remove last one
@@ -244,13 +262,14 @@ class GraphConstructor {
         graphBasedPrune(inFilePath, this.outFile, this.g.graph, this.executedBreakNodes, this.slicingCriterion);
     }
 
-    private addId(val): void {
+    private addId(val): val is Identifiable {
         if (typeof val !== "object") {
-            return;
+            return false;
         }
         if (val.__id__ === undefined) {
             val.__id__ = this.nextObjectId++;
         }
+        return true;
     }
 
     private addNode(nodeDef: ElementDefinition): cytoscape.NodeSingular {

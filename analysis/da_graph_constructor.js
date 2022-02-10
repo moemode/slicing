@@ -34,6 +34,7 @@ var GraphConstructor = /** @class */ (function () {
         /** Input Params */
         this.outFile = J$.initParams["outFile"];
         this.bmarkerPath = J$.initParams["bmarkerPath"];
+        this.slicingCriterion = datatypes_1.SourceLocation.fromParts(J$.initParams["criterion-start-line"], J$.initParams["criterion-start-col"], J$.initParams["criterion-end-line"], J$.initParams["criterion-end-col"]);
         /** Static information about source program*/
         this.bmarkers = [];
         /** Analysis Global State: Graph + Most-Recent (i.e. 'last') Information */
@@ -43,29 +44,46 @@ var GraphConstructor = /** @class */ (function () {
         this.lastDeclare = {}; // lastDeclare[variableName] == declare-nodef for variableName
         this.lastPut = {}; // lastPut[objectId][offset] == most recent put-node
         this.lastTest = {}; // lastTest[testLoc.toString()] == most recent test-node
-        /** Current Expression  State */
-        this.readOnlyObjects = []; //ids of read objects which are not (yet) the base for subsequent getField/putField
     }
-    GraphConstructor.prototype.initializeCriterion = function () {
-        var start = new datatypes_1.Position(parseInt(J$.initParams["criterion-start-line"]), parseInt(J$.initParams["criterion-start-col"]));
-        var end = new datatypes_1.Position(parseInt(J$.initParams["criterion-end-line"]), parseInt(J$.initParams["criterion-end-col"]));
-        this.slicingCriterion = new datatypes_1.SourceLocation(start, end);
-    };
-    GraphConstructor.prototype.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
+    /**
+     * Load and compute static program information.
+     * Initialize current expression state of readOnlyObjects + currentNode
+     * @param _iid static, unique instruction identifier
+     * @param _instrumentedFileName
+     * @param originalFilePath path of preprocessed file
+     */
+    GraphConstructor.prototype.scriptEnter = function (_iid, _instrumentedFileName, originalFilePath) {
         var _a;
-        this.initializeCriterion();
-        var a = JSON.parse((0, fs_1.readFileSync)(this.bmarkerPath).toString());
-        this.bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
-        _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
+        this.bmarkers = JSON.parse((0, fs_1.readFileSync)(this.bmarkerPath).toString()).map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
+        _a = (0, control_deps_1.controlDependencies)(originalFilePath), this.controlDeps = _a[0], this.tests = _a[1];
         this.executedBreakNodes = this.g.graph.collection();
+        this.readOnlyObjects = [];
         this.currentNode = this.g.addCurrentNode();
     };
-    GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        //const declareNode = this.addDeclareNode(iid, name, val);
+    /**
+     * Handle var name = rhs; and declaration caused by a function parameter.
+     * Dependencies: None
+     * @param iid static, unique instruction identifier
+     * @param name variable name
+     * @param val if parameter undefined else value of rhs if exists
+     * @param _isArgument
+     * @param _argumentIndex
+     * @param _isCatchParam
+     */
+    GraphConstructor.prototype.declare = function (iid, name, val, _isArgument, _argumentIndex, _isCatchParam) {
         var declareNode = this.addNode(this.g.createDeclareNode(iidToLoc(iid), name, val));
         this.lastDeclare[name] = declareNode;
     };
-    GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
+    /**
+     * Handle be a string literal like 'hi' or an object literal amongst other.
+      * @param iid static, unique instruction identifier
+     * @param val value of literal
+     * @param _hasGetterSetter
+     * @returns if not object literal nothing -> program uses original val.
+     * If object literal -> return val with an uniquely set __id__ field
+     * The analyzed program then uses this val istead.
+     */
+    GraphConstructor.prototype.literal = function (iid, val, _hasGetterSetter) {
         if (typeof val === "object") {
             this.addId(val);
             for (var _i = 0, _a = Object.entries(val); _i < _a.length; _i++) {
@@ -78,34 +96,34 @@ var GraphConstructor = /** @class */ (function () {
         }
     };
     /**
-     * Handle var = rhs;
-     * Create node with edges to D(var = rhs) = declaration of var + D(rhs).
-     * @param reference jalangi
-     * @returns
+     * Handle write of value into variable called name.
+     * Dependencies: declaration node for variable name.
+     * @param _iid
+     * @param name variable name
+     * @param _val
      */
-    GraphConstructor.prototype.write = function (iid, name, val) {
+    GraphConstructor.prototype.write = function (_iid, name, _val) {
         var declareNode = this.lastDeclare[name];
         if (declareNode) {
             this.g.addEdge(this.currentNode, declareNode);
         }
         this.lastWrite[name] = this.currentNode;
     };
-    GraphConstructor.prototype.read = function (iid, name, val, isGlobal, isScriptLocal) {
-        this.addId(val);
-        var declareNode = this.lastDeclare[name];
-        if (declareNode) {
-            this.g.addEdge(this.currentNode, declareNode);
-        }
-        //add edge to last write / declare of variable name
-        //assert val is lastWrites val
-        var readNode = this.currentNode;
-        if (typeof val === "object") {
+    /**
+     * Handle read of variable called name.
+     * Dependencies: declaration node for variable name + write node of last write to variable
+     * @param _iid
+     * @param name variable name
+     * @param val read value
+     * @param _isGlobal
+     * @param _isScriptLocal
+     */
+    GraphConstructor.prototype.read = function (_iid, name, val, _isGlobal, _isScriptLocal) {
+        //add edges to declare- & last write-node for variable
+        this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
+        this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name]);
+        if (this.addId(val)) {
             this.readOnlyObjects.push(val.__id__);
-        }
-        var lastWriteNode = this.lastWrite[name];
-        //read without write happens when undefined read
-        if (lastWriteNode) {
-            this.g.addEdge(readNode, lastWriteNode);
         }
     };
     GraphConstructor.prototype.addTestDependency = function (node) {
@@ -129,7 +147,7 @@ var GraphConstructor = /** @class */ (function () {
             this.g.addEdge(node, testNode);
         }
     };
-    GraphConstructor.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
+    GraphConstructor.prototype.putField = function (_iid, base, offset, val, _isComputed, _isOpAssign) {
         this.addId(base);
         this.addId(val);
         // TOdo: BUG only remove last one
@@ -139,7 +157,7 @@ var GraphConstructor = /** @class */ (function () {
         }
         this.lastPut[base.__id__][offset] = this.currentNode;
     };
-    GraphConstructor.prototype.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+    GraphConstructor.prototype.getField = function (_iid, base, offset, val, _isComputed, _isOpAssign, _isMethodCall) {
         this.addId(val);
         this.addId(base);
         // TOdo: BUG only remove last one
@@ -241,11 +259,12 @@ var GraphConstructor = /** @class */ (function () {
     };
     GraphConstructor.prototype.addId = function (val) {
         if (typeof val !== "object") {
-            return;
+            return false;
         }
         if (val.__id__ === undefined) {
             val.__id__ = this.nextObjectId++;
         }
+        return true;
     };
     GraphConstructor.prototype.addNode = function (nodeDef) {
         return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));

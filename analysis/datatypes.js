@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SourceLocation = exports.Position = void 0;
+exports.isIdentifiableObject = exports.SourceLocation = exports.Position = void 0;
 /**
  * Data class  storing positions in a program consisting of line and column number.
  * Contains some static helper methods for comparing Position objects.
@@ -9,6 +9,8 @@ var Position = /** @class */ (function () {
     function Position(line, column) {
         this.line = line;
         this.column = column;
+        this.line = Number(line);
+        this.column = Number(column);
     }
     Position.posEq = function (pos1, pos2) {
         return pos1.line === pos2.line && pos1.column == pos2.column;
@@ -35,6 +37,9 @@ var SourceLocation = /** @class */ (function () {
         this.end = end;
         this.p = p;
     }
+    SourceLocation.fromParts = function (startLine, startCol, endLine, endCol, p) {
+        return new SourceLocation(new Position(startLine, startCol), new Position(endLine, endCol), p);
+    };
     SourceLocation.fromJSON = function (d) {
         return new SourceLocation(d.start, d.end);
     };
@@ -50,11 +55,11 @@ var SourceLocation = /** @class */ (function () {
         var r = /\((.+):(\d+):(\d+):(\d+):(\d+)\)/;
         var m = jalangiLocation.match(r);
         if (m && m.length == 6) {
-            return new SourceLocation(new Position(parseInt(m[2]), parseInt(m[3]) - 1), new Position(parseInt(m[4]), parseInt(m[5]) - 1), m[1]);
+            return SourceLocation.fromParts(m[2], parseInt(m[3]) - 1, m[4], parseInt(m[5]) - 1, m[1]);
         }
         else {
             console.log("error in location conversion");
-            return new SourceLocation(new Position(-1, -1), new Position(-1, -1));
+            return SourceLocation.fromParts(-1, -1, -1, -1);
         }
     };
     SourceLocation.locEq = function (loc1, loc2) {
@@ -75,4 +80,8 @@ var SourceLocation = /** @class */ (function () {
     return SourceLocation;
 }());
 exports.SourceLocation = SourceLocation;
+function isIdentifiableObject(f) {
+    return f && (typeof f === "object") && f.__id__ !== undefined;
+}
+exports.isIdentifiableObject = isIdentifiableObject;
 //# sourceMappingURL=datatypes.js.map
