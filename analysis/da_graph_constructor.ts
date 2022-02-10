@@ -32,14 +32,14 @@ class GraphConstructor {
     //lastPut[objectId][offset] = putNode
     lastPut = {};
     nextObjectIds = 1;
-    //lastTest[location] = testNode
+    // maps string representation of test location to most recent test node for that test
     lastTest: Record<string, cytoscape.NodeSingular> = {};
 
     controlDeps: ControlDependency[];
     tests: Test[];
 
-    currentNode;
-    isConditional = false;
+    currentNode: cytoscape.NodeSingular;
+
     initializeCriterion(): void {
         const start: Position = new Position(
             parseInt(J$.initParams["criterion-start-line"]),
@@ -170,7 +170,6 @@ class GraphConstructor {
     }
 
     conditional(iid: string, result: boolean): void {
-        this.isConditional = true;
         const loc = iidToLoc(iid);
         if (this.handleBreak(loc)) {
             return;

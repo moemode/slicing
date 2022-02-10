@@ -44,9 +44,8 @@ var GraphConstructor = /** @class */ (function () {
         //lastPut[objectId][offset] = putNode
         this.lastPut = {};
         this.nextObjectIds = 1;
-        //lastTest[location] = testNode
+        // maps string representation of test location to most recent test node for that test
         this.lastTest = {};
-        this.isConditional = false;
     }
     GraphConstructor.prototype.initializeCriterion = function () {
         var start = new datatypes_1.Position(parseInt(J$.initParams["criterion-start-line"]), parseInt(J$.initParams["criterion-start-col"]));
@@ -163,7 +162,6 @@ var GraphConstructor = /** @class */ (function () {
         this.addId(val);
     };
     GraphConstructor.prototype.conditional = function (iid, result) {
-        this.isConditional = true;
         var loc = iidToLoc(iid);
         if (this.handleBreak(loc)) {
             return;
