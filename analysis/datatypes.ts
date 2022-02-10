@@ -90,7 +90,7 @@ class SourceLocation {
 }
 
 interface Identifiable {
-    __id__: string
+    __id__: number
 }
 
 function isIdentifiableObject(f: unknown): f is Identifiable {

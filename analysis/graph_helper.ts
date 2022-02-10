@@ -15,6 +15,7 @@ class GraphHelper {
             return false;
         } else {
             this.addEdge(source, target);
+            return true;
         }
     }
 

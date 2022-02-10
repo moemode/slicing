@@ -1,11 +1,12 @@
 import cytoscape = require("cytoscape");
 import { Collection, ElementDefinition } from "cytoscape";
-import { Position, SourceLocation, isIdentifiable, isIdentifiableObject, Identifiable } from "./datatypes";
+import { Position, SourceLocation, Identifiable } from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
 import * as path from "path";
 import { GraphHelper } from "./graph_helper";
+import { stringify } from "querystring";
 
 declare let J$: any;
 
@@ -13,6 +14,11 @@ function iidToLoc(iid: string): SourceLocation {
     return SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
 }
 
+/**
+ * Builds, expression by expression, a graph of data- and control-dependencies.
+ * this.currentNode captures dependencies of the current expression on former
+ * 'current expressions' and on helper nodes for declare-, break- and test-nodes.
+ */
 class GraphConstructor {
     /** Input Params */
     outFile = J$.initParams["outFile"];
@@ -37,7 +43,7 @@ class GraphConstructor {
     lastPut: Record<string, Record<number, cytoscape.NodeSingular>> = {}; // lastPut[objectId][offset] == most recent put-node
     lastTest: Record<string, cytoscape.NodeSingular> = {}; // lastTest[testLoc.toString()] == most recent test-node
     /** Current Expression  State */
-    readOnlyObjects: string[]; //ids of read objects which are not (yet) the base for subsequent getField/putField
+    readOnlyObjects: number[]; //ids of read objects which are not (yet) the base for subsequent getField/putField
     currentNode: cytoscape.NodeSingular;
 
     /**
@@ -57,8 +63,8 @@ class GraphConstructor {
 
     /**
      * Handle var name = rhs; and declaration caused by a function parameter.
-     * Dependencies: None
-     * State Changes: lastDeclare
+     * @node-deps: None
+     * @changes-state: lastDeclare
      * @param iid static, unique instruction identifier
      * @param name variable name
      * @param val if parameter undefined else value of rhs if exists
@@ -68,14 +74,13 @@ class GraphConstructor {
      */
     declare(iid: string, name: string, val: unknown, _isArgument, _argumentIndex, _isCatchParam): void {
         const declareNode = this.addNode(this.g.createDeclareNode(iidToLoc(iid), name, val));
-        // State changes
         this.lastDeclare[name] = declareNode;
     }
 
     /**
      * Handle be a string literal like 'hi' or an object literal amongst other.
-     * Dependencies: None
-     * State Changes: None
+     * @node-deps: None
+     * @changes-state: None
      * @param iid static, unique instruction identifier
      * @param val value of literal
      * @param _hasGetterSetter 
@@ -85,7 +90,7 @@ class GraphConstructor {
      */
     literal(iid: string, val: unknown, _hasGetterSetter): { result: unknown } | undefined {
         if (typeof val === "object") {
-            this.isIdentifiable(val);
+            this.makeIdentifiable(val);
             for (const [propertyName, propertyValue] of Object.entries(val)) {
                 if (propertyName != "__id__") {
                     this.putField(iid, val, propertyName, propertyValue, undefined, undefined);
@@ -97,8 +102,8 @@ class GraphConstructor {
 
     /**
      * Handle write of value into variable called name.
-     * Dependencies: declaration node for variable name
-     * State Changes: lastWrite
+     * @node-deps: declaration node for variable name
+     * @changes-state: lastWrite
      * @param _iid
      * @param name variable name
      * @param _val 
@@ -110,8 +115,8 @@ class GraphConstructor {
 
     /**
      * Handle read of variable called name.
-     * Dependencies: declaration node for variable name + write node of last write to variable
-     * State Changes: readOnlyObjects (if typeof(val) === object)
+     * @node-deps: declaration node for variable name + write node of last write to variable
+     * @changes-state: readOnlyObjects (if typeof(val) === object)
      * @param _iid 
      * @param name variable name
      * @param val read value
@@ -122,14 +127,14 @@ class GraphConstructor {
         //add edges to declare- & last write-node for variable
         this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
         this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name])
-        if (this.isIdentifiable(val)) {
+        if (this.makeIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
     }
 
     /**
      * Handle base.offset = val.
-     * Dependencies: None
+     * @node-deps: None
      * State: readOnlyObjects, lastPut
      * @param _iid 
      * @param base base object
@@ -139,11 +144,11 @@ class GraphConstructor {
      * @param _isOpAssign 
      */
     putField(_iid: string, base: Record<string, unknown>, offset: string, val: unknown, _isComputed, _isOpAssign): void {
-        this.isIdentifiable(val);
+        this.makeIdentifiable(val);
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
         //this always succeeds because typoef base === "object"
-        if (this.isIdentifiable(base)) {
+        if (this.makeIdentifiable(base)) {
             if (this.lastPut[base.__id__] === undefined) {
                 this.lastPut[base.__id__] = {};
             }
@@ -153,16 +158,16 @@ class GraphConstructor {
 
     /**
      * Handle get of base[offset]
-     * @dependencies putField-node at this.lastPut[base.__id__][offset] if exists
-     * @state-changes readOnlyObjects
+     * @node-deps putField-node at this.lastPut[base.__id__][offset] if exists
+     * @changes-state readOnlyObjects
      */
     getField(_iid: string, base: Record<string, unknown>, offset: string, val: unknown, _isComputed: boolean, _isOpAssign: boolean, _isMethodCall: boolean): void {
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
-        if (this.isIdentifiable(val)) {
+        if (this.makeIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
-        if (this.isIdentifiable(base)) {
+        if (this.makeIdentifiable(base)) {
             const baseObjectPuts = this.lastPut[base.__id__];
             // there might not have been any puts
             if (baseObjectPuts !== undefined) {
@@ -208,9 +213,9 @@ class GraphConstructor {
     }
 
     /**
-     * @dependencies test-node the expression depends on if exists,
+     * @node-deps test-node the expression depends on if exists,
      * all put-nodes for all objects in readOnlyObjects 
-     * @state-changes reset readOnlyObject, currentNode
+     * @changes-state reset readOnlyObject, currentNode
      * @param iid 
      */
     endExpression(iid: string): void {
@@ -238,22 +243,35 @@ class GraphConstructor {
         this.currentNode = this.g.addCurrentNode();
     }
 
+    /**
+     * @node-deps test-node representing switch discriminant depends on currentNode
+     * @changes-state lastTest
+     * @param iid static, unique instruction identifier
+     * @returns 
+     */
     handleSwitch(iid: string): boolean {
         const loc = iidToLoc(iid);
         const test = this.tests.find((t) => SourceLocation.locEq(t.loc, loc));
         if (test && test.type === "switch-disc") {
             const testNode = this.addNode(this.g.createTestNode(test.loc, true, "switch-disc"));
             this.lastTest[Position.toString(test.loc.start)] = testNode;
+            // the switch-discriminant depends on the reads, writes currentNode depends on
             this.g.addEdge(testNode, this.currentNode);
             return true;
         }
         return false;
     }
 
+
+    /**
+     * Check if a break marker is being executed, if so record that
+     * @depends nothing
+     * @changes-state executedBreakNodes
+     * @param wrappingIfPredicateLocation location of a normal if or the break marker i.e. "if(true) break; ""
+     * @returns true iff a break marker is present
+     */
     handleBreak(wrappingIfPredicateLocation: SourceLocation): boolean {
-        const loc = this.bmarkers.filter((bLoc) =>
-            SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation)
-        )[0];
+        const loc = this.bmarkers.filter(bLoc => SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation))[0];
         if (loc) {
             const breakNode = this.addNode(this.g.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
@@ -262,6 +280,11 @@ class GraphConstructor {
         return false;
     }
 
+    /**
+     * Write the constructed graph into a .json file.
+     * Invoke the pruning phase and pass the graph, the break-nodes within it
+     * and the source-mapped slicing criterion to the pruning stage.
+     */
     endExecution(): void {
         //this.graph.remove(`node[id=${this.currentNode.id}]`);
         const inFilePath = J$.smap[1].originalCodeFileName;
@@ -274,16 +297,27 @@ class GraphConstructor {
         graphBasedPrune(inFilePath, this.outFile, this.g.graph, this.executedBreakNodes, this.slicingCriterion);
     }
 
-    private isIdentifiable(val): val is Identifiable {
+    /**
+     * Augment val by unique number __id__ field for object tracking
+     * @param val thing to be made identifiable, impossible for primitive types
+     * @returns true iff typeof(val) === object
+     */
+    private makeIdentifiable(val: unknown): val is Identifiable {
         if (typeof val !== "object") {
             return false;
         }
-        if (val.__id__ === undefined) {
-            val.__id__ = this.nextObjectId++;
+        const valObj = val as Identifiable;
+        if (valObj.__id__ === undefined) {
+            valObj.__id__ = this.nextObjectId++;
         }
         return true;
     }
 
+    /**
+     * Given nodeLoc find most recent test-node for the test it depends on.
+     * @param nodeLoc location of node
+     * @returns test-node, on which node depends immediately (by control-dependency) if such exists
+     */
     private findTestDependency(nodeLoc: SourceLocation): cytoscape.NodeSingular | undefined {
         const branchDependency = cDepForLoc(nodeLoc, this.controlDeps);
         if (branchDependency) {
@@ -291,13 +325,25 @@ class GraphConstructor {
         }
     }
 
+    /**
+     * Add node acc. to nodeDef to graph, and create edge to test-node
+     * iff node is control-dependent on some test.
+     * @param nodeDef description of node to add
+     * @returns 'living' node in graph
+     */
     private addNode(nodeDef: ElementDefinition): cytoscape.NodeSingular {
         return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
     }
 
-    private addTestDependency(node: cytoscape.NodeSingular): void {
+    /**
+     * Add control-dependency of node to graph if exists.
+     * @param node node in graph
+     * @returns true iff node is control-dependent on a test and has been connected
+     * to most recent test-node of that test
+     */
+    private addTestDependency(node: cytoscape.NodeSingular): boolean {
         const testNode = this.findTestDependency(node.data().loc);
-        this.g.addEdgeIfBothExist(node, testNode);
+        return this.g.addEdgeIfBothExist(node, testNode);
     }
 }
 
