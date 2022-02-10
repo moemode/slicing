@@ -70,13 +70,15 @@ class GraphConstructor {
 
     declare(iid, name, val, isArgument, argumentIndex, isCatchParam): void {
         const rhs_line = iidToLoc(iid).start.line;
+        /*
         const declareNode = this.addNode({
             line: rhs_line,
             name: name,
             varname: name,
             val: String(val),
             type: "declare"
-        });
+        });*/
+        const declareNode = this.addDeclareNode(iid, name, val);
         //const declareNode = this.addDeclareNode(iid, name, val);
         this.lastDeclare[name] = declareNode;
     }
@@ -305,9 +307,11 @@ class GraphConstructor {
         });
     }
 
-    private createDeclareNode(line, name, val): ElementDefinition {
+    private createDeclareNode(iid, name, val): ElementDefinition {
+        const loc = iidToLoc(iid);
         return this.createNode({
-            line,
+            line: loc.start.line,
+            loc,
             name: name,
             varname: name,
             val: String(val),
@@ -331,7 +335,7 @@ class GraphConstructor {
     }
 
     private addDeclareNode(iid, name, val): ElementDefinition {
-        const declareNode = this.createDeclareNode(iidToLoc(iid).start.line, name, val);
+        const declareNode = this.createDeclareNode(iid, name, val);
         this.addNodeNew(declareNode);
         return declareNode;
     }

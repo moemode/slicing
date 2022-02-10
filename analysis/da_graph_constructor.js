@@ -70,13 +70,15 @@ var GraphConstructor = /** @class */ (function () {
     };
     GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
         var rhs_line = iidToLoc(iid).start.line;
-        var declareNode = this.addNode({
+        /*
+        const declareNode = this.addNode({
             line: rhs_line,
             name: name,
             varname: name,
             val: String(val),
             type: "declare"
-        });
+        });*/
+        var declareNode = this.addDeclareNode(iid, name, val);
         //const declareNode = this.addDeclareNode(iid, name, val);
         this.lastDeclare[name] = declareNode;
     };
@@ -290,9 +292,11 @@ var GraphConstructor = /** @class */ (function () {
             name: "".concat(test.type, "-test"),
         });
     };
-    GraphConstructor.prototype.createDeclareNode = function (line, name, val) {
+    GraphConstructor.prototype.createDeclareNode = function (iid, name, val) {
+        var loc = iidToLoc(iid);
         return this.createNode({
-            line: line,
+            line: loc.start.line,
+            loc: loc,
             name: name,
             varname: name,
             val: String(val),
@@ -313,7 +317,7 @@ var GraphConstructor = /** @class */ (function () {
         return c.nodes()[0];
     };
     GraphConstructor.prototype.addDeclareNode = function (iid, name, val) {
-        var declareNode = this.createDeclareNode(iidToLoc(iid).start.line, name, val);
+        var declareNode = this.createDeclareNode(iid, name, val);
         this.addNodeNew(declareNode);
         return declareNode;
     };
