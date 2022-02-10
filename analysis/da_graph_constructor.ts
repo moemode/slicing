@@ -17,7 +17,7 @@ function iidToLoc(iid: string): SourceLocation {
 /**
  * Builds, expression by expression, a graph of data- and control-dependencies.
  * this.currentNode captures dependencies of the current expression on former
- * 'current expressions' and on helper nodes for declare-, break- and test-nodes.
+ * currentNode(s) and on helper nodes for declare-, break- and test-nodes.
  */
 class GraphConstructor {
     /** Input Params */

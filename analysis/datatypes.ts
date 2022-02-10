@@ -89,12 +89,12 @@ class SourceLocation {
     }
 }
 
+/**
+ * Helper interface to mark objects which are tracked by id in dynamic analysis.
+ */
 interface Identifiable {
     __id__: number
 }
 
-function isIdentifiableObject(f: unknown): f is Identifiable {
-    return f && (typeof f === "object") && (f as Identifiable).__id__ !== undefined;
-} 
 
-export { Position, SourceLocation, Identifiable, isIdentifiableObject }
+export { Position, SourceLocation, Identifiable}

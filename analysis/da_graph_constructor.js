@@ -29,6 +29,11 @@ var graph_helper_1 = require("./graph_helper");
 function iidToLoc(iid) {
     return datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
 }
+/**
+ * Builds, expression by expression, a graph of data- and control-dependencies.
+ * this.currentNode captures dependencies of the current expression on former
+ * currentNode(s) and on helper nodes for declare-, break- and test-nodes.
+ */
 var GraphConstructor = /** @class */ (function () {
     function GraphConstructor() {
         /** Input Params */
@@ -62,8 +67,8 @@ var GraphConstructor = /** @class */ (function () {
     };
     /**
      * Handle var name = rhs; and declaration caused by a function parameter.
-     * Dependencies: None
-     * State Changes: lastDeclare
+     * @node-deps: None
+     * @changes-state: lastDeclare
      * @param iid static, unique instruction identifier
      * @param name variable name
      * @param val if parameter undefined else value of rhs if exists
@@ -73,13 +78,12 @@ var GraphConstructor = /** @class */ (function () {
      */
     GraphConstructor.prototype.declare = function (iid, name, val, _isArgument, _argumentIndex, _isCatchParam) {
         var declareNode = this.addNode(this.g.createDeclareNode(iidToLoc(iid), name, val));
-        // State changes
         this.lastDeclare[name] = declareNode;
     };
     /**
      * Handle be a string literal like 'hi' or an object literal amongst other.
-     * Dependencies: None
-     * State Changes: None
+     * @node-deps: None
+     * @changes-state: None
      * @param iid static, unique instruction identifier
      * @param val value of literal
      * @param _hasGetterSetter
@@ -89,7 +93,7 @@ var GraphConstructor = /** @class */ (function () {
      */
     GraphConstructor.prototype.literal = function (iid, val, _hasGetterSetter) {
         if (typeof val === "object") {
-            this.isIdentifiable(val);
+            this.makeIdentifiable(val);
             for (var _i = 0, _a = Object.entries(val); _i < _a.length; _i++) {
                 var _b = _a[_i], propertyName = _b[0], propertyValue = _b[1];
                 if (propertyName != "__id__") {
@@ -101,8 +105,8 @@ var GraphConstructor = /** @class */ (function () {
     };
     /**
      * Handle write of value into variable called name.
-     * Dependencies: declaration node for variable name
-     * State Changes: lastWrite
+     * @node-deps: declaration node for variable name
+     * @changes-state: lastWrite
      * @param _iid
      * @param name variable name
      * @param _val
@@ -113,8 +117,8 @@ var GraphConstructor = /** @class */ (function () {
     };
     /**
      * Handle read of variable called name.
-     * Dependencies: declaration node for variable name + write node of last write to variable
-     * State Changes: readOnlyObjects (if typeof(val) === object)
+     * @node-deps: declaration node for variable name + write node of last write to variable
+     * @changes-state: readOnlyObjects (if typeof(val) === object)
      * @param _iid
      * @param name variable name
      * @param val read value
@@ -125,13 +129,13 @@ var GraphConstructor = /** @class */ (function () {
         //add edges to declare- & last write-node for variable
         this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
         this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name]);
-        if (this.isIdentifiable(val)) {
+        if (this.makeIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
     };
     /**
      * Handle base.offset = val.
-     * Dependencies: None
+     * @node-deps: None
      * State: readOnlyObjects, lastPut
      * @param _iid
      * @param base base object
@@ -141,11 +145,11 @@ var GraphConstructor = /** @class */ (function () {
      * @param _isOpAssign
      */
     GraphConstructor.prototype.putField = function (_iid, base, offset, val, _isComputed, _isOpAssign) {
-        this.isIdentifiable(val);
+        this.makeIdentifiable(val);
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         //this always succeeds because typoef base === "object"
-        if (this.isIdentifiable(base)) {
+        if (this.makeIdentifiable(base)) {
             if (this.lastPut[base.__id__] === undefined) {
                 this.lastPut[base.__id__] = {};
             }
@@ -154,16 +158,16 @@ var GraphConstructor = /** @class */ (function () {
     };
     /**
      * Handle get of base[offset]
-     * @dependencies putField-node at this.lastPut[base.__id__][offset] if exists
-     * @state-changes readOnlyObjects
+     * @node-deps putField-node at this.lastPut[base.__id__][offset] if exists
+     * @changes-state readOnlyObjects
      */
     GraphConstructor.prototype.getField = function (_iid, base, offset, val, _isComputed, _isOpAssign, _isMethodCall) {
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
-        if (this.isIdentifiable(val)) {
+        if (this.makeIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
-        if (this.isIdentifiable(base)) {
+        if (this.makeIdentifiable(base)) {
             var baseObjectPuts = this.lastPut[base.__id__];
             // there might not have been any puts
             if (baseObjectPuts !== undefined) {
@@ -207,9 +211,9 @@ var GraphConstructor = /** @class */ (function () {
         this.endExpression(iid);
     };
     /**
-     * @dependencies test-node the expression depends on if exists,
+     * @node-deps test-node the expression depends on if exists,
      * all put-nodes for all objects in readOnlyObjects
-     * @state-changes reset readOnlyObject, currentNode
+     * @changes-state reset readOnlyObject, currentNode
      * @param iid
      */
     GraphConstructor.prototype.endExpression = function (iid) {
@@ -238,21 +242,33 @@ var GraphConstructor = /** @class */ (function () {
         this.readOnlyObjects = [];
         this.currentNode = this.g.addCurrentNode();
     };
+    /**
+     * @node-deps test-node representing switch discriminant depends on currentNode
+     * @changes-state lastTest
+     * @param iid static, unique instruction identifier
+     * @returns
+     */
     GraphConstructor.prototype.handleSwitch = function (iid) {
         var loc = iidToLoc(iid);
         var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test && test.type === "switch-disc") {
             var testNode = this.addNode(this.g.createTestNode(test.loc, true, "switch-disc"));
             this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
+            // the switch-discriminant depends on the reads, writes currentNode depends on
             this.g.addEdge(testNode, this.currentNode);
             return true;
         }
         return false;
     };
+    /**
+     * Check if a break marker is being executed, if so record that
+     * @depends nothing
+     * @changes-state executedBreakNodes
+     * @param wrappingIfPredicateLocation location of a normal if or the break marker i.e. "if(true) break; ""
+     * @returns true iff a break marker is present
+     */
     GraphConstructor.prototype.handleBreak = function (wrappingIfPredicateLocation) {
-        var loc = this.bmarkers.filter(function (bLoc) {
-            return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation);
-        })[0];
+        var loc = this.bmarkers.filter(function (bLoc) { return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation); })[0];
         if (loc) {
             var breakNode = this.addNode(this.g.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
@@ -260,6 +276,11 @@ var GraphConstructor = /** @class */ (function () {
         }
         return false;
     };
+    /**
+     * Write the constructed graph into a .json file.
+     * Invoke the pruning phase and pass the graph, the break-nodes within it
+     * and the source-mapped slicing criterion to the pruning stage.
+     */
     GraphConstructor.prototype.endExecution = function () {
         //this.graph.remove(`node[id=${this.currentNode.id}]`);
         var inFilePath = J$.smap[1].originalCodeFileName;
@@ -272,27 +293,50 @@ var GraphConstructor = /** @class */ (function () {
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.g.graph.json()));
         (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.g.graph, this.executedBreakNodes, this.slicingCriterion);
     };
-    GraphConstructor.prototype.isIdentifiable = function (val) {
+    /**
+     * Augment val by unique number __id__ field for object tracking
+     * @param val thing to be made identifiable, impossible for primitive types
+     * @returns true iff typeof(val) === object
+     */
+    GraphConstructor.prototype.makeIdentifiable = function (val) {
         if (typeof val !== "object") {
             return false;
         }
-        if (val.__id__ === undefined) {
-            val.__id__ = this.nextObjectId++;
+        var valObj = val;
+        if (valObj.__id__ === undefined) {
+            valObj.__id__ = this.nextObjectId++;
         }
         return true;
     };
+    /**
+     * Given nodeLoc find most recent test-node for the test it depends on.
+     * @param nodeLoc location of node
+     * @returns test-node, on which node depends immediately (by control-dependency) if such exists
+     */
     GraphConstructor.prototype.findTestDependency = function (nodeLoc) {
         var branchDependency = (0, control_deps_1.cDepForLoc)(nodeLoc, this.controlDeps);
         if (branchDependency) {
             return this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
         }
     };
+    /**
+     * Add node acc. to nodeDef to graph, and create edge to test-node
+     * iff node is control-dependent on some test.
+     * @param nodeDef description of node to add
+     * @returns 'living' node in graph
+     */
     GraphConstructor.prototype.addNode = function (nodeDef) {
         return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
     };
+    /**
+     * Add control-dependency of node to graph if exists.
+     * @param node node in graph
+     * @returns true iff node is control-dependent on a test and has been connected
+     * to most recent test-node of that test
+     */
     GraphConstructor.prototype.addTestDependency = function (node) {
         var testNode = this.findTestDependency(node.data().loc);
-        this.g.addEdgeIfBothExist(node, testNode);
+        return this.g.addEdgeIfBothExist(node, testNode);
     };
     return GraphConstructor;
 }());

@@ -13,6 +13,7 @@ var GraphHelper = /** @class */ (function () {
         }
         else {
             this.addEdge(source, target);
+            return true;
         }
     };
     GraphHelper.prototype.addEdge = function (source, target) {
