@@ -311,7 +311,7 @@ var GraphConstructor = /** @class */ (function () {
             //this error is expected as it is thrown when the graphs directory esists already
         }
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.g.graph.json()));
-        (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.g.graph, this.executedBreakNodes, this.slicingCriterion);
+        (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.g.graph, this.slicingCriterion);
     };
     /**
      * Augment val by unique number __id__ field for object tracking

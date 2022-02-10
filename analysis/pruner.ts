@@ -85,19 +85,17 @@ function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: stri
 }
 
 /**
- * Start from nodes at slicingCriterion and nodes of executed break statements and
- * find all of their successors. This is a reachability analysis.
+ * Start from nodes at slicingCriterion and find all of their successors.
+ * This is a reachability analysis.
  * @param graph full execution graph
- * @param executedBreakNodes nodes in graph that represent executed break statements
  * @param slicingCriterion location of criterion
- * @returns collection of nodes at slicingCriterion, executedBreakNodes and all nodes reachable from them.
+ * @returns collection of nodes at slicingCriterion, and all nodes reachable from them.
  */
-function sliceNodes(graph: Core, executedBreakNodes: Collection, slicingCriterion: SourceLocation): Collection {
+ function sliceNodes(graph: Core, slicingCriterion: SourceLocation): Collection {
     const nodesAtCriterion = graph
         .nodes()
         .filter((node) => node.data("loc") && SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")));
-    const startNodes = nodesAtCriterion.union(executedBreakNodes);
-    return startNodes.union(startNodes.successors("node"));
+    return nodesAtCriterion.union(nodesAtCriterion.successors("node"));
 }
 
 /**
@@ -112,12 +110,7 @@ function sliceLocs(nodes: Collection, slicingCriterion: SourceLocation): SourceL
     return locs;
 }
 
-function sliceNodesNew(graph: Core, slicingCriterion: SourceLocation): Collection {
-    const nodesAtCriterion = graph
-        .nodes()
-        .filter((node) => node.data("loc") && SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")));
-    return nodesAtCriterion.union(nodesAtCriterion.successors("node"));
-}
+
 
 /**
  * Do reachability analysis on graph.
@@ -132,10 +125,9 @@ function graphBasedPrune(
     progInPath: PathOrFileDescriptor,
     progOutPath: PathOrFileDescriptor,
     graph: Core,
-    executedBreakNodes: Collection,
     slicingCriterion: SourceLocation
 ): void {
-    const nodes = sliceNodesNew(graph, slicingCriterion);
+    const nodes = sliceNodes(graph, slicingCriterion);
     const locs = sliceLocs(nodes, slicingCriterion);
     const vars: string[] = Array.from(new Set(nodes.map((node) => node.data("varname")).filter((x) => x)));
     const prog = readFileSync(progInPath).toString();

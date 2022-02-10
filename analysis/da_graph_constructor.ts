@@ -325,7 +325,7 @@ class GraphConstructor {
             //this error is expected as it is thrown when the graphs directory esists already
         }
         writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.g.graph.json()));
-        graphBasedPrune(inFilePath, this.outFile, this.g.graph, this.executedBreakNodes, this.slicingCriterion);
+        graphBasedPrune(inFilePath, this.outFile, this.g.graph, this.slicingCriterion);
     }
 
     /**

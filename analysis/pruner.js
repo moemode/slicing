@@ -79,19 +79,17 @@ function prune(prog, relevantLocs, relevant_vars) {
     return (0, recast_1.print)(ast);
 }
 /**
- * Start from nodes at slicingCriterion and nodes of executed break statements and
- * find all of their successors. This is a reachability analysis.
+ * Start from nodes at slicingCriterion and find all of their successors.
+ * This is a reachability analysis.
  * @param graph full execution graph
- * @param executedBreakNodes nodes in graph that represent executed break statements
  * @param slicingCriterion location of criterion
- * @returns collection of nodes at slicingCriterion, executedBreakNodes and all nodes reachable from them.
+ * @returns collection of nodes at slicingCriterion, and all nodes reachable from them.
  */
-function sliceNodes(graph, executedBreakNodes, slicingCriterion) {
+function sliceNodes(graph, slicingCriterion) {
     var nodesAtCriterion = graph
         .nodes()
         .filter(function (node) { return node.data("loc") && datatypes_1.SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")); });
-    var startNodes = nodesAtCriterion.union(executedBreakNodes);
-    return startNodes.union(startNodes.successors("node"));
+    return nodesAtCriterion.union(nodesAtCriterion.successors("node"));
 }
 /**
  * Each node corresponds to exactly one location. Map nodes to these.
@@ -104,12 +102,6 @@ function sliceLocs(nodes, slicingCriterion) {
     locs.push(slicingCriterion);
     return locs;
 }
-function sliceNodesNew(graph, slicingCriterion) {
-    var nodesAtCriterion = graph
-        .nodes()
-        .filter(function (node) { return node.data("loc") && datatypes_1.SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")); });
-    return nodesAtCriterion.union(nodesAtCriterion.successors("node"));
-}
 /**
  * Do reachability analysis on graph.
  * Then prune read the preprocessed program from progInPath, prune it and write it to progOutPath.
@@ -119,8 +111,8 @@ function sliceNodesNew(graph, slicingCriterion) {
  * @param executedBreakNodes nodes in graph that correspond to executed graphs
  * @param slicingCriterion location of criterion
  */
-function graphBasedPrune(progInPath, progOutPath, graph, executedBreakNodes, slicingCriterion) {
-    var nodes = sliceNodesNew(graph, slicingCriterion);
+function graphBasedPrune(progInPath, progOutPath, graph, slicingCriterion) {
+    var nodes = sliceNodes(graph, slicingCriterion);
     var locs = sliceLocs(nodes, slicingCriterion);
     var vars = Array.from(new Set(nodes.map(function (node) { return node.data("varname"); }).filter(function (x) { return x; })));
     var prog = (0, fs_1.readFileSync)(progInPath).toString();
