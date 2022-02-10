@@ -58,6 +58,7 @@ class GraphConstructor {
     /**
      * Handle var name = rhs; and declaration caused by a function parameter.
      * Dependencies: None
+     * State Changes: lastDeclare
      * @param iid static, unique instruction identifier
      * @param name variable name
      * @param val if parameter undefined else value of rhs if exists
@@ -67,19 +68,22 @@ class GraphConstructor {
      */
     declare(iid: string, name: string, val: unknown, _isArgument, _argumentIndex, _isCatchParam): void {
         const declareNode = this.addNode(this.g.createDeclareNode(iidToLoc(iid), name, val));
+        // State changes
         this.lastDeclare[name] = declareNode;
     }
 
     /**
      * Handle be a string literal like 'hi' or an object literal amongst other.
-      * @param iid static, unique instruction identifier
+     * Dependencies: None
+     * State Changes: None
+     * @param iid static, unique instruction identifier
      * @param val value of literal
      * @param _hasGetterSetter 
      * @returns if not object literal nothing -> program uses original val.
      * If object literal -> return val with an uniquely set __id__ field
      * The analyzed program then uses this val istead.
      */
-    literal(iid, val, _hasGetterSetter): { result: unknown } | undefined {
+    literal(iid: string, val: unknown, _hasGetterSetter): { result: unknown } | undefined {
         if (typeof val === "object") {
             this.addId(val);
             for (const [propertyName, propertyValue] of Object.entries(val)) {
@@ -93,29 +97,28 @@ class GraphConstructor {
 
     /**
      * Handle write of value into variable called name.
-     * Dependencies: declaration node for variable name.
+     * Dependencies: declaration node for variable name
+     * State Changes: lastWrite
      * @param _iid
      * @param name variable name
      * @param _val 
      */
     write(_iid: string, name: string, _val: unknown): void {
-        const declareNode = this.lastDeclare[name];
-        if (declareNode) {
-            this.g.addEdge(this.currentNode, declareNode);
-        }
+        this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name])
         this.lastWrite[name] = this.currentNode;
     }
 
     /**
      * Handle read of variable called name.
      * Dependencies: declaration node for variable name + write node of last write to variable
+     * State Changes: readOnlyObjects (if typeof(val) === object)
      * @param _iid 
      * @param name variable name
      * @param val read value
      * @param _isGlobal 
      * @param _isScriptLocal 
      */
-    read(_iid, name: string, val: unknown, _isGlobal: boolean, _isScriptLocal: boolean): void {
+    read(_iid: string, name: string, val: unknown, _isGlobal: boolean, _isScriptLocal: boolean): void {
         //add edges to declare- & last write-node for variable
         this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
         this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name])
@@ -124,39 +127,28 @@ class GraphConstructor {
         }
     }
 
-    addTestDependency(node): void {
-        //found whether the current location has a control dependency
-        const branchDependency = cDepForLoc(node.data.loc, this.controlDeps);
-        if (branchDependency) {
-            //Todo: not going to work because of hash bs
-            const testNode = this.lastTest[Position.toString(branchDependency.testLoc.start)];
-            this.g.addEdge(node, testNode);
-        }
-    }
-
-    findTestDependency(nodeLoc: SourceLocation): cytoscape.NodeSingular | undefined {
-        const branchDependency = cDepForLoc(nodeLoc, this.controlDeps);
-        if (branchDependency) {
-            return this.lastTest[Position.toString(branchDependency.testLoc.start)];
-        }
-    }
-
-    addTestDependencyRefactor(node: cytoscape.NodeSingular): void {
-        const testNode = this.findTestDependency(node.data().loc);
-        if (testNode) {
-            this.g.addEdge(node, testNode);
-        }
-    }
-
-    putField(_iid, base, offset, val, _isComputed, _isOpAssign): void {
-        this.addId(base);
+    /**
+     * Handle base.offset = val.
+     * Dependencies: None
+     * State: readOnlyObjects, lastPut
+     * @param _iid 
+     * @param base base object
+     * @param offset property name
+     * @param val value to be stored in base[offset]
+     * @param _isComputed 
+     * @param _isOpAssign 
+     */
+    putField(_iid: string, base: Record<string, unknown>, offset: string, val: unknown, _isComputed, _isOpAssign): void {
         this.addId(val);
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
-        if (this.lastPut[base.__id__] === undefined) {
-            this.lastPut[base.__id__] = {};
+        //this always succeeds because typoef base === "object"
+        if(this.addId(base)) {
+            if (this.lastPut[base.__id__] === undefined) {
+                this.lastPut[base.__id__] = {};
+            }
+            this.lastPut[base.__id__][offset] = this.currentNode;
         }
-        this.lastPut[base.__id__][offset] = this.currentNode;
     }
 
     getField(_iid, base, offset, val, _isComputed, _isOpAssign, _isMethodCall): void {
@@ -212,7 +204,7 @@ class GraphConstructor {
             line: iidToLoc(iid).start.line,
             type: "expression"
         });
-        this.addTestDependencyRefactor(this.currentNode);
+        this.addTestDependency(this.currentNode);
         for (const objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
                 this.g.addEdge(this.currentNode, putFieldNode);
@@ -272,8 +264,20 @@ class GraphConstructor {
         return true;
     }
 
+    private findTestDependency(nodeLoc: SourceLocation): cytoscape.NodeSingular | undefined {
+        const branchDependency = cDepForLoc(nodeLoc, this.controlDeps);
+        if (branchDependency) {
+            return this.lastTest[Position.toString(branchDependency.testLoc.start)];
+        }
+    }
+    
     private addNode(nodeDef: ElementDefinition): cytoscape.NodeSingular {
         return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
+    }
+
+    private addTestDependency(node: cytoscape.NodeSingular): void {
+        const testNode = this.findTestDependency(node.data().loc);
+        this.g.addEdgeIfBothExist(node, testNode);
     }
 }
 

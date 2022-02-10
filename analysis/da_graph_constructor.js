@@ -63,6 +63,7 @@ var GraphConstructor = /** @class */ (function () {
     /**
      * Handle var name = rhs; and declaration caused by a function parameter.
      * Dependencies: None
+     * State Changes: lastDeclare
      * @param iid static, unique instruction identifier
      * @param name variable name
      * @param val if parameter undefined else value of rhs if exists
@@ -72,11 +73,14 @@ var GraphConstructor = /** @class */ (function () {
      */
     GraphConstructor.prototype.declare = function (iid, name, val, _isArgument, _argumentIndex, _isCatchParam) {
         var declareNode = this.addNode(this.g.createDeclareNode(iidToLoc(iid), name, val));
+        // State changes
         this.lastDeclare[name] = declareNode;
     };
     /**
      * Handle be a string literal like 'hi' or an object literal amongst other.
-      * @param iid static, unique instruction identifier
+     * Dependencies: None
+     * State Changes: None
+     * @param iid static, unique instruction identifier
      * @param val value of literal
      * @param _hasGetterSetter
      * @returns if not object literal nothing -> program uses original val.
@@ -97,21 +101,20 @@ var GraphConstructor = /** @class */ (function () {
     };
     /**
      * Handle write of value into variable called name.
-     * Dependencies: declaration node for variable name.
+     * Dependencies: declaration node for variable name
+     * State Changes: lastWrite
      * @param _iid
      * @param name variable name
      * @param _val
      */
     GraphConstructor.prototype.write = function (_iid, name, _val) {
-        var declareNode = this.lastDeclare[name];
-        if (declareNode) {
-            this.g.addEdge(this.currentNode, declareNode);
-        }
+        this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
         this.lastWrite[name] = this.currentNode;
     };
     /**
      * Handle read of variable called name.
      * Dependencies: declaration node for variable name + write node of last write to variable
+     * State Changes: readOnlyObjects (if typeof(val) === object)
      * @param _iid
      * @param name variable name
      * @param val read value
@@ -126,36 +129,28 @@ var GraphConstructor = /** @class */ (function () {
             this.readOnlyObjects.push(val.__id__);
         }
     };
-    GraphConstructor.prototype.addTestDependency = function (node) {
-        //found whether the current location has a control dependency
-        var branchDependency = (0, control_deps_1.cDepForLoc)(node.data.loc, this.controlDeps);
-        if (branchDependency) {
-            //Todo: not going to work because of hash bs
-            var testNode = this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
-            this.g.addEdge(node, testNode);
-        }
-    };
-    GraphConstructor.prototype.findTestDependency = function (nodeLoc) {
-        var branchDependency = (0, control_deps_1.cDepForLoc)(nodeLoc, this.controlDeps);
-        if (branchDependency) {
-            return this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
-        }
-    };
-    GraphConstructor.prototype.addTestDependencyRefactor = function (node) {
-        var testNode = this.findTestDependency(node.data().loc);
-        if (testNode) {
-            this.g.addEdge(node, testNode);
-        }
-    };
+    /**
+     * Handle base.offset = val.
+     * Dependencies: None
+     * State: readOnlyObjects, lastPut
+     * @param _iid
+     * @param base base object
+     * @param offset property name
+     * @param val value to be stored in base[offset]
+     * @param _isComputed
+     * @param _isOpAssign
+     */
     GraphConstructor.prototype.putField = function (_iid, base, offset, val, _isComputed, _isOpAssign) {
-        this.addId(base);
         this.addId(val);
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
-        if (this.lastPut[base.__id__] === undefined) {
-            this.lastPut[base.__id__] = {};
+        //this always succeeds because typoef base === "object"
+        if (this.addId(base)) {
+            if (this.lastPut[base.__id__] === undefined) {
+                this.lastPut[base.__id__] = {};
+            }
+            this.lastPut[base.__id__][offset] = this.currentNode;
         }
-        this.lastPut[base.__id__][offset] = this.currentNode;
     };
     GraphConstructor.prototype.getField = function (_iid, base, offset, val, _isComputed, _isOpAssign, _isMethodCall) {
         this.addId(val);
@@ -208,7 +203,7 @@ var GraphConstructor = /** @class */ (function () {
             line: iidToLoc(iid).start.line,
             type: "expression"
         });
-        this.addTestDependencyRefactor(this.currentNode);
+        this.addTestDependency(this.currentNode);
         for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {
             var objectId = _a[_i];
             for (var _b = 0, _c = Object.entries(this.lastPut[objectId]); _b < _c.length; _b++) {
@@ -266,8 +261,18 @@ var GraphConstructor = /** @class */ (function () {
         }
         return true;
     };
+    GraphConstructor.prototype.findTestDependency = function (nodeLoc) {
+        var branchDependency = (0, control_deps_1.cDepForLoc)(nodeLoc, this.controlDeps);
+        if (branchDependency) {
+            return this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
+        }
+    };
     GraphConstructor.prototype.addNode = function (nodeDef) {
         return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
+    };
+    GraphConstructor.prototype.addTestDependency = function (node) {
+        var testNode = this.findTestDependency(node.data().loc);
+        this.g.addEdgeIfBothExist(node, testNode);
     };
     return GraphConstructor;
 }());
