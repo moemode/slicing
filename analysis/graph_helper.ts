@@ -10,7 +10,6 @@ class GraphHelper {
         this.graph = graph;
     }
 
-
     addEdge(source: cytoscape.NodeSingular, target: cytoscape.NodeSingular): void {
         this.graph.add({
             group: <const>"edges",
@@ -22,9 +21,9 @@ class GraphHelper {
         });
     }
 
-    addNode(nodeDef: ElementDefinition, testNode?: cytoscape.NodeSingular): cytoscape.NodeSingular{
+    addNode(nodeDef: ElementDefinition, testNode?: cytoscape.NodeSingular): cytoscape.NodeSingular {
         const node = this.graph.add(nodeDef).nodes()[0];
-        if(testNode) {
+        if (testNode) {
             this.addEdge(node, testNode);
         }
         return node;
@@ -43,7 +42,6 @@ class GraphHelper {
         return node;
     }
 
-
     createTestNode(test, result): ElementDefinition {
         return this.createNode({
             loc: test.loc,
@@ -51,7 +49,7 @@ class GraphHelper {
             val: result,
             line: test.loc.start.line,
             type: `${test.type}-test`,
-            name: `${test.type}-test`,
+            name: `${test.type}-test`
         });
     }
 
@@ -72,9 +70,8 @@ class GraphHelper {
             lloc: loc.toString(),
             line: loc.start.line,
             name: `break`
-        })
+        });
     }
-
 }
 
 export { GraphHelper };

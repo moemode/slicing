@@ -26,7 +26,7 @@ class GraphConstructor {
     g: GraphHelper = new GraphHelper(cytoscape()); // helper containing the graph itself
     executedBreakNodes: Collection; // contains one node per executed break statement
     nextObjectId = 1; // used by this.addId to make objects identifiable
-    lastWrite: Record<string, cytoscape.NodeSingular> = {}; // lastWrite[variableName] == most reent write-node for variableName 
+    lastWrite: Record<string, cytoscape.NodeSingular> = {}; // lastWrite[variableName] == most reent write-node for variableName
     lastDeclare: Record<string, cytoscape.NodeSingular> = {}; // lastDeclare[variableName] == declare-nodef for variableName
     lastPut: Record<string, Record<number, cytoscape.NodeSingular>> = {}; // lastPut[objectId][offset] == most recent put-node
     lastTest: Record<string, cytoscape.NodeSingular> = {}; // lastTest[testLoc.toString()] == most recent test-node
@@ -125,7 +125,7 @@ class GraphConstructor {
 
     addTestDependencyRefactor(node: cytoscape.NodeSingular): void {
         const testNode = this.findTestDependency(node.data().loc);
-        if(testNode) {
+        if (testNode) {
             this.g.addEdge(node, testNode);
         }
     }
@@ -254,7 +254,7 @@ class GraphConstructor {
     }
 
     private addNode(nodeDef: ElementDefinition): cytoscape.NodeSingular {
-        return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc))
+        return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
     }
 }
 

@@ -39,7 +39,7 @@ var GraphConstructor = /** @class */ (function () {
         /** Analysis Global State: Graph + Most-Recent (i.e. 'last') Information */
         this.g = new graph_helper_1.GraphHelper(cytoscape()); // helper containing the graph itself
         this.nextObjectId = 1; // used by this.addId to make objects identifiable
-        this.lastWrite = {}; // lastWrite[variableName] == most reent write-node for variableName 
+        this.lastWrite = {}; // lastWrite[variableName] == most reent write-node for variableName
         this.lastDeclare = {}; // lastDeclare[variableName] == declare-nodef for variableName
         this.lastPut = {}; // lastPut[objectId][offset] == most recent put-node
         this.lastTest = {}; // lastTest[testLoc.toString()] == most recent test-node

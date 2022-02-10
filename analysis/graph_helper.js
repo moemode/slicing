@@ -42,7 +42,7 @@ var GraphHelper = /** @class */ (function () {
             val: result,
             line: test.loc.start.line,
             type: "".concat(test.type, "-test"),
-            name: "".concat(test.type, "-test"),
+            name: "".concat(test.type, "-test")
         });
     };
     GraphHelper.prototype.createDeclareNode = function (loc, name, val) {
