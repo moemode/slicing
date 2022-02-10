@@ -63,7 +63,6 @@ class GraphConstructor {
         const node = {
             group: <const>"nodes",
             data: { id: `n${this.nextNodeId++}` },
-            callerLoc: this.currentCallerLoc
         };
         this.currentNode = node;
         this.currentNodeInGraph = this.graph.add(node);
@@ -193,6 +192,10 @@ class GraphConstructor {
                 this.addEdge(this.currentNode, testNode);
             }
         }
+    }
+
+    functionEnter(iid: string): void {
+        this.endExpression(iid);
     }
 
     endExpression(iid: string): void {

@@ -64,7 +64,6 @@ var GraphConstructor = /** @class */ (function () {
         var node = {
             group: "nodes",
             data: { id: "n".concat(this.nextNodeId++) },
-            callerLoc: this.currentCallerLoc
         };
         this.currentNode = node;
         this.currentNodeInGraph = this.graph.add(node);
@@ -188,6 +187,9 @@ var GraphConstructor = /** @class */ (function () {
                 this.addEdge(this.currentNode, testNode);
             }
         }
+    };
+    GraphConstructor.prototype.functionEnter = function (iid) {
+        this.endExpression(iid);
     };
     GraphConstructor.prototype.endExpression = function (iid) {
         var loc = iidToLoc(iid);
