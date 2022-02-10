@@ -175,38 +175,57 @@ var GraphConstructor = /** @class */ (function () {
             }
         }
     };
+    /**
+     * Handle a condition check before branching.
+     * Branching can happen in various statements including if-then-else, switch-case, while, for, ||, &&, ?:.
+     * @param iid static, unique instruction identifier
+     * @param result true iff branch is taken
+     * @returns
+     */
     GraphConstructor.prototype.conditional = function (iid, result) {
         var loc = iidToLoc(iid);
+        // break markers are of form if(true) break; -> detect them in conditional
         if (this.handleBreak(loc)) {
             return;
         }
         else {
             var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
-            if (test) {
-                console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
-                var testNode = this.g.addNode(this.g.createTestNode(test, result));
-                //currentExprNodes were created for the for/if test
-                this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
-                //TODO: Only include read nodes?
-                this.g.addEdge(testNode, this.currentNode);
-                this.g.addEdge(this.currentNode, testNode);
-            }
+            var testNode = this.g.addNode(this.g.createTestNode(loc, result, test === null || test === void 0 ? void 0 : test.type));
+            //currentExprNodes were created for the for/if test
+            this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
+            //TODO: Only include read nodes?
+            this.g.addEdge(testNode, this.currentNode);
+            this.g.addEdge(this.currentNode, testNode);
         }
     };
+    /**
+     * On entering the function there is a read of the function name
+     * Get a new currentNode for the first line in the function body.
+     * @param iid static, unique instruction identifier
+     */
     GraphConstructor.prototype.functionEnter = function (iid) {
         this.endExpression(iid);
     };
+    /**
+     * @dependencies test-node the expression depends on if exists,
+     * all put-nodes for all objects in readOnlyObjects
+     * @state-changes reset readOnlyObject, currentNode
+     * @param iid
+     */
     GraphConstructor.prototype.endExpression = function (iid) {
+        this.handleSwitch(iid); // handle if its a switch-discriminator
+        /**
+         * update currentNode which represents the current expression which has no finished
+         * only here we learn its location and use it to find control deps
+         */
         var loc = iidToLoc(iid);
-        //switch expression does not result in callback to this.conditional -> handle it here
-        this.handleSwitch(loc);
         this.currentNode.data({
             loc: loc,
             lloc: loc.toString(),
-            line: iidToLoc(iid).start.line,
-            type: "expression"
+            line: loc.start.line,
         });
         this.addTestDependency(this.currentNode);
+        // currentNode depends on  all put-nodes for all objects in readOnlyObjects 
         for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {
             var objectId = _a[_i];
             for (var _b = 0, _c = Object.entries(this.lastPut[objectId]); _b < _c.length; _b++) {
@@ -215,18 +234,16 @@ var GraphConstructor = /** @class */ (function () {
             }
             this.lastPut[objectId];
         }
+        // reset current expression state
         this.readOnlyObjects = [];
         this.currentNode = this.g.addCurrentNode();
     };
-    GraphConstructor.prototype.handleSwitch = function (loc) {
+    GraphConstructor.prototype.handleSwitch = function (iid) {
+        var loc = iidToLoc(iid);
         var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test && test.type === "switch-disc") {
-            // todo duplicate of conditional
-            console.log("Detected switch discriminant: at l " + test.loc.start.line);
-            var testNode = this.addNode(this.g.createTestNode(test, "case-disc"));
-            //currentExprNodes were created for the for/if test
+            var testNode = this.addNode(this.g.createTestNode(test.loc, true, "switch-disc"));
             this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
-            //TODO: Only include read nodes?
             this.g.addEdge(testNode, this.currentNode);
             return true;
         }

@@ -33,7 +33,7 @@ var GraphHelper = /** @class */ (function () {
         return node;
     };
     GraphHelper.prototype.addCurrentNode = function () {
-        return this.graph.add(this.createNode({})).nodes()[0];
+        return this.graph.add(this.createNode({ type: "expression" })).nodes()[0];
     };
     GraphHelper.prototype.createNode = function (data) {
         var node = {
@@ -43,14 +43,17 @@ var GraphHelper = /** @class */ (function () {
         node.data.id = "n".concat(this.nextNodeId++);
         return node;
     };
-    GraphHelper.prototype.createTestNode = function (test, result) {
+    GraphHelper.prototype.createTestNode = function (loc, result, type) {
+        if (type === undefined) {
+            type = "unknown";
+        }
         return this.createNode({
-            loc: test.loc,
-            lloc: test.loc.toString(),
-            val: result,
-            line: test.loc.start.line,
-            type: "".concat(test.type, "-test"),
-            name: "".concat(test.type, "-test")
+            loc: loc,
+            lloc: loc.toString(),
+            val: String(result),
+            line: loc.start.line,
+            type: "".concat(type, "-test"),
+            name: "".concat(type, "-test")
         });
     };
     GraphHelper.prototype.createDeclareNode = function (loc, name, val) {

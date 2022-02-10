@@ -38,7 +38,7 @@ class GraphHelper {
     }
 
     addCurrentNode(): cytoscape.NodeSingular {
-        return this.graph.add(this.createNode({})).nodes()[0];
+        return this.graph.add(this.createNode({type: "expression"})).nodes()[0];
     }
 
     createNode(data): ElementDefinition {
@@ -50,14 +50,17 @@ class GraphHelper {
         return node;
     }
 
-    createTestNode(test, result): ElementDefinition {
+    createTestNode(loc: SourceLocation, result: boolean, type?: string): ElementDefinition {
+        if(type === undefined) {
+            type = "unknown";
+        }
         return this.createNode({
-            loc: test.loc,
-            lloc: test.loc.toString(),
-            val: result,
-            line: test.loc.start.line,
-            type: `${test.type}-test`,
-            name: `${test.type}-test`
+            loc,
+            lloc: loc.toString(),
+            val: String(result),
+            line: loc.start.line,
+            type: `${type}-test`,
+            name: `${type}-test`
         });
     }
 

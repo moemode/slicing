@@ -51,7 +51,7 @@ class GraphConstructor {
         this.bmarkers = JSON.parse(readFileSync(this.bmarkerPath).toString()).map((obj) => SourceLocation.fromJSON(obj));
         [this.controlDeps, this.tests] = controlDependencies(originalFilePath);
         this.executedBreakNodes = this.g.graph.collection();
-        this.readOnlyObjects = []; 
+        this.readOnlyObjects = [];
         this.currentNode = this.g.addCurrentNode();
     }
 
@@ -143,7 +143,7 @@ class GraphConstructor {
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
         //this always succeeds because typoef base === "object"
-        if(this.isIdentifiable(base)) {
+        if (this.isIdentifiable(base)) {
             if (this.lastPut[base.__id__] === undefined) {
                 this.lastPut[base.__id__] = {};
             }
@@ -162,7 +162,7 @@ class GraphConstructor {
         if (this.isIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
-        if(this.isIdentifiable(base)) {
+        if (this.isIdentifiable(base)) {
             const baseObjectPuts = this.lastPut[base.__id__];
             // there might not have been any puts
             if (baseObjectPuts !== undefined) {
@@ -175,58 +175,75 @@ class GraphConstructor {
         }
     }
 
+    /**
+     * Handle a condition check before branching. 
+     * Branching can happen in various statements including if-then-else, switch-case, while, for, ||, &&, ?:. 
+     * @param iid static, unique instruction identifier
+     * @param result true iff branch is taken
+     * @returns 
+     */
     conditional(iid: string, result: boolean): void {
         const loc = iidToLoc(iid);
+        // break markers are of form if(true) break; -> detect them in conditional
         if (this.handleBreak(loc)) {
             return;
         } else {
-            const test = this.tests.find((t) => SourceLocation.locEq(t.loc, loc));
-            if (test) {
-                console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
-                const testNode = this.g.addNode(this.g.createTestNode(test, result));
-                //currentExprNodes were created for the for/if test
-                this.lastTest[Position.toString(test.loc.start)] = testNode;
-                //TODO: Only include read nodes?
-                this.g.addEdge(testNode, this.currentNode);
-                this.g.addEdge(this.currentNode, testNode);
-            }
+            const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
+            const testNode = this.g.addNode(this.g.createTestNode(loc, result, test?.type));
+            //currentExprNodes were created for the for/if test
+            this.lastTest[Position.toString(test.loc.start)] = testNode;
+            //TODO: Only include read nodes?
+            this.g.addEdge(testNode, this.currentNode);
+            this.g.addEdge(this.currentNode, testNode);
         }
     }
 
+    /**
+     * On entering the function there is a read of the function name
+     * Get a new currentNode for the first line in the function body.
+     * @param iid static, unique instruction identifier
+     */
     functionEnter(iid: string): void {
         this.endExpression(iid);
     }
 
+    /**
+     * @dependencies test-node the expression depends on if exists,
+     * all put-nodes for all objects in readOnlyObjects 
+     * @state-changes reset readOnlyObject, currentNode
+     * @param iid 
+     */
     endExpression(iid: string): void {
+        this.handleSwitch(iid); // handle if its a switch-discriminator
+        /**
+         * update currentNode which represents the current expression which has no finished
+         * only here we learn its location and use it to find control deps
+         */
         const loc = iidToLoc(iid);
-        //switch expression does not result in callback to this.conditional -> handle it here
-        this.handleSwitch(loc);
         this.currentNode.data({
             loc,
             lloc: loc.toString(),
-            line: iidToLoc(iid).start.line,
-            type: "expression"
+            line: loc.start.line,
         });
         this.addTestDependency(this.currentNode);
+        // currentNode depends on  all put-nodes for all objects in readOnlyObjects 
         for (const objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
                 this.g.addEdge(this.currentNode, putFieldNode);
             }
             this.lastPut[objectId];
         }
+        // reset current expression state
         this.readOnlyObjects = [];
         this.currentNode = this.g.addCurrentNode();
     }
 
-    handleSwitch(loc: SourceLocation): boolean {
+    handleSwitch(iid: string): boolean {
+        const loc = iidToLoc(iid);
         const test = this.tests.find((t) => SourceLocation.locEq(t.loc, loc));
         if (test && test.type === "switch-disc") {
-            // todo duplicate of conditional
-            console.log("Detected switch discriminant: at l " + test.loc.start.line);
-            const testNode = this.addNode(this.g.createTestNode(test, "case-disc"));
-            //currentExprNodes were created for the for/if test
+            const testNode = this.addNode(this.g.createTestNode(test.loc, true, "switch-disc"));
             this.lastTest[Position.toString(test.loc.start)] = testNode;
-            //TODO: Only include read nodes?
             this.g.addEdge(testNode, this.currentNode);
             return true;
         }
@@ -273,7 +290,7 @@ class GraphConstructor {
             return this.lastTest[Position.toString(branchDependency.testLoc.start)];
         }
     }
-    
+
     private addNode(nodeDef: ElementDefinition): cytoscape.NodeSingular {
         return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
     }
