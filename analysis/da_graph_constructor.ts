@@ -18,6 +18,9 @@ class GraphConstructor {
     nextEdgeId = 1;
     outFile = J$.initParams["outFile"];
 
+    nextObjectId = 1;
+
+
     slicingCriterion: SourceLocation;
     bmarkerPath = J$.initParams["bmarkerPath"];
     bmarkers: SourceLocation[] = [];
@@ -30,14 +33,13 @@ class GraphConstructor {
     lastWrites = {};
     lastDeclare = {};
     //lastPut[objectId][offset] = putNode
-    lastPut = {};
-    nextObjectIds = 1;
+    lastPut: Record<string, Record<number, cytoscape.NodeSingular>> = {};
     // maps string representation of test location to most recent test node for that test
     lastTest: Record<string, cytoscape.NodeSingular> = {};
 
+
     controlDeps: ControlDependency[];
     tests: Test[];
-
     currentNode: cytoscape.NodeSingular;
 
     initializeCriterion(): void {
@@ -64,7 +66,7 @@ class GraphConstructor {
 
     declare(iid, name, val, isArgument, argumentIndex, isCatchParam): void {
         //const declareNode = this.addDeclareNode(iid, name, val);
-        const declareNode = this.addNodeRefactor(this.createDeclareNode(iid, name, val));
+        const declareNode = this.addNode(this.createDeclareNode(iid, name, val));
         this.lastDeclare[name] = declareNode;
     }
 
@@ -89,7 +91,7 @@ class GraphConstructor {
     write(iid: string, name: string, val: unknown): void {
         const declareNode = this.lastDeclare[name];
         if (declareNode) {
-            this.addEdgeRefactor(this.currentNode, declareNode);
+            this.addEdge(this.currentNode, declareNode);
         }
         this.lastWrites[name] = this.currentNode;
     }
@@ -98,7 +100,7 @@ class GraphConstructor {
         this.addId(val);
         const declareNode = this.lastDeclare[name];
         if (declareNode) {
-            this.addEdgeRefactor(this.currentNode, declareNode);
+            this.addEdge(this.currentNode, declareNode);
         }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
@@ -109,7 +111,7 @@ class GraphConstructor {
         const lastWriteNode = this.lastWrites[name];
         //read without write happens when undefined read
         if (lastWriteNode) {
-            this.addEdgeRefactor(readNode, lastWriteNode);
+            this.addEdge(readNode, lastWriteNode);
         }
     }
 
@@ -119,7 +121,7 @@ class GraphConstructor {
         if (branchDependency) {
             //Todo: not going to work because of hash bs
             const testNode = this.lastTest[Position.toString(branchDependency.testLoc.start)];
-            this.addEdgeRefactor(node, testNode);
+            this.addEdge(node, testNode);
         }
     }
 
@@ -133,7 +135,7 @@ class GraphConstructor {
     addTestDependencyRefactor(node: cytoscape.NodeSingular): void {
         const testNode = this.findTestDependency(node);
         if(testNode) {
-            this.addEdgeRefactor(node, testNode);
+            this.addEdge(node, testNode);
         }
     }
 
@@ -163,7 +165,7 @@ class GraphConstructor {
         if (baseObjectPuts !== undefined) {
             const putFieldNode = this.lastPut[base.__id__][offset];
             if (putFieldNode) {
-                this.addEdgeRefactor(getFieldNode, putFieldNode);
+                this.addEdge(getFieldNode, putFieldNode);
             }
         }
         this.addId(val);
@@ -177,12 +179,12 @@ class GraphConstructor {
             const test = this.tests.find((t) => SourceLocation.locEq(t.loc, loc));
             if (test) {
                 console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
-                const testNode = this.addNodeRefactor(this.createTestNode(test, result));
+                const testNode = this.addNode(this.createTestNode(test, result));
                 //currentExprNodes were created for the for/if test
                 this.lastTest[Position.toString(test.loc.start)] = testNode;
                 //TODO: Only include read nodes?
-                this.addEdgeRefactor(testNode, this.currentNode);
-                this.addEdgeRefactor(this.currentNode, testNode);
+                this.addEdge(testNode, this.currentNode);
+                this.addEdge(this.currentNode, testNode);
             }
         }
     }
@@ -204,7 +206,7 @@ class GraphConstructor {
         this.addTestDependencyRefactor(this.currentNode);
         for (const objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
-                this.addEdgeRefactor(this.currentNode, putFieldNode);
+                this.addEdge(this.currentNode, putFieldNode);
             }
             this.lastPut[objectId];
         }
@@ -217,11 +219,11 @@ class GraphConstructor {
         if (test && test.type === "switch-disc") {
             // todo duplicate of conditional
             console.log("Detected switch discriminant: at l " + test.loc.start.line);
-            const testNode = this.addNodeRefactor(this.createTestNode(test, "case-disc"));
+            const testNode = this.addNode(this.createTestNode(test, "case-disc"));
             //currentExprNodes were created for the for/if test
             this.lastTest[Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
-            this.addEdgeRefactor(testNode, this.currentNode);
+            this.addEdge(testNode, this.currentNode);
             return true;
         }
         return false;
@@ -233,7 +235,7 @@ class GraphConstructor {
         )[0];
         if (loc) {
             this.executedIfTrueBreaks.push(loc);
-            const breakNode = this.addNodeRefactor(this.createBreakNode(loc));
+            const breakNode = this.addNode(this.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
             return true;
         }
@@ -257,11 +259,11 @@ class GraphConstructor {
             return;
         }
         if (val.__id__ === undefined) {
-            val.__id__ = this.nextObjectIds++;
+            val.__id__ = this.nextObjectId++;
         }
     }
 
-    private addEdgeRefactor(source: cytoscape.NodeSingular, target: cytoscape.NodeSingular): void {
+    private addEdge(source: cytoscape.NodeSingular, target: cytoscape.NodeSingular): void {
         this.graph.add({
             group: <const>"edges",
             data: {
@@ -317,7 +319,7 @@ class GraphConstructor {
         return this.graph.add(this.createNode({})).nodes()[0];
     }
 
-    private addNodeRefactor(nodeDef: ElementDefinition): cytoscape.NodeSingular {
+    private addNode(nodeDef: ElementDefinition): cytoscape.NodeSingular {
         const node = this.graph.add(nodeDef).nodes()[0];
         this.addTestDependencyRefactor(node);
         return node;
