@@ -77,6 +77,7 @@ var GraphConstructor = /** @class */ (function () {
             val: String(val),
             type: "declare"
         });
+        //const declareNode = this.addDeclareNode(iid, name, val);
         this.lastDeclare[name] = declareNode;
     };
     GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
@@ -153,14 +154,6 @@ var GraphConstructor = /** @class */ (function () {
         }
         //no retrievalNode if val is of primitive type not an object
         var baseObjectPuts = this.lastPut[base.__id__];
-        /*
-        When there is no put for this field on the object it might have been created by a literal.
-        But then we must have read a variable containing this object and the read node
-        transitively depends on this write of the  into a original variable
-        */
-        if (baseObjectPuts == undefined) {
-            console.log("baseObjectPuts undefined");
-        }
         if (baseObjectPuts !== undefined) {
             var putFieldNode = this.lastPut[base.__id__][offset];
             if (putFieldNode) {
@@ -265,14 +258,7 @@ var GraphConstructor = /** @class */ (function () {
         }
     };
     GraphConstructor.prototype.addNode = function (data) {
-        var node = {
-            group: "nodes",
-            data: data
-        };
-        node.data.id = "n".concat(this.nextNodeId++);
-        if (this.currentCallerLoc) {
-            node.data.callerLoc = this.currentCallerLoc;
-        }
+        var node = this.createNode(data);
         this.graph.add(node);
         return node;
     };
@@ -286,39 +272,59 @@ var GraphConstructor = /** @class */ (function () {
             }
         });
     };
-    GraphConstructor.prototype.addTestNode = function (test, result) {
-        var testNode = {
+    GraphConstructor.prototype.createNode = function (data) {
+        var node = {
             group: "nodes",
-            data: {
-                id: "n".concat(this.nextNodeId++),
-                loc: test.loc,
-                lloc: test.loc.toString(),
-                val: result,
-                line: test.loc.start.line,
-                type: "".concat(test.type, "-test"),
-                name: "".concat(test.type, "-test"),
-                callerLoc: this.currentCallerLoc
-            }
+            data: data
         };
-        this.graph.add(testNode);
-        this.addTestDependency(testNode);
+        node.data.id = "n".concat(this.nextNodeId++);
+        return node;
+    };
+    GraphConstructor.prototype.createTestNode = function (test, result) {
+        return this.createNode({
+            loc: test.loc,
+            lloc: test.loc.toString(),
+            val: result,
+            line: test.loc.start.line,
+            type: "".concat(test.type, "-test"),
+            name: "".concat(test.type, "-test"),
+        });
+    };
+    GraphConstructor.prototype.createDeclareNode = function (line, name, val) {
+        return this.createNode({
+            line: line,
+            name: name,
+            varname: name,
+            val: String(val),
+            type: "declare"
+        });
+    };
+    GraphConstructor.prototype.createBreakNode = function (loc) {
+        return this.createNode({
+            loc: loc,
+            lloc: loc.toString(),
+            line: loc.start.line,
+            name: "break"
+        });
+    };
+    GraphConstructor.prototype.addNodeNew = function (node) {
+        var c = this.graph.add(node);
+        this.addTestDependency(node);
+        return c.nodes()[0];
+    };
+    GraphConstructor.prototype.addDeclareNode = function (iid, name, val) {
+        var declareNode = this.createDeclareNode(iidToLoc(iid).start.line, name, val);
+        this.addNodeNew(declareNode);
+        return declareNode;
+    };
+    GraphConstructor.prototype.addTestNode = function (test, result) {
+        var testNode = this.createTestNode(test, result);
+        this.addNodeNew(testNode);
         return testNode;
     };
     GraphConstructor.prototype.addBreakNode = function (loc) {
-        var breakNode = {
-            group: "nodes",
-            data: {
-                id: "n".concat(this.nextNodeId++),
-                loc: loc,
-                lloc: loc.toString(),
-                line: loc.start.line,
-                name: "break",
-                callerLoc: this.currentCallerLoc
-            }
-        };
-        var bNode = this.graph.add(breakNode);
-        this.addTestDependency(breakNode);
-        return bNode;
+        var breakNode = this.createBreakNode(loc);
+        return this.addNodeNew(breakNode);
     };
     return GraphConstructor;
 }());

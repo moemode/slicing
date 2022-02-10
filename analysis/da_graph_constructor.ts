@@ -77,10 +77,11 @@ class GraphConstructor {
             val: String(val),
             type: "declare"
         });
+        //const declareNode = this.addDeclareNode(iid, name, val);
         this.lastDeclare[name] = declareNode;
     }
 
-    literal(iid, val, hasGetterSetter) {
+    literal(iid, val, hasGetterSetter): { result: unknown } {
         if (typeof val === "object") {
             this.addId(val);
             for (const [propertyName, propertyValue] of Object.entries(val)) {
@@ -158,14 +159,6 @@ class GraphConstructor {
         }
         //no retrievalNode if val is of primitive type not an object
         const baseObjectPuts = this.lastPut[base.__id__];
-        /* 
-        When there is no put for this field on the object it might have been created by a literal.
-        But then we must have read a variable containing this object and the read node
-        transitively depends on this write of the  into a original variable
-        */
-        if (baseObjectPuts == undefined) {
-            console.log("baseObjectPuts undefined");
-        }
         if (baseObjectPuts !== undefined) {
             const putFieldNode = this.lastPut[base.__id__][offset];
             if (putFieldNode) {
@@ -245,7 +238,7 @@ class GraphConstructor {
         )[0];
         if (loc) {
             this.executedIfTrueBreaks.push(loc);
-            const breakNode: Collection = this.addBreakNode(loc);
+            const breakNode = this.addBreakNode(loc);
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
             return true;
         }
@@ -274,17 +267,12 @@ class GraphConstructor {
     }
 
     private addNode(data): ElementDefinition {
-        const node = {
-            group: <const>"nodes",
-            data: data
-        };
-        node.data.id = `n${this.nextNodeId++}`;
-        if (this.currentCallerLoc) {
-            node.data.callerLoc = this.currentCallerLoc;
-        }
+        const node = this.createNode(data);
         this.graph.add(node);
         return node;
     }
+
+
 
     private addEdge(source, target): void {
         this.graph.add({
@@ -297,40 +285,66 @@ class GraphConstructor {
         });
     }
 
-    private addTestNode(test, result) {
-        const testNode = {
+    private createNode(data): ElementDefinition {
+        const node = {
             group: <const>"nodes",
-            data: {
-                id: `n${this.nextNodeId++}`,
-                loc: test.loc,
-                lloc: test.loc.toString(),
-                val: result,
-                line: test.loc.start.line,
-                type: `${test.type}-test`,
-                name: `${test.type}-test`,
-                callerLoc: this.currentCallerLoc
-            }
+            data: data
         };
-        this.graph.add(testNode);
-        this.addTestDependency(testNode);
+        node.data.id = `n${this.nextNodeId++}`;
+        return node;
+    }
+
+    private createTestNode(test, result): ElementDefinition {
+        return this.createNode({
+            loc: test.loc,
+            lloc: test.loc.toString(),
+            val: result,
+            line: test.loc.start.line,
+            type: `${test.type}-test`,
+            name: `${test.type}-test`,
+        });
+    }
+
+    private createDeclareNode(line, name, val): ElementDefinition {
+        return this.createNode({
+            line,
+            name: name,
+            varname: name,
+            val: String(val),
+            type: "declare"
+        });
+    }
+
+    private createBreakNode(loc: SourceLocation): ElementDefinition {
+        return this.createNode({
+            loc: loc,
+            lloc: loc.toString(),
+            line: loc.start.line,
+            name: `break`
+        })
+    }
+
+    private addNodeNew(node): cytoscape.NodeSingular {
+        const c: cytoscape.Collection = this.graph.add(node);
+        this.addTestDependency(node);
+        return c.nodes()[0];
+    }
+
+    private addDeclareNode(iid, name, val): ElementDefinition {
+        const declareNode = this.createDeclareNode(iidToLoc(iid).start.line, name, val);
+        this.addNodeNew(declareNode);
+        return declareNode;
+    }
+
+    private addTestNode(test, result): ElementDefinition {
+        const testNode = this.createTestNode(test, result);
+        this.addNodeNew(testNode);
         return testNode;
     }
 
-    private addBreakNode(loc: SourceLocation) {
-        const breakNode = {
-            group: <const>"nodes",
-            data: {
-                id: `n${this.nextNodeId++}`,
-                loc: loc,
-                lloc: loc.toString(),
-                line: loc.start.line,
-                name: `break`,
-                callerLoc: this.currentCallerLoc
-            }
-        };
-        const bNode: cytoscape.Collection = this.graph.add(breakNode);
-        this.addTestDependency(breakNode);
-        return bNode;
+    private addBreakNode(loc: SourceLocation): cytoscape.NodeSingular {
+        const breakNode = this.createBreakNode(loc);
+        return this.addNodeNew(breakNode);
     }
 }
 
