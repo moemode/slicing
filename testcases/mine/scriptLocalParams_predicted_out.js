@@ -1,5 +1,10 @@
 function sliceMe(arr) {
-    if (arr[length-1] > 0){}
+    var length = arr.length;
+    var status = "invalid";
+    if (arr[length-1] > 0){
+        status = "valid";//slicing criterion
+    }
 }
 
+var a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 sliceMe(a);

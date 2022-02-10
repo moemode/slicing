@@ -61,16 +61,11 @@ var GraphConstructor = /** @class */ (function () {
         this.bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
         _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
         this.executedBreakNodes = this.graph.collection();
-        var node = {
-            group: "nodes",
-            data: { id: "n".concat(this.nextNodeId++) },
-        };
-        this.currentNode = node;
-        this.currentNodeInGraph = this.graph.add(node);
+        this.currentNode = this.addCurrentNode();
     };
     GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
         //const declareNode = this.addDeclareNode(iid, name, val);
-        var declareNode = this.addNodeRefacor(this.createDeclareNode(iid, name, val));
+        var declareNode = this.addNodeRefactor(this.createDeclareNode(iid, name, val));
         this.lastDeclare[name] = declareNode;
     };
     GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
@@ -94,7 +89,7 @@ var GraphConstructor = /** @class */ (function () {
     GraphConstructor.prototype.write = function (iid, name, val) {
         var declareNode = this.lastDeclare[name];
         if (declareNode) {
-            this.addEdge(this.currentNode, declareNode);
+            this.addEdgeRefactor(this.currentNode, declareNode);
         }
         this.lastWrites[name] = this.currentNode;
     };
@@ -102,7 +97,7 @@ var GraphConstructor = /** @class */ (function () {
         this.addId(val);
         var declareNode = this.lastDeclare[name];
         if (declareNode) {
-            this.addEdge(this.currentNode, declareNode);
+            this.addEdgeRefactor(this.currentNode, declareNode);
         }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
@@ -113,7 +108,7 @@ var GraphConstructor = /** @class */ (function () {
         var lastWriteNode = this.lastWrites[name];
         //read without write happens when undefined read
         if (lastWriteNode) {
-            this.addEdge(readNode, lastWriteNode);
+            this.addEdgeRefactor(readNode, lastWriteNode);
         }
     };
     GraphConstructor.prototype.addTestDependency = function (node) {
@@ -122,14 +117,19 @@ var GraphConstructor = /** @class */ (function () {
         if (branchDependency) {
             //Todo: not going to work because of hash bs
             var testNode = this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
-            this.addEdge(node, testNode);
+            this.addEdgeRefactor(node, testNode);
         }
     };
     GraphConstructor.prototype.findTestDependency = function (node) {
-        var branchDependency = (0, control_deps_1.cDepForLoc)(node.data.loc, this.controlDeps);
+        var branchDependency = (0, control_deps_1.cDepForLoc)(node.data().loc, this.controlDeps);
         if (branchDependency) {
-            //Todo: not going to work because of hash bs
             return this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
+        }
+    };
+    GraphConstructor.prototype.addTestDependencyRefactor = function (node) {
+        var testNode = this.findTestDependency(node);
+        if (testNode) {
+            this.addEdgeRefactor(node, testNode);
         }
     };
     GraphConstructor.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
@@ -157,7 +157,7 @@ var GraphConstructor = /** @class */ (function () {
         if (baseObjectPuts !== undefined) {
             var putFieldNode = this.lastPut[base.__id__][offset];
             if (putFieldNode) {
-                this.addEdge(getFieldNode, putFieldNode);
+                this.addEdgeRefactor(getFieldNode, putFieldNode);
             }
         }
         this.addId(val);
@@ -172,12 +172,12 @@ var GraphConstructor = /** @class */ (function () {
             var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
             if (test) {
                 console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
-                var testNode = this.addTestNode(test, result);
+                var testNode = this.addNodeRefactor(this.createTestNode(test, result));
                 //currentExprNodes were created for the for/if test
                 this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
                 //TODO: Only include read nodes?
-                this.addEdge(testNode, this.currentNode);
-                this.addEdge(this.currentNode, testNode);
+                this.addEdgeRefactor(testNode, this.currentNode);
+                this.addEdgeRefactor(this.currentNode, testNode);
             }
         }
     };
@@ -188,39 +188,34 @@ var GraphConstructor = /** @class */ (function () {
         var loc = iidToLoc(iid);
         //switch expression does not result in callback to this.conditional -> handle it here
         this.handleSwitch(loc);
-        this.currentNodeInGraph.data({
+        this.currentNode.data({
             loc: loc,
             lloc: loc.toString(),
             line: iidToLoc(iid).start.line,
             type: "expression"
         });
+        this.addTestDependencyRefactor(this.currentNode);
         for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {
             var objectId = _a[_i];
             for (var _b = 0, _c = Object.entries(this.lastPut[objectId]); _b < _c.length; _b++) {
                 var _d = _c[_b], fieldName = _d[0], putFieldNode = _d[1];
-                this.addEdge(this.currentNode, putFieldNode);
+                this.addEdgeRefactor(this.currentNode, putFieldNode);
             }
             this.lastPut[objectId];
         }
-        this.addTestDependency(this.currentNode);
         this.readOnlyObjects = [];
-        var node = {
-            group: "nodes",
-            data: { id: "n".concat(this.nextNodeId++) }
-        };
-        this.currentNode = node;
-        this.currentNodeInGraph = this.graph.add(node);
+        this.currentNode = this.addCurrentNode();
     };
     GraphConstructor.prototype.handleSwitch = function (loc) {
         var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test && test.type === "switch-disc") {
             // todo duplicate of conditional
             console.log("Detected switch discriminant: at l " + test.loc.start.line);
-            var testNode = this.addTestNode(test, "case-disc");
+            var testNode = this.addNodeRefactor(this.createTestNode(test, "case-disc"));
             //currentExprNodes were created for the for/if test
             this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
-            this.addEdge(testNode, this.currentNode);
+            this.addEdgeRefactor(testNode, this.currentNode);
             return true;
         }
         return false;
@@ -257,13 +252,13 @@ var GraphConstructor = /** @class */ (function () {
             val.__id__ = this.nextObjectIds++;
         }
     };
-    GraphConstructor.prototype.addEdge = function (source, target) {
+    GraphConstructor.prototype.addEdgeRefactor = function (source, target) {
         this.graph.add({
             group: "edges",
             data: {
                 id: "e".concat(this.nextEdgeId++),
-                source: source.data.id,
-                target: target.data.id
+                source: source.data().id,
+                target: target.data().id
             }
         });
     };
@@ -304,13 +299,13 @@ var GraphConstructor = /** @class */ (function () {
             name: "break"
         });
     };
-    GraphConstructor.prototype.addNodeRefacor = function (node) {
-        var c = this.graph.add(node);
-        var testNode = this.findTestDependency(node);
-        if (testNode) {
-            this.addEdge(node, testNode);
-        }
-        return c.nodes()[0];
+    GraphConstructor.prototype.addCurrentNode = function () {
+        return this.graph.add(this.createNode({})).nodes()[0];
+    };
+    GraphConstructor.prototype.addNodeRefactor = function (nodeDef) {
+        var node = this.graph.add(nodeDef).nodes()[0];
+        this.addTestDependencyRefactor(node);
+        return node;
     };
     GraphConstructor.prototype.addNode = function (node) {
         var c = this.graph.add(node);
@@ -329,7 +324,7 @@ var GraphConstructor = /** @class */ (function () {
     };
     GraphConstructor.prototype.addBreakNode = function (loc) {
         var breakNode = this.createBreakNode(loc);
-        return this.addNode(breakNode);
+        return this.addNodeRefactor(breakNode);
     };
     return GraphConstructor;
 }());
