@@ -69,17 +69,7 @@ var GraphConstructor = /** @class */ (function () {
         this.currentNodeInGraph = this.graph.add(node);
     };
     GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        var rhs_line = iidToLoc(iid).start.line;
-        /*
-        const declareNode = this.addNode({
-            line: rhs_line,
-            name: name,
-            varname: name,
-            val: String(val),
-            type: "declare"
-        });*/
         var declareNode = this.addDeclareNode(iid, name, val);
-        //const declareNode = this.addDeclareNode(iid, name, val);
         this.lastDeclare[name] = declareNode;
     };
     GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
