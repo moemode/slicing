@@ -6,7 +6,6 @@ import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
 import * as path from "path";
 import { GraphHelper } from "./graph_helper";
-import { stringify } from "querystring";
 
 declare let J$: any;
 
@@ -18,6 +17,7 @@ function iidToLoc(iid: string): SourceLocation {
  * Builds, expression by expression, a graph of data- and control-dependencies.
  * this.currentNode captures dependencies of the current expression on former
  * currentNode(s) and on helper nodes for declare-, break- and test-nodes.
+ * In contrast to these the currentNode is carried through the whole expression.
  */
 class GraphConstructor {
     /** Input Params */
@@ -42,6 +42,7 @@ class GraphConstructor {
     lastDeclare: Record<string, cytoscape.NodeSingular> = {}; // lastDeclare[variableName] == declare-nodef for variableName
     lastPut: Record<string, Record<number, cytoscape.NodeSingular>> = {}; // lastPut[objectId][offset] == most recent put-node
     lastTest: Record<string, cytoscape.NodeSingular> = {}; // lastTest[testLoc.toString()] == most recent test-node
+    criterionOnce = false; // code within slicingCriterion has been executed once during analysis
     /** Current Expression  State */
     readOnlyObjects: number[]; //ids of read objects which are not (yet) the base for subsequent getField/putField
     currentNode: cytoscape.NodeSingular;
@@ -194,7 +195,7 @@ class GraphConstructor {
             return;
         } else {
             const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
-            const testNode = this.g.addNode(this.g.createTestNode(loc, result, test?.type));
+            const testNode = this.addNode(this.g.createTestNode(loc, result, test?.type));
             //currentExprNodes were created for the for/if test
             this.lastTest[Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
@@ -229,8 +230,12 @@ class GraphConstructor {
             loc,
             lloc: loc.toString(),
             line: loc.start.line,
+            name: `${loc.start.line}: exp`
         });
-        this.addTestDependency(this.currentNode);
+        this.addControlDependencies(this.currentNode);
+        if(SourceLocation.in_between_inclusive(this.slicingCriterion, loc)) {
+            this.criterionOnce = true;
+        }
         // currentNode depends on  all put-nodes for all objects in readOnlyObjects 
         for (const objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
@@ -287,6 +292,14 @@ class GraphConstructor {
      */
     endExecution(): void {
         //this.graph.remove(`node[id=${this.currentNode.id}]`);
+        if(this.criterionOnce) {
+            const node = this.g.addNode(this.g.createNode({loc: this.slicingCriterion}));
+            if(SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
+                this.executedBreakNodes.nodes().forEach(bNode => this.g.addEdge(node, bNode));
+            }
+        } else {
+            console.log("hi");
+        }
         const inFilePath = J$.smap[1].originalCodeFileName;
         try {
             mkdirSync(`../graphs`);
@@ -332,18 +345,26 @@ class GraphConstructor {
      * @returns 'living' node in graph
      */
     private addNode(nodeDef: ElementDefinition): cytoscape.NodeSingular {
-        return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
+        const node = this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
+        if(SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
+            this.criterionOnce = true;
+            this.executedBreakNodes.nodes().forEach(bNode => this.g.addEdge(node, bNode));
+        }
+        return node;
     }
 
     /**
-     * Add control-dependency of node to graph if exists.
+     * Add control-dependencies of node to graph
      * @param node node in graph
      * @returns true iff node is control-dependent on a test and has been connected
-     * to most recent test-node of that test
+     * to most recent test-node of that test.
      */
-    private addTestDependency(node: cytoscape.NodeSingular): boolean {
+    private addControlDependencies(node: cytoscape.NodeSingular): boolean {
         const testNode = this.findTestDependency(node.data().loc);
-        return this.g.addEdgeIfBothExist(node, testNode);
+        if(SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
+            this.executedBreakNodes.nodes().forEach(bNode => this.g.addEdge(node, bNode));
+        }
+        return this.g.addEdgeIfBothExist(node, testNode) || (this.executedBreakNodes.size() != 0);
     }
 }
 

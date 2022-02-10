@@ -112,6 +112,15 @@ function sliceLocs(nodes: Collection, slicingCriterion: SourceLocation): SourceL
     return locs;
 }
 
+function sliceNodesNew(graph: Core, slicingCriterion: SourceLocation): Collection {
+    const nodesAtCriterion = graph
+        .nodes()
+        .filter((node) => node.data("loc") && SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")));
+    return nodesAtCriterion.union(nodesAtCriterion.successors("node"));
+}
+
+
+
 /**
  * Do reachability analysis on graph.
  * Then prune read the preprocessed program from progInPath, prune it and write it to progOutPath.
@@ -128,7 +137,7 @@ function graphBasedPrune(
     executedBreakNodes: Collection,
     slicingCriterion: SourceLocation
 ): void {
-    const nodes = sliceNodes(graph, executedBreakNodes, slicingCriterion);
+    const nodes = sliceNodesNew(graph, slicingCriterion);
     const locs = sliceLocs(nodes, slicingCriterion);
     const vars: string[] = Array.from(new Set(nodes.map((node) => node.data("varname")).filter((x) => x)));
     const prog = readFileSync(progInPath).toString();

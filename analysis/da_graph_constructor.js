@@ -33,6 +33,7 @@ function iidToLoc(iid) {
  * Builds, expression by expression, a graph of data- and control-dependencies.
  * this.currentNode captures dependencies of the current expression on former
  * currentNode(s) and on helper nodes for declare-, break- and test-nodes.
+ * In contrast to these the currentNode is carried through the whole expression.
  */
 var GraphConstructor = /** @class */ (function () {
     function GraphConstructor() {
@@ -49,6 +50,7 @@ var GraphConstructor = /** @class */ (function () {
         this.lastDeclare = {}; // lastDeclare[variableName] == declare-nodef for variableName
         this.lastPut = {}; // lastPut[objectId][offset] == most recent put-node
         this.lastTest = {}; // lastTest[testLoc.toString()] == most recent test-node
+        this.criterionOnce = false; // code within slicingCriterion has been executed once during analysis
     }
     /**
      * Load and compute static program information.
@@ -194,7 +196,7 @@ var GraphConstructor = /** @class */ (function () {
         }
         else {
             var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
-            var testNode = this.g.addNode(this.g.createTestNode(loc, result, test === null || test === void 0 ? void 0 : test.type));
+            var testNode = this.addNode(this.g.createTestNode(loc, result, test === null || test === void 0 ? void 0 : test.type));
             //currentExprNodes were created for the for/if test
             this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
@@ -227,8 +229,12 @@ var GraphConstructor = /** @class */ (function () {
             loc: loc,
             lloc: loc.toString(),
             line: loc.start.line,
+            name: "".concat(loc.start.line, ": exp")
         });
-        this.addTestDependency(this.currentNode);
+        this.addControlDependencies(this.currentNode);
+        if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, loc)) {
+            this.criterionOnce = true;
+        }
         // currentNode depends on  all put-nodes for all objects in readOnlyObjects 
         for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {
             var objectId = _a[_i];
@@ -282,7 +288,17 @@ var GraphConstructor = /** @class */ (function () {
      * and the source-mapped slicing criterion to the pruning stage.
      */
     GraphConstructor.prototype.endExecution = function () {
+        var _this = this;
         //this.graph.remove(`node[id=${this.currentNode.id}]`);
+        if (this.criterionOnce) {
+            var node_1 = this.g.addNode(this.g.createNode({ loc: this.slicingCriterion }));
+            if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, node_1.data().loc)) {
+                this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node_1, bNode); });
+            }
+        }
+        else {
+            console.log("hi");
+        }
         var inFilePath = J$.smap[1].originalCodeFileName;
         try {
             (0, fs_1.mkdirSync)("../graphs");
@@ -326,17 +342,27 @@ var GraphConstructor = /** @class */ (function () {
      * @returns 'living' node in graph
      */
     GraphConstructor.prototype.addNode = function (nodeDef) {
-        return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
+        var _this = this;
+        var node = this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
+        if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
+            this.criterionOnce = true;
+            this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node, bNode); });
+        }
+        return node;
     };
     /**
-     * Add control-dependency of node to graph if exists.
+     * Add control-dependencies of node to graph
      * @param node node in graph
      * @returns true iff node is control-dependent on a test and has been connected
-     * to most recent test-node of that test
+     * to most recent test-node of that test.
      */
-    GraphConstructor.prototype.addTestDependency = function (node) {
+    GraphConstructor.prototype.addControlDependencies = function (node) {
+        var _this = this;
         var testNode = this.findTestDependency(node.data().loc);
-        return this.g.addEdgeIfBothExist(node, testNode);
+        if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
+            this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node, bNode); });
+        }
+        return this.g.addEdgeIfBothExist(node, testNode) || (this.executedBreakNodes.size() != 0);
     };
     return GraphConstructor;
 }());

@@ -104,6 +104,12 @@ function sliceLocs(nodes, slicingCriterion) {
     locs.push(slicingCriterion);
     return locs;
 }
+function sliceNodesNew(graph, slicingCriterion) {
+    var nodesAtCriterion = graph
+        .nodes()
+        .filter(function (node) { return node.data("loc") && datatypes_1.SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")); });
+    return nodesAtCriterion.union(nodesAtCriterion.successors("node"));
+}
 /**
  * Do reachability analysis on graph.
  * Then prune read the preprocessed program from progInPath, prune it and write it to progOutPath.
@@ -114,7 +120,7 @@ function sliceLocs(nodes, slicingCriterion) {
  * @param slicingCriterion location of criterion
  */
 function graphBasedPrune(progInPath, progOutPath, graph, executedBreakNodes, slicingCriterion) {
-    var nodes = sliceNodes(graph, executedBreakNodes, slicingCriterion);
+    var nodes = sliceNodesNew(graph, slicingCriterion);
     var locs = sliceLocs(nodes, slicingCriterion);
     var vars = Array.from(new Set(nodes.map(function (node) { return node.data("varname"); }).filter(function (x) { return x; })));
     var prog = (0, fs_1.readFileSync)(progInPath).toString();

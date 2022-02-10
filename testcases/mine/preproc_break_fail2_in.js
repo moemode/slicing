@@ -4,7 +4,7 @@ function sliceMe() {
         r = r + 1;
         if (true) {
             if (true)
-                break;
+                break; //slicing criterion;
         }
     }
     return r;

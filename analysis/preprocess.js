@@ -39,7 +39,7 @@ function insertBreakMarkers(program) {
     });
     (0, ast_types_1.visit)(ast, {
         visitBreakStatement: function (path) {
-            var ifTrueBreak = ast_types_1.builders.ifStatement(ast_types_1.builders.literal(true), ast_types_1.builders.breakStatement());
+            var ifTrueBreak = ast_types_1.builders.ifStatement(ast_types_1.builders.literal(true), path.node); //b.breakStatement());
             path.replace(ifTrueBreak);
             return false;
         }
@@ -101,6 +101,11 @@ function preprocessFile(progInPath, progOutPath, lineNb) {
     fs.writeFileSync(progOutPath, result.code);
     var criterionLocation = getLineMappedLocation(parseInt(lineNb), progInPath, new source_map_1.SourceMapConsumer(result.map));
     var locs = locateBreakMarkers({ code: result.code, path: progOutPath });
+    // if criterion itself was a break statement, extend the location from just the break to enclosing if
+    var loc = locs.filter(function (bLoc) { return datatypes_1.SourceLocation.overlap(bLoc, criterionLocation); })[0]; // use overlap because criterionLocation contains comments, bLoc not
+    if (loc) {
+        criterionLocation = loc;
+    }
     return [criterionLocation, locs];
 }
 exports.preprocessFile = preprocessFile;
