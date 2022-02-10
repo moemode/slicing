@@ -85,7 +85,7 @@ class GraphConstructor {
      */
     literal(iid: string, val: unknown, _hasGetterSetter): { result: unknown } | undefined {
         if (typeof val === "object") {
-            this.addId(val);
+            this.isIdentifiable(val);
             for (const [propertyName, propertyValue] of Object.entries(val)) {
                 if (propertyName != "__id__") {
                     this.putField(iid, val, propertyName, propertyValue, undefined, undefined);
@@ -122,7 +122,7 @@ class GraphConstructor {
         //add edges to declare- & last write-node for variable
         this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
         this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name])
-        if (this.addId(val)) {
+        if (this.isIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
     }
@@ -139,11 +139,11 @@ class GraphConstructor {
      * @param _isOpAssign 
      */
     putField(_iid: string, base: Record<string, unknown>, offset: string, val: unknown, _isComputed, _isOpAssign): void {
-        this.addId(val);
+        this.isIdentifiable(val);
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
         //this always succeeds because typoef base === "object"
-        if(this.addId(base)) {
+        if(this.isIdentifiable(base)) {
             if (this.lastPut[base.__id__] === undefined) {
                 this.lastPut[base.__id__] = {};
             }
@@ -151,25 +151,24 @@ class GraphConstructor {
         }
     }
 
-    getField(_iid, base, offset, val, _isComputed, _isOpAssign, _isMethodCall): void {
-        this.addId(val);
-        this.addId(base);
+    getField(_iid: string, base: Record<string, unknown>, offset: string, val: unknown, _isComputed: boolean, _isOpAssign: boolean, _isMethodCall: boolean): void {
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
         //Todo: This does not work for string objects
         const getFieldNode = this.currentNode;
-        if (typeof val === "object") {
+        if (this.isIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
-        //no retrievalNode if val is of primitive type not an object
-        const baseObjectPuts = this.lastPut[base.__id__];
-        if (baseObjectPuts !== undefined) {
-            const putFieldNode = this.lastPut[base.__id__][offset];
-            if (putFieldNode) {
-                this.g.addEdge(getFieldNode, putFieldNode);
+        if(this.isIdentifiable(base)) {
+            //no retrievalNode if val is of primitive type not an object
+            const baseObjectPuts = this.lastPut[base.__id__];
+            if (baseObjectPuts !== undefined) {
+                const putFieldNode = this.lastPut[base.__id__][offset];
+                if (putFieldNode) {
+                    this.g.addEdge(getFieldNode, putFieldNode);
+                }
             }
         }
-        this.addId(val);
     }
 
     conditional(iid: string, result: boolean): void {
@@ -254,7 +253,7 @@ class GraphConstructor {
         graphBasedPrune(inFilePath, this.outFile, this.g.graph, this.executedBreakNodes, this.slicingCriterion);
     }
 
-    private addId(val): val is Identifiable {
+    private isIdentifiable(val): val is Identifiable {
         if (typeof val !== "object") {
             return false;
         }

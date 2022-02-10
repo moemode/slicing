@@ -89,7 +89,7 @@ var GraphConstructor = /** @class */ (function () {
      */
     GraphConstructor.prototype.literal = function (iid, val, _hasGetterSetter) {
         if (typeof val === "object") {
-            this.addId(val);
+            this.isIdentifiable(val);
             for (var _i = 0, _a = Object.entries(val); _i < _a.length; _i++) {
                 var _b = _a[_i], propertyName = _b[0], propertyValue = _b[1];
                 if (propertyName != "__id__") {
@@ -125,7 +125,7 @@ var GraphConstructor = /** @class */ (function () {
         //add edges to declare- & last write-node for variable
         this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
         this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name]);
-        if (this.addId(val)) {
+        if (this.isIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
     };
@@ -141,11 +141,11 @@ var GraphConstructor = /** @class */ (function () {
      * @param _isOpAssign
      */
     GraphConstructor.prototype.putField = function (_iid, base, offset, val, _isComputed, _isOpAssign) {
-        this.addId(val);
+        this.isIdentifiable(val);
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         //this always succeeds because typoef base === "object"
-        if (this.addId(base)) {
+        if (this.isIdentifiable(base)) {
             if (this.lastPut[base.__id__] === undefined) {
                 this.lastPut[base.__id__] = {};
             }
@@ -153,24 +153,23 @@ var GraphConstructor = /** @class */ (function () {
         }
     };
     GraphConstructor.prototype.getField = function (_iid, base, offset, val, _isComputed, _isOpAssign, _isMethodCall) {
-        this.addId(val);
-        this.addId(base);
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
         //Todo: This does not work for string objects
         var getFieldNode = this.currentNode;
-        if (typeof val === "object") {
+        if (this.isIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
-        //no retrievalNode if val is of primitive type not an object
-        var baseObjectPuts = this.lastPut[base.__id__];
-        if (baseObjectPuts !== undefined) {
-            var putFieldNode = this.lastPut[base.__id__][offset];
-            if (putFieldNode) {
-                this.g.addEdge(getFieldNode, putFieldNode);
+        if (this.isIdentifiable(base)) {
+            //no retrievalNode if val is of primitive type not an object
+            var baseObjectPuts = this.lastPut[base.__id__];
+            if (baseObjectPuts !== undefined) {
+                var putFieldNode = this.lastPut[base.__id__][offset];
+                if (putFieldNode) {
+                    this.g.addEdge(getFieldNode, putFieldNode);
+                }
             }
         }
-        this.addId(val);
     };
     GraphConstructor.prototype.conditional = function (iid, result) {
         var loc = iidToLoc(iid);
@@ -252,7 +251,7 @@ var GraphConstructor = /** @class */ (function () {
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.g.graph.json()));
         (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.g.graph, this.executedBreakNodes, this.slicingCriterion);
     };
-    GraphConstructor.prototype.addId = function (val) {
+    GraphConstructor.prototype.isIdentifiable = function (val) {
         if (typeof val !== "object") {
             return false;
         }
