@@ -26,7 +26,7 @@ var path = __importStar(require("path"));
 var preprocess_1 = require("./preprocess");
 var srcPath = path.resolve(__dirname, "..");
 var jalangiPath = srcPath + "/jalangi2/src/js/commands/jalangi.js";
-var analysisPath = srcPath + "/analysis/da_graph_constructor.js";
+var analysisPath = srcPath + "/slicer/da_graph_constructor.js";
 function slice(inFile, outFile, lineNb) {
     inFile = path.resolve(inFile);
     outFile = path.resolve(outFile);

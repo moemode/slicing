@@ -1,4 +1,4 @@
-const runner = require("../analysis/runner");
+const runner = require("../slicer/runner");
 
 (function () {
 
