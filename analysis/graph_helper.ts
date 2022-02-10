@@ -10,72 +10,71 @@ class GraphHelper {
         this.graph = graph;
     }
 
-    addWriteNode(rhsLoc, name, val, line): ElementDefinition {
-        return this.addNode({
-            loc: rhsLoc,
-            name,
-            varname: name,
-            val,
-            type: "write",
-            line
+
+    addEdge(source: cytoscape.NodeSingular, target: cytoscape.NodeSingular): void {
+        this.graph.add({
+            group: <const>"edges",
+            data: {
+                id: `e${this.nextEdgeId++}`,
+                source: source.data().id,
+                target: target.data().id
+            }
         });
     }
 
-    static getNodesAt(nodes: any[], loc: SourceLocation): any[] {
-        return nodes.filter((node) => SourceLocation.in_between_inclusive(loc, node.data.loc));
+    addNode(nodeDef: ElementDefinition, testNode?: cytoscape.NodeSingular): cytoscape.NodeSingular{
+        const node = this.graph.add(nodeDef).nodes()[0];
+        if(testNode) {
+            this.addEdge(node, testNode);
+        }
+        return node;
     }
 
-    addNode(data, currentCallerLoc?, testNode?): ElementDefinition {
+    addCurrentNode(): cytoscape.NodeSingular {
+        return this.graph.add(this.createNode({})).nodes()[0];
+    }
+
+    createNode(data): ElementDefinition {
         const node = {
             group: <const>"nodes",
             data: data
         };
         node.data.id = `n${this.nextNodeId++}`;
-        if (currentCallerLoc) {
-            node.data.callerLoc = currentCallerLoc;
-        }
-        this.graph.add(node);
-        if (testNode) {
-            this.graph.add();
-        }
         return node;
     }
 
-    addEdge(source, target): void {
-        this.graph.add({
-            group: <const>"edges",
-            data: {
-                id: `e${this.nextEdgeId++}`,
-                source: source.data.id,
-                target: target.data.id
-            }
+
+    createTestNode(test, result): ElementDefinition {
+        return this.createNode({
+            loc: test.loc,
+            lloc: test.loc.toString(),
+            val: result,
+            line: test.loc.start.line,
+            type: `${test.type}-test`,
+            name: `${test.type}-test`,
         });
     }
 
-    addTestNode(test, result) {
-        const nodeData = {
-            data: {
-                loc: test.loc,
-                val: result,
-                line: test.loc.start.line,
-                type: `${test.type}-test`,
-                name: `${test.type}-test`
-            }
-        };
-        return this.addNode(nodeData);
+    createDeclareNode(loc: SourceLocation, name: string, val: unknown): ElementDefinition {
+        return this.createNode({
+            line: loc.start.line,
+            loc,
+            name: name,
+            varname: name,
+            val: String(val),
+            type: "declare"
+        });
     }
 
-    addBreakNode(loc: SourceLocation) {
-        const breakNode = {
-            data: {
-                loc: loc,
-                line: loc.start.line,
-                name: `break`
-            }
-        };
-        const bNode: cytoscape.Collection = this.graph.add(breakNode);
-        return [breakNode, bNode];
+    createBreakNode(loc: SourceLocation): ElementDefinition {
+        return this.createNode({
+            loc: loc,
+            lloc: loc.toString(),
+            line: loc.start.line,
+            name: `break`
+        })
     }
+
 }
 
 export { GraphHelper };

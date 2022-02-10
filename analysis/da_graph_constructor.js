@@ -25,14 +25,13 @@ var fs_1 = require("fs");
 var pruner_1 = require("./pruner");
 var control_deps_1 = require("./control-deps");
 var path = __importStar(require("path"));
+var graph_helper_1 = require("./graph_helper");
 function iidToLoc(iid) {
     return datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
 }
 var GraphConstructor = /** @class */ (function () {
     function GraphConstructor() {
-        this.graph = cytoscape();
-        this.nextNodeId = 1;
-        this.nextEdgeId = 1;
+        this.g = new graph_helper_1.GraphHelper(cytoscape());
         this.outFile = J$.initParams["outFile"];
         this.nextObjectId = 1;
         this.bmarkerPath = J$.initParams["bmarkerPath"];
@@ -59,12 +58,12 @@ var GraphConstructor = /** @class */ (function () {
         var a = JSON.parse(bmarkerJSON);
         this.bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
         _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
-        this.executedBreakNodes = this.graph.collection();
-        this.currentNode = this.addCurrentNode();
+        this.executedBreakNodes = this.g.graph.collection();
+        this.currentNode = this.g.addCurrentNode();
     };
     GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
         //const declareNode = this.addDeclareNode(iid, name, val);
-        var declareNode = this.addNode(this.createDeclareNode(iid, name, val));
+        var declareNode = this.addNode(this.g.createDeclareNode(iidToLoc(iid), name, val));
         this.lastDeclare[name] = declareNode;
     };
     GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
@@ -88,7 +87,7 @@ var GraphConstructor = /** @class */ (function () {
     GraphConstructor.prototype.write = function (iid, name, val) {
         var declareNode = this.lastDeclare[name];
         if (declareNode) {
-            this.addEdge(this.currentNode, declareNode);
+            this.g.addEdge(this.currentNode, declareNode);
         }
         this.lastWrites[name] = this.currentNode;
     };
@@ -96,7 +95,7 @@ var GraphConstructor = /** @class */ (function () {
         this.addId(val);
         var declareNode = this.lastDeclare[name];
         if (declareNode) {
-            this.addEdge(this.currentNode, declareNode);
+            this.g.addEdge(this.currentNode, declareNode);
         }
         //add edge to last write / declare of variable name
         //assert val is lastWrites val
@@ -107,7 +106,7 @@ var GraphConstructor = /** @class */ (function () {
         var lastWriteNode = this.lastWrites[name];
         //read without write happens when undefined read
         if (lastWriteNode) {
-            this.addEdge(readNode, lastWriteNode);
+            this.g.addEdge(readNode, lastWriteNode);
         }
     };
     GraphConstructor.prototype.addTestDependency = function (node) {
@@ -116,19 +115,19 @@ var GraphConstructor = /** @class */ (function () {
         if (branchDependency) {
             //Todo: not going to work because of hash bs
             var testNode = this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
-            this.addEdge(node, testNode);
+            this.g.addEdge(node, testNode);
         }
     };
-    GraphConstructor.prototype.findTestDependency = function (node) {
-        var branchDependency = (0, control_deps_1.cDepForLoc)(node.data().loc, this.controlDeps);
+    GraphConstructor.prototype.findTestDependency = function (nodeLoc) {
+        var branchDependency = (0, control_deps_1.cDepForLoc)(nodeLoc, this.controlDeps);
         if (branchDependency) {
             return this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
         }
     };
     GraphConstructor.prototype.addTestDependencyRefactor = function (node) {
-        var testNode = this.findTestDependency(node);
+        var testNode = this.findTestDependency(node.data().loc);
         if (testNode) {
-            this.addEdge(node, testNode);
+            this.g.addEdge(node, testNode);
         }
     };
     GraphConstructor.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
@@ -156,7 +155,7 @@ var GraphConstructor = /** @class */ (function () {
         if (baseObjectPuts !== undefined) {
             var putFieldNode = this.lastPut[base.__id__][offset];
             if (putFieldNode) {
-                this.addEdge(getFieldNode, putFieldNode);
+                this.g.addEdge(getFieldNode, putFieldNode);
             }
         }
         this.addId(val);
@@ -170,12 +169,12 @@ var GraphConstructor = /** @class */ (function () {
             var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
             if (test) {
                 console.log("Detected test of type: " + test.type + " at l " + test.loc.start.line);
-                var testNode = this.addNode(this.createTestNode(test, result));
+                var testNode = this.g.addNode(this.g.createTestNode(test, result));
                 //currentExprNodes were created for the for/if test
                 this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
                 //TODO: Only include read nodes?
-                this.addEdge(testNode, this.currentNode);
-                this.addEdge(this.currentNode, testNode);
+                this.g.addEdge(testNode, this.currentNode);
+                this.g.addEdge(this.currentNode, testNode);
             }
         }
     };
@@ -197,23 +196,23 @@ var GraphConstructor = /** @class */ (function () {
             var objectId = _a[_i];
             for (var _b = 0, _c = Object.entries(this.lastPut[objectId]); _b < _c.length; _b++) {
                 var _d = _c[_b], fieldName = _d[0], putFieldNode = _d[1];
-                this.addEdge(this.currentNode, putFieldNode);
+                this.g.addEdge(this.currentNode, putFieldNode);
             }
             this.lastPut[objectId];
         }
         this.readOnlyObjects = [];
-        this.currentNode = this.addCurrentNode();
+        this.currentNode = this.g.addCurrentNode();
     };
     GraphConstructor.prototype.handleSwitch = function (loc) {
         var test = this.tests.find(function (t) { return datatypes_1.SourceLocation.locEq(t.loc, loc); });
         if (test && test.type === "switch-disc") {
             // todo duplicate of conditional
             console.log("Detected switch discriminant: at l " + test.loc.start.line);
-            var testNode = this.addNode(this.createTestNode(test, "case-disc"));
+            var testNode = this.addNode(this.g.createTestNode(test, "case-disc"));
             //currentExprNodes were created for the for/if test
             this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
-            this.addEdge(testNode, this.currentNode);
+            this.g.addEdge(testNode, this.currentNode);
             return true;
         }
         return false;
@@ -224,7 +223,7 @@ var GraphConstructor = /** @class */ (function () {
         })[0];
         if (loc) {
             this.executedIfTrueBreaks.push(loc);
-            var breakNode = this.addNode(this.createBreakNode(loc));
+            var breakNode = this.addNode(this.g.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
             return true;
         }
@@ -239,8 +238,8 @@ var GraphConstructor = /** @class */ (function () {
         catch (e) {
             //this error is expected as it is thrown when the graphs directory esists already
         }
-        (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
-        (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.graph, this.executedBreakNodes, this.slicingCriterion);
+        (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.g.graph.json()));
+        (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.g.graph, this.executedBreakNodes, this.slicingCriterion);
     };
     GraphConstructor.prototype.addId = function (val) {
         if (typeof val !== "object") {
@@ -250,60 +249,8 @@ var GraphConstructor = /** @class */ (function () {
             val.__id__ = this.nextObjectId++;
         }
     };
-    GraphConstructor.prototype.addEdge = function (source, target) {
-        this.graph.add({
-            group: "edges",
-            data: {
-                id: "e".concat(this.nextEdgeId++),
-                source: source.data().id,
-                target: target.data().id
-            }
-        });
-    };
-    GraphConstructor.prototype.createNode = function (data) {
-        var node = {
-            group: "nodes",
-            data: data
-        };
-        node.data.id = "n".concat(this.nextNodeId++);
-        return node;
-    };
-    GraphConstructor.prototype.createTestNode = function (test, result) {
-        return this.createNode({
-            loc: test.loc,
-            lloc: test.loc.toString(),
-            val: result,
-            line: test.loc.start.line,
-            type: "".concat(test.type, "-test"),
-            name: "".concat(test.type, "-test"),
-        });
-    };
-    GraphConstructor.prototype.createDeclareNode = function (iid, name, val) {
-        var loc = iidToLoc(iid);
-        return this.createNode({
-            line: loc.start.line,
-            loc: loc,
-            name: name,
-            varname: name,
-            val: String(val),
-            type: "declare"
-        });
-    };
-    GraphConstructor.prototype.createBreakNode = function (loc) {
-        return this.createNode({
-            loc: loc,
-            lloc: loc.toString(),
-            line: loc.start.line,
-            name: "break"
-        });
-    };
-    GraphConstructor.prototype.addCurrentNode = function () {
-        return this.graph.add(this.createNode({})).nodes()[0];
-    };
     GraphConstructor.prototype.addNode = function (nodeDef) {
-        var node = this.graph.add(nodeDef).nodes()[0];
-        this.addTestDependencyRefactor(node);
-        return node;
+        return this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
     };
     return GraphConstructor;
 }());
