@@ -119,8 +119,6 @@ function sliceNodesNew(graph: Core, slicingCriterion: SourceLocation): Collectio
     return nodesAtCriterion.union(nodesAtCriterion.successors("node"));
 }
 
-
-
 /**
  * Do reachability analysis on graph.
  * Then prune read the preprocessed program from progInPath, prune it and write it to progOutPath.

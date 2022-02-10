@@ -11,7 +11,7 @@ class GraphHelper {
     }
 
     addEdgeIfBothExist(source: cytoscape.NodeSingular, target: cytoscape.NodeSingular): boolean {
-        if(!source || !target){
+        if (!source || !target) {
             return false;
         } else {
             this.addEdge(source, target);
@@ -39,7 +39,7 @@ class GraphHelper {
     }
 
     addCurrentNode(): cytoscape.NodeSingular {
-        return this.graph.add(this.createNode({type: "expression"})).nodes()[0];
+        return this.graph.add(this.createNode({ type: "expression" })).nodes()[0];
     }
 
     createNode(data): ElementDefinition {
@@ -52,7 +52,7 @@ class GraphHelper {
     }
 
     createTestNode(loc: SourceLocation, result: boolean, type?: string): ElementDefinition {
-        if(type === undefined) {
+        if (type === undefined) {
             type = "unknown";
         }
         return this.createNode({

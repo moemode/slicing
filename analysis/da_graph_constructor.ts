@@ -51,11 +51,13 @@ class GraphConstructor {
      * Load and compute static program information.
      * Initialize current expression state of readOnlyObjects + currentNode
      * @param _iid static, unique instruction identifier
-     * @param _instrumentedFileName 
+     * @param _instrumentedFileName
      * @param originalFilePath path of preprocessed file
      */
     scriptEnter(_iid: string, _instrumentedFileName: string, originalFilePath: string): void {
-        this.bmarkers = JSON.parse(readFileSync(this.bmarkerPath).toString()).map((obj) => SourceLocation.fromJSON(obj));
+        this.bmarkers = JSON.parse(readFileSync(this.bmarkerPath).toString()).map((obj) =>
+            SourceLocation.fromJSON(obj)
+        );
         [this.controlDeps, this.tests] = controlDependencies(originalFilePath);
         this.executedBreakNodes = this.g.graph.collection();
         this.readOnlyObjects = [];
@@ -69,9 +71,9 @@ class GraphConstructor {
      * @param iid static, unique instruction identifier
      * @param name variable name
      * @param val if parameter undefined else value of rhs if exists
-     * @param _isArgument 
-     * @param _argumentIndex 
-     * @param _isCatchParam 
+     * @param _isArgument
+     * @param _argumentIndex
+     * @param _isCatchParam
      */
     declare(iid: string, name: string, val: unknown, _isArgument, _argumentIndex, _isCatchParam): void {
         const declareNode = this.addNode(this.g.createDeclareNode(iidToLoc(iid), name, val));
@@ -84,7 +86,7 @@ class GraphConstructor {
      * @changes-state: None
      * @param iid static, unique instruction identifier
      * @param val value of literal
-     * @param _hasGetterSetter 
+     * @param _hasGetterSetter
      * @returns if not object literal nothing -> program uses original val.
      * If object literal -> return val with an uniquely set __id__ field
      * The analyzed program then uses this val istead.
@@ -107,10 +109,10 @@ class GraphConstructor {
      * @changes-state: lastWrite
      * @param _iid
      * @param name variable name
-     * @param _val 
+     * @param _val
      */
     write(_iid: string, name: string, _val: unknown): void {
-        this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name])
+        this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
         this.lastWrite[name] = this.currentNode;
     }
 
@@ -118,16 +120,16 @@ class GraphConstructor {
      * Handle read of variable called name.
      * @node-deps: declaration node for variable name + write node of last write to variable
      * @changes-state: readOnlyObjects (if typeof(val) === object)
-     * @param _iid 
+     * @param _iid
      * @param name variable name
      * @param val read value
-     * @param _isGlobal 
-     * @param _isScriptLocal 
+     * @param _isGlobal
+     * @param _isScriptLocal
      */
     read(_iid: string, name: string, val: unknown, _isGlobal: boolean, _isScriptLocal: boolean): void {
         //add edges to declare- & last write-node for variable
         this.g.addEdgeIfBothExist(this.currentNode, this.lastDeclare[name]);
-        this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name])
+        this.g.addEdgeIfBothExist(this.currentNode, this.lastWrite[name]);
         if (this.makeIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
@@ -137,14 +139,21 @@ class GraphConstructor {
      * Handle base.offset = val.
      * @node-deps: None
      * State: readOnlyObjects, lastPut
-     * @param _iid 
+     * @param _iid
      * @param base base object
      * @param offset property name
      * @param val value to be stored in base[offset]
-     * @param _isComputed 
-     * @param _isOpAssign 
+     * @param _isComputed
+     * @param _isOpAssign
      */
-    putField(_iid: string, base: Record<string, unknown>, offset: string, val: unknown, _isComputed, _isOpAssign): void {
+    putField(
+        _iid: string,
+        base: Record<string, unknown>,
+        offset: string,
+        val: unknown,
+        _isComputed,
+        _isOpAssign
+    ): void {
         this.makeIdentifiable(val);
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
@@ -162,7 +171,15 @@ class GraphConstructor {
      * @node-deps putField-node at this.lastPut[base.__id__][offset] if exists
      * @changes-state readOnlyObjects
      */
-    getField(_iid: string, base: Record<string, unknown>, offset: string, val: unknown, _isComputed: boolean, _isOpAssign: boolean, _isMethodCall: boolean): void {
+    getField(
+        _iid: string,
+        base: Record<string, unknown>,
+        offset: string,
+        val: unknown,
+        _isComputed: boolean,
+        _isOpAssign: boolean,
+        _isMethodCall: boolean
+    ): void {
         // TOdo: BUG only remove last one
         this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
         if (this.makeIdentifiable(val)) {
@@ -182,11 +199,11 @@ class GraphConstructor {
     }
 
     /**
-     * Handle a condition check before branching. 
-     * Branching can happen in various statements including if-then-else, switch-case, while, for, ||, &&, ?:. 
+     * Handle a condition check before branching.
+     * Branching can happen in various statements including if-then-else, switch-case, while, for, ||, &&, ?:.
      * @param iid static, unique instruction identifier
      * @param result true iff branch is taken
-     * @returns 
+     * @returns
      */
     conditional(iid: string, result: boolean): void {
         const loc = iidToLoc(iid);
@@ -194,7 +211,7 @@ class GraphConstructor {
         if (this.handleBreak(loc)) {
             return;
         } else {
-            const test = this.tests.find(t => SourceLocation.locEq(t.loc, loc));
+            const test = this.tests.find((t) => SourceLocation.locEq(t.loc, loc));
             const testNode = this.addNode(this.g.createTestNode(loc, result, test?.type));
             //currentExprNodes were created for the for/if test
             this.lastTest[Position.toString(test.loc.start)] = testNode;
@@ -215,9 +232,9 @@ class GraphConstructor {
 
     /**
      * @node-deps test-node the expression depends on if exists,
-     * all put-nodes for all objects in readOnlyObjects 
+     * all put-nodes for all objects in readOnlyObjects
      * @changes-state reset readOnlyObject, currentNode
-     * @param iid 
+     * @param iid
      */
     endExpression(iid: string): void {
         this.handleSwitch(iid); // handle if its a switch-discriminator
@@ -233,10 +250,10 @@ class GraphConstructor {
             name: `${loc.start.line}: exp`
         });
         this.addControlDependencies(this.currentNode);
-        if(SourceLocation.in_between_inclusive(this.slicingCriterion, loc)) {
+        if (SourceLocation.in_between_inclusive(this.slicingCriterion, loc)) {
             this.criterionOnce = true;
         }
-        // currentNode depends on  all put-nodes for all objects in readOnlyObjects 
+        // currentNode depends on  all put-nodes for all objects in readOnlyObjects
         for (const objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
                 this.g.addEdge(this.currentNode, putFieldNode);
@@ -252,7 +269,7 @@ class GraphConstructor {
      * @node-deps test-node representing switch discriminant depends on currentNode
      * @changes-state lastTest
      * @param iid static, unique instruction identifier
-     * @returns 
+     * @returns
      */
     handleSwitch(iid: string): boolean {
         const loc = iidToLoc(iid);
@@ -267,7 +284,6 @@ class GraphConstructor {
         return false;
     }
 
-
     /**
      * Check if a break marker is being executed, if so record that
      * @depends nothing
@@ -276,7 +292,9 @@ class GraphConstructor {
      * @returns true iff a break marker is present
      */
     handleBreak(wrappingIfPredicateLocation: SourceLocation): boolean {
-        const loc = this.bmarkers.filter(bLoc => SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation))[0];
+        const loc = this.bmarkers.filter((bLoc) =>
+            SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation)
+        )[0];
         if (loc) {
             const breakNode = this.addNode(this.g.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
@@ -292,10 +310,10 @@ class GraphConstructor {
      */
     endExecution(): void {
         //this.graph.remove(`node[id=${this.currentNode.id}]`);
-        if(this.criterionOnce) {
-            const node = this.g.addNode(this.g.createNode({loc: this.slicingCriterion}));
-            if(SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
-                this.executedBreakNodes.nodes().forEach(bNode => this.g.addEdge(node, bNode));
+        if (this.criterionOnce) {
+            const node = this.g.addNode(this.g.createNode({ loc: this.slicingCriterion }));
+            if (SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
+                this.executedBreakNodes.nodes().forEach((bNode) => this.g.addEdge(node, bNode));
             }
         } else {
             console.log("hi");
@@ -346,9 +364,9 @@ class GraphConstructor {
      */
     private addNode(nodeDef: ElementDefinition): cytoscape.NodeSingular {
         const node = this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
-        if(SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
+        if (SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
             this.criterionOnce = true;
-            this.executedBreakNodes.nodes().forEach(bNode => this.g.addEdge(node, bNode));
+            this.executedBreakNodes.nodes().forEach((bNode) => this.g.addEdge(node, bNode));
         }
         return node;
     }
@@ -361,10 +379,10 @@ class GraphConstructor {
      */
     private addControlDependencies(node: cytoscape.NodeSingular): boolean {
         const testNode = this.findTestDependency(node.data().loc);
-        if(SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
-            this.executedBreakNodes.nodes().forEach(bNode => this.g.addEdge(node, bNode));
+        if (SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
+            this.executedBreakNodes.nodes().forEach((bNode) => this.g.addEdge(node, bNode));
         }
-        return this.g.addEdgeIfBothExist(node, testNode) || (this.executedBreakNodes.size() != 0);
+        return this.g.addEdgeIfBothExist(node, testNode) || this.executedBreakNodes.size() != 0;
     }
 }
 

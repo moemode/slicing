@@ -25,7 +25,7 @@ function insertBreakMarkers(program: Program): PrintResultType {
     });
     visit(ast, {
         visitBreakStatement(path: NodePath<n.BreakStatement>) {
-            const ifTrueBreak = b.ifStatement(b.literal(true), path.node)//b.breakStatement());
+            const ifTrueBreak = b.ifStatement(b.literal(true), path.node); //b.breakStatement());
             path.replace(ifTrueBreak);
             return false;
         }
@@ -89,8 +89,8 @@ function preprocessFile(progInPath: string, progOutPath: string, lineNb: string)
     let criterionLocation = getLineMappedLocation(parseInt(lineNb), progInPath, new SourceMapConsumer(result.map));
     const locs = locateBreakMarkers({ code: result.code, path: progOutPath });
     // if criterion itself was a break statement, extend the location from just the break to enclosing if
-    const loc = locs.filter(bLoc => SourceLocation.overlap(bLoc, criterionLocation))[0]; // use overlap because criterionLocation contains comments, bLoc not
-    if(loc) {
+    const loc = locs.filter((bLoc) => SourceLocation.overlap(bLoc, criterionLocation))[0]; // use overlap because criterionLocation contains comments, bLoc not
+    if (loc) {
         criterionLocation = loc;
     }
     return [criterionLocation, locs];

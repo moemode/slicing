@@ -61,7 +61,9 @@ var GraphConstructor = /** @class */ (function () {
      */
     GraphConstructor.prototype.scriptEnter = function (_iid, _instrumentedFileName, originalFilePath) {
         var _a;
-        this.bmarkers = JSON.parse((0, fs_1.readFileSync)(this.bmarkerPath).toString()).map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
+        this.bmarkers = JSON.parse((0, fs_1.readFileSync)(this.bmarkerPath).toString()).map(function (obj) {
+            return datatypes_1.SourceLocation.fromJSON(obj);
+        });
         _a = (0, control_deps_1.controlDependencies)(originalFilePath), this.controlDeps = _a[0], this.tests = _a[1];
         this.executedBreakNodes = this.g.graph.collection();
         this.readOnlyObjects = [];
@@ -235,7 +237,7 @@ var GraphConstructor = /** @class */ (function () {
         if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, loc)) {
             this.criterionOnce = true;
         }
-        // currentNode depends on  all put-nodes for all objects in readOnlyObjects 
+        // currentNode depends on  all put-nodes for all objects in readOnlyObjects
         for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {
             var objectId = _a[_i];
             for (var _b = 0, _c = Object.entries(this.lastPut[objectId]); _b < _c.length; _b++) {
@@ -274,7 +276,9 @@ var GraphConstructor = /** @class */ (function () {
      * @returns true iff a break marker is present
      */
     GraphConstructor.prototype.handleBreak = function (wrappingIfPredicateLocation) {
-        var loc = this.bmarkers.filter(function (bLoc) { return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation); })[0];
+        var loc = this.bmarkers.filter(function (bLoc) {
+            return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation);
+        })[0];
         if (loc) {
             var breakNode = this.addNode(this.g.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
@@ -362,7 +366,7 @@ var GraphConstructor = /** @class */ (function () {
         if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
             this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node, bNode); });
         }
-        return this.g.addEdgeIfBothExist(node, testNode) || (this.executedBreakNodes.size() != 0);
+        return this.g.addEdgeIfBothExist(node, testNode) || this.executedBreakNodes.size() != 0;
     };
     return GraphConstructor;
 }());

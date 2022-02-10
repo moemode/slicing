@@ -93,8 +93,7 @@ class SourceLocation {
  * Helper interface to mark objects which are tracked by id in dynamic analysis.
  */
 interface Identifiable {
-    __id__: number
+    __id__: number;
 }
 
-
-export { Position, SourceLocation, Identifiable}
+export { Position, SourceLocation, Identifiable };
