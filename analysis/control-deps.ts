@@ -54,6 +54,7 @@ function computeControlDependencies(prog: string): [ControlDependency[], Test[]]
             const node = path.node;
             tests.push(new Test(node.test.loc, "while"));
             controlDeps.push(new ControlDependency(node.test.loc, node.body.loc, "while"));
+            this.traverse(path);
         },
         visitSwitchStatement(path: NodePath<n.SwitchStatement>) {
             const node = path.node;

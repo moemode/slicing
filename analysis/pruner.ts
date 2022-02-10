@@ -1,6 +1,6 @@
 import { PathOrFileDescriptor, readFileSync, writeFileSync } from "fs";
 import { SourceLocation } from "./datatypes";
-import { parse, print } from "recast";
+import { parse, print} from "recast";
 import { visit, namedTypes as n, builders as b } from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 import { Collection, Core } from "cytoscape";
@@ -16,6 +16,9 @@ import { PrintResultType } from "recast/lib/printer";
  */
 function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: string | unknown[]): PrintResultType {
     const ast = parse(prog);
+    const sliceMeCallNode: n.ExpressionStatement = ast.program.body.pop();
+    n.ExpressionStatement.assert(sliceMeCallNode);
+    n.CallExpression.assert(sliceMeCallNode.expression);
     visit(ast, {
         visitStatement(path: NodePath<n.Statement>) {
             const node = path.node;
@@ -77,6 +80,7 @@ function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: stri
             this.traverse(path);
         }
     });
+    ast.program.body.push(sliceMeCallNode);
     return print(ast);
 }
 
@@ -103,8 +107,8 @@ function sliceNodes(graph: Core, executedBreakNodes: Collection, slicingCriterio
  * @returns locations of nodes together with slicingCriterion and locations of callers.
  */
 function sliceLocs(nodes: Collection, slicingCriterion: SourceLocation): SourceLocation[] {
-    const locs: SourceLocation[] = Array.from(new Set(nodes.map((node) => node.data("loc"))));
-    const callerLocs = Array.from(new Set(nodes.map((node) => node.data("callerLoc")).filter((x) => x)));
+    const locs: SourceLocation[] = Array.from(new Set(nodes.map((node) => node.data("loc")))).filter(x => x);
+    const callerLocs = Array.from(new Set(nodes.map((node) => node.data("callerLoc")).filter(x => x)));
     locs.push(...callerLocs);
     locs.push(slicingCriterion);
     return locs;

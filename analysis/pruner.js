@@ -15,6 +15,9 @@ var ast_types_1 = require("ast-types");
  */
 function prune(prog, relevantLocs, relevant_vars) {
     var ast = (0, recast_1.parse)(prog);
+    var sliceMeCallNode = ast.program.body.pop();
+    ast_types_1.namedTypes.ExpressionStatement.assert(sliceMeCallNode);
+    ast_types_1.namedTypes.CallExpression.assert(sliceMeCallNode.expression);
     (0, ast_types_1.visit)(ast, {
         visitStatement: function (path) {
             var node = path.node;
@@ -72,6 +75,7 @@ function prune(prog, relevantLocs, relevant_vars) {
             this.traverse(path);
         }
     });
+    ast.program.body.push(sliceMeCallNode);
     return (0, recast_1.print)(ast);
 }
 /**
@@ -96,7 +100,7 @@ function sliceNodes(graph, executedBreakNodes, slicingCriterion) {
  * @returns locations of nodes together with slicingCriterion and locations of callers.
  */
 function sliceLocs(nodes, slicingCriterion) {
-    var locs = Array.from(new Set(nodes.map(function (node) { return node.data("loc"); }))).filter(x =>  x);
+    var locs = Array.from(new Set(nodes.map(function (node) { return node.data("loc"); }))).filter(function (x) { return x; });
     var callerLocs = Array.from(new Set(nodes.map(function (node) { return node.data("callerLoc"); }).filter(function (x) { return x; })));
     locs.push.apply(locs, callerLocs);
     locs.push(slicingCriterion);
