@@ -97,12 +97,10 @@ function sliceNodes(graph, executedBreakNodes, slicingCriterion) {
  * Each node corresponds to exactly one location. Map nodes to these.
  * @param nodes nodes relevant to slice
  * @param slicingCriterion location of criterion
- * @returns locations of nodes together with slicingCriterion and locations of callers.
+ * @returns locations of nodes, additionally slicingCriterion.
  */
 function sliceLocs(nodes, slicingCriterion) {
     var locs = Array.from(new Set(nodes.map(function (node) { return node.data("loc"); }))).filter(function (x) { return x; });
-    var callerLocs = Array.from(new Set(nodes.map(function (node) { return node.data("callerLoc"); }).filter(function (x) { return x; })));
-    locs.push.apply(locs, callerLocs);
     locs.push(slicingCriterion);
     return locs;
 }

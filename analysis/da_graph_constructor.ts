@@ -1,6 +1,6 @@
 import cytoscape = require("cytoscape");
 import { Core, Collection, ElementDefinition } from "cytoscape";
-import { Position, SourceLocation, JalangiLocation, CallStackEntry } from "./datatypes";
+import { Position, SourceLocation } from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
@@ -34,11 +34,6 @@ class GraphConstructor {
     nextObjectIds = 1;
     //lastTest[location] = testNode
     lastTest = {};
-
-    callStack = [];
-
-    currentCallerLoc: SourceLocation;
-    currentCalleeLoc: SourceLocation;
 
     controlDeps: ControlDependency[];
     tests: Test[];
@@ -75,7 +70,7 @@ class GraphConstructor {
     }
 
     declare(iid, name, val, isArgument, argumentIndex, isCatchParam): void {
-        const rhs_line = JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
+        const rhs_line = iidToLoc(iid).start.line;
         const declareNode = this.addNode({
             line: rhs_line,
             name: name,
@@ -210,7 +205,7 @@ class GraphConstructor {
         this.currentNodeInGraph.data({
             loc,
             lloc: loc.toString(),
-            line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: iidToLoc(iid).start.line,
             type: "expression"
         })
         for (const objectId of this.readOnlyObjects) {
@@ -224,7 +219,6 @@ class GraphConstructor {
         const node = {
             group: <const>"nodes",
             data: { id: `n${this.nextNodeId++}` },
-            callerLoc: this.currentCallerLoc
         };
         this.currentNode = node;
         this.currentNodeInGraph = this.graph.add(node);
@@ -270,25 +264,6 @@ class GraphConstructor {
         graphBasedPrune(inFilePath, this.outFile, this.graph, this.executedBreakNodes, this.slicingCriterion);
     }
 
-    invokeFunPre(iid, f, base, args, isConstructor, isMethod, functionIid, functionSid): void {
-        const callerLoc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));
-        let calleeLoc = J$.iidToLocation(functionSid, functionIid);
-        if (calleeLoc !== "undefined") {
-            calleeLoc = SourceLocation.fromJalangiLocation(J$.iidToLocation(functionSid, functionIid));
-        }
-        this.callStack.push(new CallStackEntry(callerLoc, calleeLoc));
-        this.currentCallerLoc = callerLoc;
-        this.currentCalleeLoc = calleeLoc;
-    }
-
-    invokeFun(iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
-        this.callStack.pop();
-        if (this.callStack.length > 0) {
-            const topCallStackEntry = this.callStack[this.callStack.length - 1];
-            this.currentCallerLoc = topCallStackEntry.callerLoc;
-            this.currentCalleeLoc = topCallStackEntry.calleeLoc;
-        }
-    }
 
     private addId(val): void {
         if (typeof val !== "object") {

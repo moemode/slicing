@@ -46,7 +46,6 @@ var GraphConstructor = /** @class */ (function () {
         this.nextObjectIds = 1;
         //lastTest[location] = testNode
         this.lastTest = {};
-        this.callStack = [];
         this.isConditional = false;
     }
     GraphConstructor.prototype.initializeCriterion = function () {
@@ -71,7 +70,7 @@ var GraphConstructor = /** @class */ (function () {
         this.currentNodeInGraph = this.graph.add(node);
     };
     GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        var rhs_line = datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
+        var rhs_line = iidToLoc(iid).start.line;
         var declareNode = this.addNode({
             line: rhs_line,
             name: name,
@@ -197,7 +196,7 @@ var GraphConstructor = /** @class */ (function () {
         this.currentNodeInGraph.data({
             loc: loc,
             lloc: loc.toString(),
-            line: datatypes_1.JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
+            line: iidToLoc(iid).start.line,
             type: "expression"
         });
         for (var _i = 0, _a = this.readOnlyObjects; _i < _a.length; _i++) {
@@ -213,7 +212,6 @@ var GraphConstructor = /** @class */ (function () {
         var node = {
             group: "nodes",
             data: { id: "n".concat(this.nextNodeId++) },
-            callerLoc: this.currentCallerLoc
         };
         this.currentNode = node;
         this.currentNodeInGraph = this.graph.add(node);
@@ -255,24 +253,6 @@ var GraphConstructor = /** @class */ (function () {
         }
         (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.graph.json()));
         (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.graph, this.executedBreakNodes, this.slicingCriterion);
-    };
-    GraphConstructor.prototype.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
-        var callerLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.sid, iid));
-        var calleeLoc = J$.iidToLocation(functionSid, functionIid);
-        if (calleeLoc !== "undefined") {
-            calleeLoc = datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(functionSid, functionIid));
-        }
-        this.callStack.push(new datatypes_1.CallStackEntry(callerLoc, calleeLoc));
-        this.currentCallerLoc = callerLoc;
-        this.currentCalleeLoc = calleeLoc;
-    };
-    GraphConstructor.prototype.invokeFun = function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
-        this.callStack.pop();
-        if (this.callStack.length > 0) {
-            var topCallStackEntry = this.callStack[this.callStack.length - 1];
-            this.currentCallerLoc = topCallStackEntry.callerLoc;
-            this.currentCalleeLoc = topCallStackEntry.calleeLoc;
-        }
     };
     GraphConstructor.prototype.addId = function (val) {
         if (typeof val !== "object") {

@@ -104,12 +104,10 @@ function sliceNodes(graph: Core, executedBreakNodes: Collection, slicingCriterio
  * Each node corresponds to exactly one location. Map nodes to these.
  * @param nodes nodes relevant to slice
  * @param slicingCriterion location of criterion
- * @returns locations of nodes together with slicingCriterion and locations of callers.
+ * @returns locations of nodes, additionally slicingCriterion.
  */
 function sliceLocs(nodes: Collection, slicingCriterion: SourceLocation): SourceLocation[] {
     const locs: SourceLocation[] = Array.from(new Set(nodes.map((node) => node.data("loc")))).filter(x => x);
-    const callerLocs = Array.from(new Set(nodes.map((node) => node.data("callerLoc")).filter(x => x)));
-    locs.push(...callerLocs);
     locs.push(slicingCriterion);
     return locs;
 }

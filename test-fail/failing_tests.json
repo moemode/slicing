@@ -4,17 +4,5 @@
         "outFile": "./testcases/mine/sliceOnSwitch_predicted_out.js",
         "lineNb": 5,
         "goldFile": "./testcases/mine/sliceOnSwitch_out.js"
-    },
-    {
-        "inFile": "./testcases/milestone2/a4_in.js",
-        "outFile": "./testcases/milestone2/a4_predicted_out.js",
-        "lineNb": 8,
-        "goldFile": "./testcases/milestone2/a4_out.js"
-    },
-    {
-        "inFile": "./testcases/mine/isolatedCriterion_in.js",
-        "outFile": "./testcases/mine/isolatedCriterion_predicted_out.js",
-        "lineNb": 4,
-        "goldFile": "./testcases/mine/isolatedCriterion_out.js"
     }
 ]
