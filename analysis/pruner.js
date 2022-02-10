@@ -107,7 +107,7 @@ function sliceLocs(nodes, slicingCriterion) {
  * Then prune read the preprocessed program from progInPath, prune it and write it to progOutPath.
  * @param progInPath path of preprocessed program
  * @param progOutPath path to writer pruned program to
- * @param graph full graph constructed by dynamic analysis
+ * @param graph full graph constructed by dynamic analysis, each node corresponds to a SourceLocation
  * @param executedBreakNodes nodes in graph that correspond to executed graphs
  * @param slicingCriterion location of criterion
  */

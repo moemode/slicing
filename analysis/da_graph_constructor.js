@@ -288,7 +288,7 @@ var GraphConstructor = /** @class */ (function () {
     };
     /**
      * Write the constructed graph into a .json file.
-     * Invoke the pruning phase and pass the graph, the break-nodes within it
+     * Invoke the pruning phase and pass the graph,
      * and the source-mapped slicing criterion to the pruning stage.
      */
     GraphConstructor.prototype.endExecution = function () {
