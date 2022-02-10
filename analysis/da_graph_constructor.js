@@ -249,11 +249,6 @@ var GraphConstructor = /** @class */ (function () {
             val.__id__ = this.nextObjectIds++;
         }
     };
-    GraphConstructor.prototype.addNode = function (data) {
-        var node = this.createNode(data);
-        this.graph.add(node);
-        return node;
-    };
     GraphConstructor.prototype.addEdge = function (source, target) {
         this.graph.add({
             group: "edges",
@@ -301,24 +296,24 @@ var GraphConstructor = /** @class */ (function () {
             name: "break"
         });
     };
-    GraphConstructor.prototype.addNodeNew = function (node) {
+    GraphConstructor.prototype.addNode = function (node) {
         var c = this.graph.add(node);
         this.addTestDependency(node);
         return c.nodes()[0];
     };
     GraphConstructor.prototype.addDeclareNode = function (iid, name, val) {
         var declareNode = this.createDeclareNode(iid, name, val);
-        this.addNodeNew(declareNode);
+        this.addNode(declareNode);
         return declareNode;
     };
     GraphConstructor.prototype.addTestNode = function (test, result) {
         var testNode = this.createTestNode(test, result);
-        this.addNodeNew(testNode);
+        this.addNode(testNode);
         return testNode;
     };
     GraphConstructor.prototype.addBreakNode = function (loc) {
         var breakNode = this.createBreakNode(loc);
-        return this.addNodeNew(breakNode);
+        return this.addNode(breakNode);
     };
     return GraphConstructor;
 }());

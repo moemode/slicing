@@ -258,14 +258,6 @@ class GraphConstructor {
         }
     }
 
-    private addNode(data): ElementDefinition {
-        const node = this.createNode(data);
-        this.graph.add(node);
-        return node;
-    }
-
-
-
     private addEdge(source, target): void {
         this.graph.add({
             group: <const>"edges",
@@ -318,7 +310,7 @@ class GraphConstructor {
         })
     }
 
-    private addNodeNew(node): cytoscape.NodeSingular {
+    private addNode(node): cytoscape.NodeSingular {
         const c: cytoscape.Collection = this.graph.add(node);
         this.addTestDependency(node);
         return c.nodes()[0];
@@ -326,19 +318,19 @@ class GraphConstructor {
 
     private addDeclareNode(iid, name, val): ElementDefinition {
         const declareNode = this.createDeclareNode(iid, name, val);
-        this.addNodeNew(declareNode);
+        this.addNode(declareNode);
         return declareNode;
     }
 
     private addTestNode(test, result): ElementDefinition {
         const testNode = this.createTestNode(test, result);
-        this.addNodeNew(testNode);
+        this.addNode(testNode);
         return testNode;
     }
 
     private addBreakNode(loc: SourceLocation): cytoscape.NodeSingular {
         const breakNode = this.createBreakNode(loc);
-        return this.addNodeNew(breakNode);
+        return this.addNode(breakNode);
     }
 }
 
