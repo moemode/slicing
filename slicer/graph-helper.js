@@ -78,4 +78,4 @@ var GraphHelper = /** @class */ (function () {
     return GraphHelper;
 }());
 exports.GraphHelper = GraphHelper;
-//# sourceMappingURL=graph_helper.js.map
+//# sourceMappingURL=graph-helper.js.map

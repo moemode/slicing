@@ -5,7 +5,7 @@ import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
 import * as path from "path";
-import { GraphHelper } from "./graph_helper";
+import { GraphHelper } from "./graph-helper";
 
 declare let J$: any;
 

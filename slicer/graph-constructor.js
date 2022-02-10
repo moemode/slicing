@@ -25,7 +25,7 @@ var fs_1 = require("fs");
 var pruner_1 = require("./pruner");
 var control_deps_1 = require("./control-deps");
 var path = __importStar(require("path"));
-var graph_helper_1 = require("./graph_helper");
+var graph_helper_1 = require("./graph-helper");
 function iidToLoc(iid) {
     return datatypes_1.SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
 }
@@ -371,4 +371,4 @@ var GraphConstructor = /** @class */ (function () {
     return GraphConstructor;
 }());
 J$.analysis = new GraphConstructor();
-//# sourceMappingURL=da_graph_constructor.js.map
+//# sourceMappingURL=graph-constructor.js.map
