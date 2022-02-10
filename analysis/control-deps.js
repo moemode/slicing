@@ -75,6 +75,12 @@ function computeControlDependencies(prog) {
             controlDeps.push(new ControlDependency(node.test.loc, node.update.loc, "for"));
             this.traverse(path);
         },
+        visitWhileStatement: function (path) {
+            var node = path.node;
+            tests.push(new Test(node.test.loc, "while"));
+            controlDeps.push(new ControlDependency(node.test.loc, node.body.loc, "while"));
+            this.traverse(path);
+        },
         visitSwitchStatement: function (path) {
             var node = path.node;
             var caseCount = node.cases.length;

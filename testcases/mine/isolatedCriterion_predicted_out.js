@@ -1,5 +1,3 @@
 function sliceMe() {
     return;
 }
-
-sliceMe();

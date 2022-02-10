@@ -50,6 +50,11 @@ function computeControlDependencies(prog: string): [ControlDependency[], Test[]]
             controlDeps.push(new ControlDependency(node.test.loc, node.update.loc, "for"));
             this.traverse(path);
         },
+        visitWhileStatement(path: NodePath<n.WhileStatement>) {
+            const node = path.node;
+            tests.push(new Test(node.test.loc, "while"));
+            controlDeps.push(new ControlDependency(node.test.loc, node.body.loc, "while"));
+        },
         visitSwitchStatement(path: NodePath<n.SwitchStatement>) {
             const node = path.node;
             const caseCount = node.cases.length;

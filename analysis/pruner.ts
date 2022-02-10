@@ -91,7 +91,7 @@ function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: stri
 function sliceNodes(graph: Core, executedBreakNodes: Collection, slicingCriterion: SourceLocation): Collection {
     const nodesAtCriterion = graph
         .nodes()
-        .filter((node) => SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")));
+        .filter((node) => node.data("loc") && SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")));
     const startNodes = nodesAtCriterion.union(executedBreakNodes);
     return startNodes.union(startNodes.successors("node"));
 }

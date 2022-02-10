@@ -14,7 +14,7 @@ export class Position {
     }
 
     public static toString(position: Position): string {
-        return `line:${position.line};column:${position.column}`;
+        return `${position.line}:${position.column}`;
     }
 
     public static in_between(left: Position, inner: Position, right: Position): boolean {
@@ -73,6 +73,10 @@ export class SourceLocation {
         const includesStart = Position.posIsSmallerEq(outer.start, inner.start);
         const includesEnd = Position.posIsSmallerEq(inner.end, outer.end);
         return includesStart && includesEnd;
+    }
+
+    public toString() : string {
+        return `${Position.toString(this.start)};${Position.toString(this.end)}`
     }
 }
 

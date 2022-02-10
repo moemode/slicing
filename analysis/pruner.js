@@ -85,7 +85,7 @@ function prune(prog, relevantLocs, relevant_vars) {
 function sliceNodes(graph, executedBreakNodes, slicingCriterion) {
     var nodesAtCriterion = graph
         .nodes()
-        .filter(function (node) { return datatypes_1.SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")); });
+        .filter(function (node) { return node.data("loc") && datatypes_1.SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")); });
     var startNodes = nodesAtCriterion.union(executedBreakNodes);
     return startNodes.union(startNodes.successors("node"));
 }
@@ -96,7 +96,7 @@ function sliceNodes(graph, executedBreakNodes, slicingCriterion) {
  * @returns locations of nodes together with slicingCriterion and locations of callers.
  */
 function sliceLocs(nodes, slicingCriterion) {
-    var locs = Array.from(new Set(nodes.map(function (node) { return node.data("loc"); })));
+    var locs = Array.from(new Set(nodes.map(function (node) { return node.data("loc"); }))).filter(x =>  x);
     var callerLocs = Array.from(new Set(nodes.map(function (node) { return node.data("callerLoc"); }).filter(function (x) { return x; })));
     locs.push.apply(locs, callerLocs);
     locs.push(slicingCriterion);

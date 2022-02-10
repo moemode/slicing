@@ -27,7 +27,6 @@ class GraphConstructor {
     //ids of objects that have been read without being the base for a getField/putField
     readOnlyObjects: string[] = [];
 
-    currentExprNodes = [];
     lastWrites = {};
     lastDeclare = {};
     //lastPut[objectId][offset] = putNode
@@ -35,7 +34,6 @@ class GraphConstructor {
     nextObjectIds = 1;
     //lastTest[location] = testNode
     lastTest = {};
-    currentObjectReads = [];
 
     callStack = [];
 
@@ -46,7 +44,8 @@ class GraphConstructor {
     tests: Test[];
 
     currentNode;
-
+    currentNodeInGraph;
+    isConditional = false;
     initializeCriterion(): void {
         const start: Position = new Position(
             parseInt(J$.initParams["criterion-start-line"]),
@@ -65,18 +64,26 @@ class GraphConstructor {
         const a = JSON.parse(bmarkerJSON);
         this.bmarkers = a.map((obj) => SourceLocation.fromJSON(obj));
         [this.controlDeps, this.tests] = controlDependencies(originalFileName);
-        this.currentObjectReads = [];
         this.executedBreakNodes = this.graph.collection();
         const node = {
-            group: <const> "nodes",
-            data: {id: `n${this.nextNodeId++}`},
+            group: <const>"nodes",
+            data: { id: `n${this.nextNodeId++}` },
             callerLoc: this.currentCallerLoc
         };
-        this.currentNode = this.graph.add(node);
+        this.currentNode = node;
+        this.currentNodeInGraph = this.graph.add(node);
     }
 
-    declare(iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        this.lastDeclare[name] = this.currentNode;
+    declare(iid, name, val, isArgument, argumentIndex, isCatchParam): void {
+        const rhs_line = JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid)));
+        const declareNode = this.addNode({
+            line: rhs_line,
+            name: name,
+            varname: name,
+            val: String(val),
+            type: "declare"
+        });
+        this.lastDeclare[name] = declareNode;
     }
 
     literal(iid, val, hasGetterSetter) {
@@ -98,8 +105,8 @@ class GraphConstructor {
      * @returns 
      */
     write(iid: string, name: string, val: unknown): void {
-        const declareNode =  this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
-        if(declareNode) {
+        const declareNode = this.lastDeclare[name];
+        if (declareNode) {
             this.addEdge(this.currentNode, declareNode);
         }
         this.lastWrites[name] = this.currentNode;
@@ -108,7 +115,7 @@ class GraphConstructor {
 
     read(iid, name, val, isGlobal, isScriptLocal): void {
         this.addId(val);
-        const declareNode =  this.lastDeclare[name] ? [this.lastDeclare[name]] : [];
+        const declareNode = this.lastDeclare[name];
         if (declareNode) {
             this.addEdge(this.currentNode, declareNode);
         }
@@ -119,10 +126,9 @@ class GraphConstructor {
             this.readOnlyObjects.push(val.__id__);
         }
         const lastWriteNode = this.lastWrites[name];
+        //read without write happens when undefined read
         if (lastWriteNode) {
             this.addEdge(readNode, lastWriteNode);
-        } else {
-            console.log("Read without write");
         }
     }
 
@@ -179,6 +185,7 @@ class GraphConstructor {
 
 
     conditional(iid: string, result: boolean): void {
+        this.isConditional = true;
         const loc = iidToLoc(iid);
         if (this.handleBreak(loc)) {
             return;
@@ -190,34 +197,37 @@ class GraphConstructor {
                 //currentExprNodes were created for the for/if test
                 this.lastTest[Position.toString(test.loc.start)] = testNode;
                 //TODO: Only include read nodes?
-                this.currentExprNodes.forEach((node) => this.addEdge(testNode, node));
+                this.addEdge(testNode, this.currentNode);
+                this.addEdge(this.currentNode, testNode);
             }
         }
     }
 
     endExpression(iid: string): void {
-        const loc = SourceLocation.fromJalangiLocation(J$.iidToLocation(J$.getGlobalIID(iid)));
+        const loc = iidToLoc(iid);
         //switch expression does not result in callback to this.conditional -> handle it here
         this.handleSwitch(loc);
-        let graphLoc = loc;
-        if (this.currentExprNodes.length > 0) {
-            graphLoc = SourceLocation.boundingLocation(this.currentExprNodes.map((n) => n.data.loc));
-        }
-        this.addNode({
-            loc: graphLoc,
+        this.currentNodeInGraph.data({
+            loc,
+            lloc: loc.toString(),
             line: JalangiLocation.getLine(J$.iidToLocation(J$.getGlobalIID(iid))),
-            type: "end-expression"
-        });
+            type: "expression"
+        })
         for (const objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
-                const readNode = this.currentObjectReads[objectId];
-                this.addEdge(readNode, putFieldNode);
+                this.addEdge(this.currentNode, putFieldNode);
             }
             this.lastPut[objectId];
         }
+        this.addTestDependency(this.currentNode);
         this.readOnlyObjects = [];
-        this.currentExprNodes = [];
-        this.currentObjectReads = [];
+        const node = {
+            group: <const>"nodes",
+            data: { id: `n${this.nextNodeId++}` },
+            callerLoc: this.currentCallerLoc
+        };
+        this.currentNode = node;
+        this.currentNodeInGraph = this.graph.add(node);
     }
 
     handleSwitch(loc: SourceLocation): boolean {
@@ -229,7 +239,7 @@ class GraphConstructor {
             //currentExprNodes were created for the for/if test
             this.lastTest[Position.toString(test.loc.start)] = testNode;
             //TODO: Only include read nodes?
-            this.currentExprNodes.forEach((node) => this.addEdge(testNode, node));
+            this.addEdge(testNode, this.currentNode);
             return true;
         }
         return false;
@@ -249,6 +259,7 @@ class GraphConstructor {
     }
 
     endExecution(): void {
+        //this.graph.remove(`node[id=${this.currentNode.id}]`);
         const inFilePath = J$.smap[1].originalCodeFileName;
         try {
             mkdirSync(`../graphs`);
@@ -290,7 +301,7 @@ class GraphConstructor {
 
     private addNode(data): ElementDefinition {
         const node = {
-            group: <const> "nodes",
+            group: <const>"nodes",
             data: data
         };
         node.data.id = `n${this.nextNodeId++}`;
@@ -298,13 +309,12 @@ class GraphConstructor {
             node.data.callerLoc = this.currentCallerLoc;
         }
         this.graph.add(node);
-        this.addTestDependency(node);
         return node;
     }
 
     private addEdge(source, target): void {
         this.graph.add({
-            group: <const> "edges",
+            group: <const>"edges",
             data: {
                 id: `e${this.nextEdgeId++}`,
                 source: source.data.id,
@@ -315,10 +325,11 @@ class GraphConstructor {
 
     private addTestNode(test, result) {
         const testNode = {
-            group: <const> "nodes",
+            group: <const>"nodes",
             data: {
                 id: `n${this.nextNodeId++}`,
                 loc: test.loc,
+                lloc: test.loc.toString(),
                 val: result,
                 line: test.loc.start.line,
                 type: `${test.type}-test`,
@@ -333,10 +344,11 @@ class GraphConstructor {
 
     private addBreakNode(loc: SourceLocation) {
         const breakNode = {
-            group: <const> "nodes",
+            group: <const>"nodes",
             data: {
                 id: `n${this.nextNodeId++}`,
                 loc: loc,
+                lloc: loc.toString(),
                 line: loc.start.line,
                 name: `break`,
                 callerLoc: this.currentCallerLoc
