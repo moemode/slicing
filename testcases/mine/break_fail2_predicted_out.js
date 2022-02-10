@@ -1,8 +1,4 @@
 function sliceMe() {
-    while (true) {
-        if (true) {
-            break;
-        }
-    }
+    while (true) {}
 }
 sliceMe();

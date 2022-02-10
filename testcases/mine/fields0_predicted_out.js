@@ -1,6 +1,3 @@
-function sliceMe() {
-    var p = {"name": "Mack"};
-    return p.name; //sc
-}
+function sliceMe() {}
 
 sliceMe();

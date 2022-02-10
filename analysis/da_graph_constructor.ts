@@ -69,7 +69,8 @@ class GraphConstructor {
     }
 
     declare(iid, name, val, isArgument, argumentIndex, isCatchParam): void {
-        const declareNode = this.addDeclareNode(iid, name, val);
+        //const declareNode = this.addDeclareNode(iid, name, val);
+        const declareNode = this.addNodeRefacor(this.createDeclareNode(iid, name, val));
         this.lastDeclare[name] = declareNode;
     }
 
@@ -125,6 +126,14 @@ class GraphConstructor {
             //Todo: not going to work because of hash bs
             const testNode = this.lastTest[Position.toString(branchDependency.testLoc.start)];
             this.addEdge(node, testNode);
+        }
+    }
+
+    findTestDependency(node): ElementDefinition | undefined {
+        const branchDependency = cDepForLoc(node.data.loc, this.controlDeps);
+        if (branchDependency) {
+            //Todo: not going to work because of hash bs
+            return this.lastTest[Position.toString(branchDependency.testLoc.start)];
         }
     }
 
@@ -308,6 +317,15 @@ class GraphConstructor {
             line: loc.start.line,
             name: `break`
         })
+    }
+
+    private addNodeRefacor(node: ElementDefinition): cytoscape.NodeSingular {
+        const c: cytoscape.Collection = this.graph.add(node);
+        const testNode = this.findTestDependency(node);
+        if(testNode) {
+            this.addEdge(node, testNode);
+        }
+        return c.nodes()[0];
     }
 
     private addNode(node): cytoscape.NodeSingular {

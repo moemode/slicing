@@ -69,7 +69,8 @@ var GraphConstructor = /** @class */ (function () {
         this.currentNodeInGraph = this.graph.add(node);
     };
     GraphConstructor.prototype.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-        var declareNode = this.addDeclareNode(iid, name, val);
+        //const declareNode = this.addDeclareNode(iid, name, val);
+        var declareNode = this.addNodeRefacor(this.createDeclareNode(iid, name, val));
         this.lastDeclare[name] = declareNode;
     };
     GraphConstructor.prototype.literal = function (iid, val, hasGetterSetter) {
@@ -122,6 +123,13 @@ var GraphConstructor = /** @class */ (function () {
             //Todo: not going to work because of hash bs
             var testNode = this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
             this.addEdge(node, testNode);
+        }
+    };
+    GraphConstructor.prototype.findTestDependency = function (node) {
+        var branchDependency = (0, control_deps_1.cDepForLoc)(node.data.loc, this.controlDeps);
+        if (branchDependency) {
+            //Todo: not going to work because of hash bs
+            return this.lastTest[datatypes_1.Position.toString(branchDependency.testLoc.start)];
         }
     };
     GraphConstructor.prototype.putField = function (iid, base, offset, val, isComputed, isOpAssign) {
@@ -295,6 +303,14 @@ var GraphConstructor = /** @class */ (function () {
             line: loc.start.line,
             name: "break"
         });
+    };
+    GraphConstructor.prototype.addNodeRefacor = function (node) {
+        var c = this.graph.add(node);
+        var testNode = this.findTestDependency(node);
+        if (testNode) {
+            this.addEdge(node, testNode);
+        }
+        return c.nodes()[0];
     };
     GraphConstructor.prototype.addNode = function (node) {
         var c = this.graph.add(node);
