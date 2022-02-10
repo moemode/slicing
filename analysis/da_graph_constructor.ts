@@ -1,5 +1,5 @@
 import cytoscape = require("cytoscape");
-import { Core, Collection, ElementDefinition } from "cytoscape";
+import { Collection, ElementDefinition } from "cytoscape";
 import { Position, SourceLocation } from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
@@ -14,31 +14,24 @@ function iidToLoc(iid: string): SourceLocation {
 }
 
 class GraphConstructor {
-    g: GraphHelper = new GraphHelper(cytoscape());
+    /** Input Params */
     outFile = J$.initParams["outFile"];
-
-    nextObjectId = 1;
-
-
-    slicingCriterion: SourceLocation;
     bmarkerPath = J$.initParams["bmarkerPath"];
+    slicingCriterion: SourceLocation;
+    /** Static information about source program*/
     bmarkers: SourceLocation[] = [];
-
-    executedIfTrueBreaks: SourceLocation[] = [];
-    executedBreakNodes: Collection;
-    //ids of objects that have been read without being the base for a getField/putField
-    readOnlyObjects: string[] = [];
-
-    lastWrites = {};
-    lastDeclare = {};
-    //lastPut[objectId][offset] = putNode
-    lastPut: Record<string, Record<number, cytoscape.NodeSingular>> = {};
-    // maps string representation of test location to most recent test node for that test
-    lastTest: Record<string, cytoscape.NodeSingular> = {};
-
-
     controlDeps: ControlDependency[];
     tests: Test[];
+    /** Analysis Global State: Graph + Most-Recent (i.e. 'last') Information */
+    g: GraphHelper = new GraphHelper(cytoscape()); // helper containing the graph itself
+    executedBreakNodes: Collection; // contains one node per executed break statement
+    nextObjectId = 1; // used by this.addId to make objects identifiable
+    lastWrite: Record<string, cytoscape.NodeSingular> = {}; // lastWrite[variableName] == most reent write-node for variableName 
+    lastDeclare: Record<string, cytoscape.NodeSingular> = {}; // lastDeclare[variableName] == declare-nodef for variableName
+    lastPut: Record<string, Record<number, cytoscape.NodeSingular>> = {}; // lastPut[objectId][offset] == most recent put-node
+    lastTest: Record<string, cytoscape.NodeSingular> = {}; // lastTest[testLoc.toString()] == most recent test-node
+    /** Current Expression  State */
+    readOnlyObjects: string[] = []; //ids of read objects which are not (yet) the base for subsequent getField/putField
     currentNode: cytoscape.NodeSingular;
 
     initializeCriterion(): void {
@@ -55,8 +48,7 @@ class GraphConstructor {
 
     scriptEnter(iid, instrumentedFileName, originalFileName): void {
         this.initializeCriterion();
-        const bmarkerJSON = readFileSync(this.bmarkerPath).toString();
-        const a = JSON.parse(bmarkerJSON);
+        const a = JSON.parse(readFileSync(this.bmarkerPath).toString());
         this.bmarkers = a.map((obj) => SourceLocation.fromJSON(obj));
         [this.controlDeps, this.tests] = controlDependencies(originalFileName);
         this.executedBreakNodes = this.g.graph.collection();
@@ -92,7 +84,7 @@ class GraphConstructor {
         if (declareNode) {
             this.g.addEdge(this.currentNode, declareNode);
         }
-        this.lastWrites[name] = this.currentNode;
+        this.lastWrite[name] = this.currentNode;
     }
 
     read(iid, name, val, isGlobal, isScriptLocal): void {
@@ -107,7 +99,7 @@ class GraphConstructor {
         if (typeof val === "object") {
             this.readOnlyObjects.push(val.__id__);
         }
-        const lastWriteNode = this.lastWrites[name];
+        const lastWriteNode = this.lastWrite[name];
         //read without write happens when undefined read
         if (lastWriteNode) {
             this.g.addEdge(readNode, lastWriteNode);
@@ -233,7 +225,6 @@ class GraphConstructor {
             SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation)
         )[0];
         if (loc) {
-            this.executedIfTrueBreaks.push(loc);
             const breakNode = this.addNode(this.g.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
             return true;

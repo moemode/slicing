@@ -31,20 +31,20 @@ function iidToLoc(iid) {
 }
 var GraphConstructor = /** @class */ (function () {
     function GraphConstructor() {
-        this.g = new graph_helper_1.GraphHelper(cytoscape());
+        /** Input Params */
         this.outFile = J$.initParams["outFile"];
-        this.nextObjectId = 1;
         this.bmarkerPath = J$.initParams["bmarkerPath"];
+        /** Static information about source program*/
         this.bmarkers = [];
-        this.executedIfTrueBreaks = [];
-        //ids of objects that have been read without being the base for a getField/putField
-        this.readOnlyObjects = [];
-        this.lastWrites = {};
-        this.lastDeclare = {};
-        //lastPut[objectId][offset] = putNode
-        this.lastPut = {};
-        // maps string representation of test location to most recent test node for that test
-        this.lastTest = {};
+        /** Analysis Global State: Graph + Most-Recent (i.e. 'last') Information */
+        this.g = new graph_helper_1.GraphHelper(cytoscape()); // helper containing the graph itself
+        this.nextObjectId = 1; // used by this.addId to make objects identifiable
+        this.lastWrite = {}; // lastWrite[variableName] == most reent write-node for variableName 
+        this.lastDeclare = {}; // lastDeclare[variableName] == declare-nodef for variableName
+        this.lastPut = {}; // lastPut[objectId][offset] == most recent put-node
+        this.lastTest = {}; // lastTest[testLoc.toString()] == most recent test-node
+        /** Current Expression  State */
+        this.readOnlyObjects = []; //ids of read objects which are not (yet) the base for subsequent getField/putField
     }
     GraphConstructor.prototype.initializeCriterion = function () {
         var start = new datatypes_1.Position(parseInt(J$.initParams["criterion-start-line"]), parseInt(J$.initParams["criterion-start-col"]));
@@ -54,8 +54,7 @@ var GraphConstructor = /** @class */ (function () {
     GraphConstructor.prototype.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
         var _a;
         this.initializeCriterion();
-        var bmarkerJSON = (0, fs_1.readFileSync)(this.bmarkerPath).toString();
-        var a = JSON.parse(bmarkerJSON);
+        var a = JSON.parse((0, fs_1.readFileSync)(this.bmarkerPath).toString());
         this.bmarkers = a.map(function (obj) { return datatypes_1.SourceLocation.fromJSON(obj); });
         _a = (0, control_deps_1.controlDependencies)(originalFileName), this.controlDeps = _a[0], this.tests = _a[1];
         this.executedBreakNodes = this.g.graph.collection();
@@ -89,7 +88,7 @@ var GraphConstructor = /** @class */ (function () {
         if (declareNode) {
             this.g.addEdge(this.currentNode, declareNode);
         }
-        this.lastWrites[name] = this.currentNode;
+        this.lastWrite[name] = this.currentNode;
     };
     GraphConstructor.prototype.read = function (iid, name, val, isGlobal, isScriptLocal) {
         this.addId(val);
@@ -103,7 +102,7 @@ var GraphConstructor = /** @class */ (function () {
         if (typeof val === "object") {
             this.readOnlyObjects.push(val.__id__);
         }
-        var lastWriteNode = this.lastWrites[name];
+        var lastWriteNode = this.lastWrite[name];
         //read without write happens when undefined read
         if (lastWriteNode) {
             this.g.addEdge(readNode, lastWriteNode);
@@ -222,7 +221,6 @@ var GraphConstructor = /** @class */ (function () {
             return datatypes_1.SourceLocation.in_between_inclusive(bLoc, wrappingIfPredicateLocation);
         })[0];
         if (loc) {
-            this.executedIfTrueBreaks.push(loc);
             var breakNode = this.addNode(this.g.createBreakNode(loc));
             this.executedBreakNodes = this.executedBreakNodes.union(breakNode);
             return true;
