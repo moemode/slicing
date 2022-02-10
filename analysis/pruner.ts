@@ -1,6 +1,6 @@
 import { PathOrFileDescriptor, readFileSync, writeFileSync } from "fs";
 import { SourceLocation } from "./datatypes";
-import { parse, print} from "recast";
+import { parse, print } from "recast";
 import { visit, namedTypes as n, builders as b } from "ast-types";
 import { NodePath } from "ast-types/lib/node-path";
 import { Collection, Core } from "cytoscape";
@@ -107,7 +107,7 @@ function sliceNodes(graph: Core, executedBreakNodes: Collection, slicingCriterio
  * @returns locations of nodes, additionally slicingCriterion.
  */
 function sliceLocs(nodes: Collection, slicingCriterion: SourceLocation): SourceLocation[] {
-    const locs: SourceLocation[] = Array.from(new Set(nodes.map((node) => node.data("loc")))).filter(x => x);
+    const locs: SourceLocation[] = Array.from(new Set(nodes.map((node) => node.data("loc")))).filter((x) => x);
     locs.push(slicingCriterion);
     return locs;
 }

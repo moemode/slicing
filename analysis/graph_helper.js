@@ -19,9 +19,7 @@ var GraphHelper = /** @class */ (function () {
         });
     };
     GraphHelper.getNodesAt = function (nodes, loc) {
-        return nodes.filter(function (node) {
-            return datatypes_1.SourceLocation.in_between_inclusive(loc, node.data.loc);
-        });
+        return nodes.filter(function (node) { return datatypes_1.SourceLocation.in_between_inclusive(loc, node.data.loc); });
     };
     GraphHelper.prototype.addNode = function (data, currentCallerLoc, testNode) {
         var node = {

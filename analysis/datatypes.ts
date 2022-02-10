@@ -75,7 +75,7 @@ export class SourceLocation {
         return includesStart && includesEnd;
     }
 
-    public toString() : string {
-        return `${Position.toString(this.start)};${Position.toString(this.end)}`
+    public toString(): string {
+        return `${Position.toString(this.start)};${Position.toString(this.end)}`;
     }
 }

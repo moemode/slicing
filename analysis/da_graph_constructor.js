@@ -211,7 +211,7 @@ var GraphConstructor = /** @class */ (function () {
         this.readOnlyObjects = [];
         var node = {
             group: "nodes",
-            data: { id: "n".concat(this.nextNodeId++) },
+            data: { id: "n".concat(this.nextNodeId++) }
         };
         this.currentNode = node;
         this.currentNodeInGraph = this.graph.add(node);

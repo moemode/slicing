@@ -96,8 +96,8 @@ class GraphConstructor {
     /**
      * Handle var = rhs;
      * Create node with edges to D(var = rhs) = declaration of var + D(rhs).
-     * @param reference jalangi 
-     * @returns 
+     * @param reference jalangi
+     * @returns
      */
     write(iid: string, name: string, val: unknown): void {
         const declareNode = this.lastDeclare[name];
@@ -106,7 +106,6 @@ class GraphConstructor {
         }
         this.lastWrites[name] = this.currentNode;
     }
-
 
     read(iid, name, val, isGlobal, isScriptLocal): void {
         this.addId(val);
@@ -148,7 +147,6 @@ class GraphConstructor {
         this.lastPut[base.__id__][offset] = this.currentNode;
     }
 
-
     getField(iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
         this.addId(val);
         this.addId(base);
@@ -178,7 +176,6 @@ class GraphConstructor {
         this.addId(val);
     }
 
-
     conditional(iid: string, result: boolean): void {
         this.isConditional = true;
         const loc = iidToLoc(iid);
@@ -207,7 +204,7 @@ class GraphConstructor {
             lloc: loc.toString(),
             line: iidToLoc(iid).start.line,
             type: "expression"
-        })
+        });
         for (const objectId of this.readOnlyObjects) {
             for (const [fieldName, putFieldNode] of Object.entries(this.lastPut[objectId])) {
                 this.addEdge(this.currentNode, putFieldNode);
@@ -218,7 +215,7 @@ class GraphConstructor {
         this.readOnlyObjects = [];
         const node = {
             group: <const>"nodes",
-            data: { id: `n${this.nextNodeId++}` },
+            data: { id: `n${this.nextNodeId++}` }
         };
         this.currentNode = node;
         this.currentNodeInGraph = this.graph.add(node);
@@ -263,7 +260,6 @@ class GraphConstructor {
         writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.graph.json()));
         graphBasedPrune(inFilePath, this.outFile, this.graph, this.executedBreakNodes, this.slicingCriterion);
     }
-
 
     private addId(val): void {
         if (typeof val !== "object") {
@@ -333,7 +329,6 @@ class GraphConstructor {
         this.addTestDependency(breakNode);
         return bNode;
     }
-
 }
 
 J$.analysis = new GraphConstructor();

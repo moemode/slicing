@@ -1,7 +1,6 @@
 import cytoscape, { Core, ElementDefinition } from "cytoscape";
 import { SourceLocation } from "./datatypes";
 
-
 class GraphHelper {
     graph: Core;
     nextNodeId = 1;
@@ -23,14 +22,12 @@ class GraphHelper {
     }
 
     static getNodesAt(nodes: any[], loc: SourceLocation): any[] {
-        return nodes.filter((node) =>
-            SourceLocation.in_between_inclusive(loc, node.data.loc));
+        return nodes.filter((node) => SourceLocation.in_between_inclusive(loc, node.data.loc));
     }
 
-
-     addNode(data, currentCallerLoc?, testNode?): ElementDefinition {
+    addNode(data, currentCallerLoc?, testNode?): ElementDefinition {
         const node = {
-            group: <const> "nodes",
+            group: <const>"nodes",
             data: data
         };
         node.data.id = `n${this.nextNodeId++}`;
@@ -38,15 +35,15 @@ class GraphHelper {
             node.data.callerLoc = currentCallerLoc;
         }
         this.graph.add(node);
-        if(testNode) {
-            this.graph.add()
+        if (testNode) {
+            this.graph.add();
         }
         return node;
     }
 
-     addEdge(source, target): void {
+    addEdge(source, target): void {
         this.graph.add({
-            group: <const> "edges",
+            group: <const>"edges",
             data: {
                 id: `e${this.nextEdgeId++}`,
                 source: source.data.id,
@@ -55,7 +52,7 @@ class GraphHelper {
         });
     }
 
-     addTestNode(test, result) {
+    addTestNode(test, result) {
         const nodeData = {
             data: {
                 loc: test.loc,
@@ -68,7 +65,7 @@ class GraphHelper {
         return this.addNode(nodeData);
     }
 
-     addBreakNode(loc: SourceLocation) {
+    addBreakNode(loc: SourceLocation) {
         const breakNode = {
             data: {
                 loc: loc,
