@@ -1,4 +1,5 @@
 # Installation
+Requires node (tested with v12.22.9) and npm (tested with 6.14.15).
 ```console
 foo@bar:~/slicing$ npm i
 foo@bar:~/slicing$ cd jalangi2
