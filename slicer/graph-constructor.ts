@@ -155,7 +155,6 @@ class GraphConstructor {
         _isOpAssign
     ): void {
         this.makeIdentifiable(val);
-        // TOdo: BUG only remove last one
         removeLast(this.readOnlyObjects, base.__id__);
         //this always succeeds because typoef base === "object"
         if (this.makeIdentifiable(base)) {
@@ -214,9 +213,8 @@ class GraphConstructor {
             const testNode = this.addNode(this.g.createTestNode(loc, result, test?.type));
             //currentExprNodes were created for the for/if test
             this.lastTest[Position.toString(test.loc.start)] = testNode;
-            //TODO: Only include read nodes?
             this.g.addEdge(testNode, this.currentNode);
-            this.g.addEdge(this.currentNode, testNode);
+            //this.g.addEdge(this.currentNode, testNode);
         }
     }
 
@@ -310,9 +308,7 @@ class GraphConstructor {
     endExecution(): void {
         if (this.criterionOnce) {
             const node = this.g.addNode(this.g.createNode({ loc: this.slicingCriterion }));
-            if (SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
-                this.executedBreakNodes.nodes().forEach((bNode) => this.g.addEdge(node, bNode));
-            }
+            this.executedBreakNodes.nodes().forEach((bNode) => this.g.addEdge(node, bNode));
         } else {
             console.log("hi");
         }
@@ -364,7 +360,6 @@ class GraphConstructor {
         const node = this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
         if (SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
             this.criterionOnce = true;
-            this.executedBreakNodes.nodes().forEach((bNode) => this.g.addEdge(node, bNode));
         }
         return node;
     }
@@ -377,9 +372,6 @@ class GraphConstructor {
      */
     private addControlDependencies(node: cytoscape.NodeSingular): boolean {
         const testNode = this.findTestDependency(node.data().loc);
-        if (SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
-            this.executedBreakNodes.nodes().forEach((bNode) => this.g.addEdge(node, bNode));
-        }
         return this.g.addEdgeIfBothExist(node, testNode) || this.executedBreakNodes.size() != 0;
     }
 }

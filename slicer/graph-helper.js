@@ -61,7 +61,7 @@ var GraphHelper = /** @class */ (function () {
         return this.createNode({
             line: loc.start.line,
             loc: loc,
-            name: "d ".concat(name, "=").concat(String(val).substring(0, 20)),
+            name: "d: ".concat(name, "=").concat(String(val).substring(0, 5)),
             varname: name,
             val: String(val),
             type: "declare"
@@ -72,7 +72,8 @@ var GraphHelper = /** @class */ (function () {
             loc: loc,
             lloc: loc.toString(),
             line: loc.start.line,
-            name: "".concat(loc.start.line, ": brk")
+            name: "".concat(loc.start.line, ": brk"),
+            type: "break"
         });
     };
     return GraphHelper;

@@ -150,7 +150,6 @@ var GraphConstructor = /** @class */ (function () {
      */
     GraphConstructor.prototype.putField = function (_iid, base, offset, val, _isComputed, _isOpAssign) {
         this.makeIdentifiable(val);
-        // TOdo: BUG only remove last one
         (0, datatypes_1.removeLast)(this.readOnlyObjects, base.__id__);
         //this always succeeds because typoef base === "object"
         if (this.makeIdentifiable(base)) {
@@ -200,9 +199,8 @@ var GraphConstructor = /** @class */ (function () {
             var testNode = this.addNode(this.g.createTestNode(loc, result, test === null || test === void 0 ? void 0 : test.type));
             //currentExprNodes were created for the for/if test
             this.lastTest[datatypes_1.Position.toString(test.loc.start)] = testNode;
-            //TODO: Only include read nodes?
             this.g.addEdge(testNode, this.currentNode);
-            this.g.addEdge(this.currentNode, testNode);
+            //this.g.addEdge(this.currentNode, testNode);
         }
     };
     /**
@@ -294,9 +292,7 @@ var GraphConstructor = /** @class */ (function () {
         var _this = this;
         if (this.criterionOnce) {
             var node_1 = this.g.addNode(this.g.createNode({ loc: this.slicingCriterion }));
-            if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, node_1.data().loc)) {
-                this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node_1, bNode); });
-            }
+            this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node_1, bNode); });
         }
         else {
             console.log("hi");
@@ -344,11 +340,9 @@ var GraphConstructor = /** @class */ (function () {
      * @returns 'living' node in graph
      */
     GraphConstructor.prototype.addNode = function (nodeDef) {
-        var _this = this;
         var node = this.g.addNode(nodeDef, this.findTestDependency(nodeDef.data.loc));
         if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
             this.criterionOnce = true;
-            this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node, bNode); });
         }
         return node;
     };
@@ -359,11 +353,7 @@ var GraphConstructor = /** @class */ (function () {
      * to most recent test-node of that test.
      */
     GraphConstructor.prototype.addControlDependencies = function (node) {
-        var _this = this;
         var testNode = this.findTestDependency(node.data().loc);
-        if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
-            this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node, bNode); });
-        }
         return this.g.addEdgeIfBothExist(node, testNode) || this.executedBreakNodes.size() != 0;
     };
     return GraphConstructor;

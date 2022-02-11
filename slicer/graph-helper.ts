@@ -69,7 +69,7 @@ class GraphHelper {
         return this.createNode({
             line: loc.start.line,
             loc,
-            name: `d ${name}=${String(val).substring(0, 20)}`,
+            name: `d: ${name}=${String(val).substring(0, 5)}`,
             varname: name,
             val: String(val),
             type: "declare"
@@ -81,7 +81,8 @@ class GraphHelper {
             loc: loc,
             lloc: loc.toString(),
             line: loc.start.line,
-            name: `${loc.start.line}: brk`
+            name: `${loc.start.line}: brk`,
+            type: "break"
         });
     }
 }
