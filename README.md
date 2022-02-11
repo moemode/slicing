@@ -18,10 +18,10 @@ foo@bar:~/slicing/scripts$ node testRunner.js --source ./milestone3_testCases.js
 # Running all tests (including mine)
 In project root run:
 ```console
-npm test
+foo@bar:~/slicing$ npm test
 ```
-## Slicer Structure
-![Example](./docs/slicer-structure.svg)
+# Slicer Structure
+![Conceptual structure of slicer](./docs/slicer-structure.svg)
 ## Contents
 | File  | Component | Description |
 | ------------- | ------------- | ------------- |
