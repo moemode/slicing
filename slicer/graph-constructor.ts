@@ -309,16 +309,18 @@ class GraphConstructor {
         if (this.criterionOnce) {
             const node = this.g.addNode(this.g.createNode({ loc: this.slicingCriterion }));
             this.executedBreakNodes.nodes().forEach((bNode) => this.g.addEdge(node, bNode));
-        } else {
-            console.log("hi");
         }
         const inFilePath = J$.smap[1].originalCodeFileName;
         try {
-            mkdirSync(`../graphs`);
+            mkdirSync(`./graphs`);
         } catch (e) {
             //this error is expected as it is thrown when the graphs directory esists already
         }
-        writeFileSync(`../graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.g.graph.json()));
+        try {
+            writeFileSync(`./graphs/${path.basename(inFilePath)}_graph.json`, JSON.stringify(this.g.graph.json()));
+        } catch (e) {
+            // not expected but don't crash
+        }
         graphBasedPrune(inFilePath, this.outFile, this.g.graph, this.slicingCriterion);
     }
 

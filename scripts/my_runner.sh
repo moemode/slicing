@@ -1,1 +1,0 @@
-#node slice.js --inFile ../m1prog.js --outFile ../m1out.js --lineNb 3
