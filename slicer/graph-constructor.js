@@ -294,17 +294,19 @@ var GraphConstructor = /** @class */ (function () {
             var node_1 = this.g.addNode(this.g.createNode({ loc: this.slicingCriterion }));
             this.executedBreakNodes.nodes().forEach(function (bNode) { return _this.g.addEdge(node_1, bNode); });
         }
-        else {
-            console.log("hi");
-        }
         var inFilePath = J$.smap[1].originalCodeFileName;
         try {
-            (0, fs_1.mkdirSync)("../graphs");
+            (0, fs_1.mkdirSync)("./graphs");
         }
         catch (e) {
             //this error is expected as it is thrown when the graphs directory esists already
         }
-        (0, fs_1.writeFileSync)("../graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.g.graph.json()));
+        try {
+            (0, fs_1.writeFileSync)("./graphs/".concat(path.basename(inFilePath), "_graph.json"), JSON.stringify(this.g.graph.json()));
+        }
+        catch (e) {
+            // not expected but don't crash
+        }
         (0, pruner_1.graphBasedPrune)(inFilePath, this.outFile, this.g.graph, this.slicingCriterion);
     };
     /**
