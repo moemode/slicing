@@ -20,7 +20,6 @@ const runner = require("../slicer/runner");
         TODO: Implement your method that slices the input based on the specified criteria
         */
         console.log("running slice.js for arguments: " + inFile, outFile, lineNb);
-        console.log("Invoking jalangi");
         runner.slice(inFile, outFile, lineNb);
     }
 
