@@ -21,8 +21,8 @@ function iidToLoc(iid: string): SourceLocation {
  */
 class GraphConstructor {
     /** Input Params */
-    outFile = J$.initParams["outFile"];
-    bmarkerPath = J$.initParams["bmarkerPath"];
+    outFile = Buffer.from(J$.initParams["outFile"], "base64").toString("ascii");
+    bmarkerPath =Buffer.from(J$.initParams["bmarkerPath"], "base64").toString("ascii");
     slicingCriterion: SourceLocation = SourceLocation.fromParts(
         J$.initParams["criterion-start-line"],
         J$.initParams["criterion-start-col"],

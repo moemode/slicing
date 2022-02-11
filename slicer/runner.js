@@ -25,8 +25,8 @@ var fs_1 = require("fs");
 var path = __importStar(require("path"));
 var preprocess_1 = require("./preprocess");
 var srcPath = path.resolve(__dirname, "..");
-var jalangiPath = srcPath + "/jalangi2/src/js/commands/jalangi.js";
-var analysisPath = srcPath + "/slicer/graph-constructor.js";
+var jalangiPath = path.join(srcPath, "/jalangi2/src/js/commands/jalangi.js");
+var analysisPath = path.join(srcPath, "/slicer/graph-constructor.js");
 function slice(inFile, outFile, lineNb) {
     inFile = path.resolve(inFile);
     outFile = path.resolve(outFile);
@@ -36,12 +36,12 @@ function slice(inFile, outFile, lineNb) {
     var bmarkerPath = path.join(path.dirname(inFile), path.basename(inFile, path.extname(inFile)) + "_bmarkers.json");
     (0, fs_1.writeFileSync)(bmarkerPath, JSON.stringify(breakMarkerLocations));
     // create input parameters from args ditcionary
-    var analysisParams = "--initParam outFile:" + outFile;
+    var analysisParams = "--initParam outFile:" + Buffer.from(outFile).toString("base64");
     analysisParams += " --initParam criterion-start-line:" + slicingCriterion.start.line;
     analysisParams += " --initParam criterion-start-col:" + slicingCriterion.start.column;
     analysisParams += " --initParam criterion-end-line:" + slicingCriterion.end.line;
     analysisParams += " --initParam criterion-end-col:" + slicingCriterion.end.column;
-    analysisParams += " --initParam bmarkerPath:" + bmarkerPath;
+    analysisParams += " --initParam bmarkerPath:" + Buffer.from(bmarkerPath).toString("base64");
     var stmt = "node " +
         jalangiPath +
         " " +

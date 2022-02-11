@@ -38,8 +38,8 @@ function iidToLoc(iid) {
 var GraphConstructor = /** @class */ (function () {
     function GraphConstructor() {
         /** Input Params */
-        this.outFile = J$.initParams["outFile"];
-        this.bmarkerPath = J$.initParams["bmarkerPath"];
+        this.outFile = Buffer.from(J$.initParams["outFile"], "base64").toString("ascii");
+        this.bmarkerPath = Buffer.from(J$.initParams["bmarkerPath"], "base64").toString("ascii");
         this.slicingCriterion = datatypes_1.SourceLocation.fromParts(J$.initParams["criterion-start-line"], J$.initParams["criterion-start-col"], J$.initParams["criterion-end-line"], J$.initParams["criterion-end-col"]);
         /** Static information about source program*/
         this.bmarkers = [];
