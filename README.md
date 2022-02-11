@@ -21,7 +21,7 @@ In project root run:
 foo@bar:~/slicing$ npm test
 ```
 # Slicer Structure
-![Conceptual structure of slicer](./docs/slicer-structure.svg)
+![Conceptual structure of slicer](./docs/slicer-structure.png)
 ## Contents
 | File  | Component | Description |
 | ------------- | ------------- | ------------- |
