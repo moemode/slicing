@@ -91,7 +91,7 @@ function prune(prog: string, relevantLocs: SourceLocation[], relevant_vars: stri
  * @param slicingCriterion location of criterion
  * @returns collection of nodes at slicingCriterion, and all nodes reachable from them.
  */
- function sliceNodes(graph: Core, slicingCriterion: SourceLocation): Collection {
+function sliceNodes(graph: Core, slicingCriterion: SourceLocation): Collection {
     const nodesAtCriterion = graph
         .nodes()
         .filter((node) => node.data("loc") && SourceLocation.in_between_inclusive(slicingCriterion, node.data("loc")));
@@ -109,8 +109,6 @@ function sliceLocs(nodes: Collection, slicingCriterion: SourceLocation): SourceL
     locs.push(slicingCriterion);
     return locs;
 }
-
-
 
 /**
  * Do reachability analysis on graph.

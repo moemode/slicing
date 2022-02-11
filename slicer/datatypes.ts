@@ -96,4 +96,16 @@ interface Identifiable {
     __id__: number;
 }
 
-export { Position, SourceLocation, Identifiable };
+/**
+ * If exists, remove last occurence of element from arr in place.
+ * @param arr an array potentially containing element
+ * @param element 
+ */
+function removeLast<T>(arr: T[], element: T): void {
+    const i = arr.lastIndexOf(element);
+    if(i !== -1) {
+        arr.splice(i, 1);
+    }
+}
+
+export { Position, SourceLocation, Identifiable, removeLast };

@@ -37,5 +37,6 @@
 {"inFile": "./testcases/milestone2/a4_in.js", "outFile": "./testcases/milestone2/a4_predicted_out.js", "lineNb": 8, "goldFile": "./testcases/milestone2/a4_out.js"},
 {"inFile": "./testcases/mine/isolatedCriterion_in.js", "outFile": "./testcases/mine/isolatedCriterion_predicted_out.js", "lineNb": 4, "goldFile": "./testcases/mine/isolatedCriterion_out.js"},
 {"inFile": "./testcases/mine/scriptLocalParams_in.js","outFile": "./testcases/mine/scriptLocalParams_predicted_out.js","lineNb": 5,"goldFile": "./testcases/mine/scriptLocalParams_out.js"},
-{"inFile": "./testcases/mine/break_fail2_in.js", "outFile": "./testcases/mine/break_fail2_predicted_out.js", "lineNb": 6, "goldFile": "./testcases/mine/break_fail2_out.js"}
+{"inFile": "./testcases/mine/break_fail2_in.js", "outFile": "./testcases/mine/break_fail2_predicted_out.js", "lineNb": 6, "goldFile": "./testcases/mine/break_fail2_out.js"},
+{"inFile": "./testcases/mine/objectDoubleRead_in.js", "outFile": "./testcases/mine/objectDoubleRead_predicted_out.js", "lineNb": 5, "goldFile": "./testcases/mine/objectDoubleRead_out.js"}
 ]

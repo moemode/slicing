@@ -4,5 +4,5 @@
         "outFile": "./testcases/mine/sliceOnSwitch_predicted_out.js",
         "lineNb": 5,
         "goldFile": "./testcases/mine/sliceOnSwitch_out.js"
-    }       
+    }
 ]

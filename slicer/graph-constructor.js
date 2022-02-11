@@ -151,7 +151,7 @@ var GraphConstructor = /** @class */ (function () {
     GraphConstructor.prototype.putField = function (_iid, base, offset, val, _isComputed, _isOpAssign) {
         this.makeIdentifiable(val);
         // TOdo: BUG only remove last one
-        this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
+        (0, datatypes_1.removeLast)(this.readOnlyObjects, base.__id__);
         //this always succeeds because typoef base === "object"
         if (this.makeIdentifiable(base)) {
             if (this.lastPut[base.__id__] === undefined) {
@@ -166,8 +166,7 @@ var GraphConstructor = /** @class */ (function () {
      * @changes-state readOnlyObjects
      */
     GraphConstructor.prototype.getField = function (_iid, base, offset, val, _isComputed, _isOpAssign, _isMethodCall) {
-        // TOdo: BUG only remove last one
-        this.readOnlyObjects = this.readOnlyObjects.filter(function (objectId) { return objectId != base.__id__; });
+        (0, datatypes_1.removeLast)(this.readOnlyObjects, base.__id__);
         if (this.makeIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
@@ -293,7 +292,6 @@ var GraphConstructor = /** @class */ (function () {
      */
     GraphConstructor.prototype.endExecution = function () {
         var _this = this;
-        //this.graph.remove(`node[id=${this.currentNode.id}]`);
         if (this.criterionOnce) {
             var node_1 = this.g.addNode(this.g.createNode({ loc: this.slicingCriterion }));
             if (datatypes_1.SourceLocation.in_between_inclusive(this.slicingCriterion, node_1.data().loc)) {

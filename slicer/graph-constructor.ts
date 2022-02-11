@@ -1,6 +1,6 @@
 import cytoscape = require("cytoscape");
 import { Collection, ElementDefinition } from "cytoscape";
-import { Position, SourceLocation, Identifiable } from "./datatypes";
+import { Position, SourceLocation, Identifiable, removeLast } from "./datatypes";
 import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { graphBasedPrune } from "./pruner";
 import { ControlDependency, Test, controlDependencies, cDepForLoc } from "./control-deps";
@@ -156,7 +156,7 @@ class GraphConstructor {
     ): void {
         this.makeIdentifiable(val);
         // TOdo: BUG only remove last one
-        this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
+        removeLast(this.readOnlyObjects, base.__id__);
         //this always succeeds because typoef base === "object"
         if (this.makeIdentifiable(base)) {
             if (this.lastPut[base.__id__] === undefined) {
@@ -180,8 +180,7 @@ class GraphConstructor {
         _isOpAssign: boolean,
         _isMethodCall: boolean
     ): void {
-        // TOdo: BUG only remove last one
-        this.readOnlyObjects = this.readOnlyObjects.filter((objectId) => objectId != base.__id__);
+        removeLast(this.readOnlyObjects, base.__id__);
         if (this.makeIdentifiable(val)) {
             this.readOnlyObjects.push(val.__id__);
         }
@@ -309,7 +308,6 @@ class GraphConstructor {
      * and the source-mapped slicing criterion to the pruning stage.
      */
     endExecution(): void {
-        //this.graph.remove(`node[id=${this.currentNode.id}]`);
         if (this.criterionOnce) {
             const node = this.g.addNode(this.g.createNode({ loc: this.slicingCriterion }));
             if (SourceLocation.in_between_inclusive(this.slicingCriterion, node.data().loc)) {
