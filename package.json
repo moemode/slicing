@@ -10,7 +10,6 @@
     "prettier-format": "prettier --config .prettierrc 'slicer/**/*.ts' --write"
   },
   "author": "Moritz Pfeffer",
-  "license": "ISC",
   "dependencies": {
     "acorn": "8.6.0",
     "argparse": "2.0.1",
